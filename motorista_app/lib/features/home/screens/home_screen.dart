@@ -187,8 +187,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           label: 'Registrar Abastecimento',
                           icon: Icons.local_gas_station_rounded,
                           color: Colors.teal,
-                          onPressed: () => context
-                              .push('/jornada/abastecimento/${_jornada!.id}'),
+                          onPressed: () => context.push(
+                            '/jornada/abastecimento/${_jornada!.id}',
+                            extra: {'kmAtual': _jornada!.km?.inicial},
+                          ),
                         ),
                         const SizedBox(height: 8),
                         AppButton(
