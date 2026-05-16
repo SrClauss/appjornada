@@ -1,8 +1,24 @@
-import { differenceInDays, parseISO } from 'date-fns'
+import { differenceInDays, format, parseISO } from 'date-fns'
 
 export function toShortDate(date?: string): string {
   if (!date) return '-'
-  return new Intl.DateTimeFormat('pt-BR').format(new Date(date))
+  return format(parseISO(date), 'dd/MM/yyyy')
+}
+
+export function toShortDateTime(value?: string): string {
+  if (!value) return '-'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(parsed)
+}
+
+export function toShortTime(value?: string): string {
+  if (!value) return '-'
+  const clean = value.slice(0, 8)
+  return clean || '-'
 }
 
 export function cnhStatus(vencimento?: string): 'VALIDA' | 'ATENCAO' | 'EXPIRADA' | 'SEM_DADO' {

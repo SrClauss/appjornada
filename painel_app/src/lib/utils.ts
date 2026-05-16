@@ -16,3 +16,10 @@ export function formatHoursFromSeconds(totalSeconds?: number): string {
   const hours = totalSeconds / 3600
   return `${hours.toFixed(1)}h`
 }
+
+export function parseOptionalNumber(value: string): number | undefined {
+  const normalized = value.trim().replace(',', '.')
+  if (!normalized) return undefined
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
