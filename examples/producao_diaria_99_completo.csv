@@ -1,0 +1,51 @@
+﻿ID da Corrida,Nome do Motorista,Centro de Custo,Data e Hora de Solicitação,Origem,Destino,Distância Percorrida (km),Duração da Corrida (min),Tarifa Bruta (R$),Forma de Pagamento,Taxa de Intermediação (R$),Descontos / Campanhas (R$),Valor Líquido / Repasse (R$),Status da Corrida
+99_874956253,Carlos Silva,VEICULO_02,2026-05-15 09:52:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",5.0,14,24.1,Cartao_Maquininha,-5.69,0.0,18.41,Concluída
+99_874392136,Ana Oliveira,VEICULO_03,2026-05-15 12:53:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",18.4,41,64.38,Voucher_App,-9.18,0.0,55.2,Concluída
+99_874287241,Ana Oliveira,VEICULO_03,2026-05-15 08:03:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",14.8,31,52.46,Voucher_App,-9.26,0.0,43.2,Concluída
+99_874704596,Claus Miranda,VEICULO_01,2026-05-15 08:03:00,"Av. José Tozzi, 1200 - São Mateus, ES","Bairro Guriri, São Mateus - ES",13.9,27,48.88,Dinheiro,-9.19,3.5,43.19,Concluída
+99_874481913,Ana Oliveira,VEICULO_03,2026-05-15 17:31:00,"Av. José Tozzi, 1200 - São Mateus, ES","Bairro Guriri, São Mateus - ES",16.1,28,54.12,Cartao_Maquininha,-11.67,3.5,45.95,Concluída
+99_874799287,Claus Miranda,VEICULO_01,2026-05-15 14:44:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",20.4,40,68.38,Cartao_Maquininha,-14.99,0.0,53.39,Concluída
+99_874745414,Ana Oliveira,VEICULO_03,2026-05-15 17:38:00,"Bairro Boa Vista, São Mateus - ES","Rodoviária de São Mateus, ES",15.9,32,55.28,Voucher_App,-10.3,0.0,44.98,Concluída
+99_874587575,Marcos Souza,VEICULO_04,2026-05-15 16:26:00,"Guriri Beach, São Mateus - ES","Av. José Tozzi, São Mateus - ES",18.6,33,61.62,Cartao_Maquininha,-11.54,3.5,53.58,Concluída
+99_874958179,Marcos Souza,VEICULO_04,2026-05-15 14:52:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",0.0,0,6.0,Dinheiro,-1.2,0.0,4.8,Cancelada_Pelo_Passageiro
+99_874577538,Ana Oliveira,VEICULO_03,2026-05-15 16:30:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",18.1,29,58.92,Cartao_Maquininha,-9.84,0.0,49.08,Concluída
+99_874916232,Carlos Silva,VEICULO_02,2026-05-15 06:10:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",15.9,31,54.88,Cartao_Maquininha,-8.57,3.5,49.81,Concluída
+99_874239816,Carlos Silva,VEICULO_02,2026-05-15 08:09:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",18.0,40,63.1,Cartao_Maquininha,-9.18,0.0,53.92,Concluída
+99_874879779,Ana Oliveira,VEICULO_03,2026-05-15 13:41:00,"Bairro Boa Vista, São Mateus - ES","Rodoviária de São Mateus, ES",14.2,34,52.34,Cartao_Maquininha,-9.78,3.5,46.06,Concluída
+99_874387936,Marcos Souza,VEICULO_04,2026-05-15 14:21:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",17.0,39,60.5,Cartao_Maquininha,-13.57,3.5,50.43,Concluída
+99_874342495,Claus Miranda,VEICULO_01,2026-05-15 08:26:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",7.6,16,30.62,Cartao_Maquininha,-7.29,0.0,23.33,Concluída
+99_874973349,Carlos Silva,VEICULO_02,2026-05-15 07:08:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",6.1,14,26.52,Cartao_Maquininha,-5.3,0.0,21.22,Concluída
+99_874890075,Marcos Souza,VEICULO_04,2026-05-15 12:05:00,"Guriri Beach, São Mateus - ES","Av. José Tozzi, São Mateus - ES",20.9,35,67.48,Cartao_Maquininha,-12.27,0.0,55.21,Concluída
+99_874557007,Marcos Souza,VEICULO_04,2026-05-15 09:49:00,"Guriri Beach, São Mateus - ES","Av. José Tozzi, São Mateus - ES",16.9,37,59.48,Cartao_Maquininha,-14.2,0.0,45.28,Concluída
+99_874513160,Claus Miranda,VEICULO_01,2026-05-15 08:15:00,"Bairro Boa Vista, São Mateus - ES","Rodoviária de São Mateus, ES",0.0,0,6.0,Voucher_App,-1.2,0.0,4.8,Cancelada_Pelo_Passageiro
+99_874576786,Claus Miranda,VEICULO_01,2026-05-15 11:40:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",10.5,24,40.2,Voucher_App,-5.85,0.0,34.35,Concluída
+99_874885408,Ana Oliveira,VEICULO_03,2026-05-15 14:06:00,"Bairro Boa Vista, São Mateus - ES","Rodoviária de São Mateus, ES",7.4,20,31.78,Voucher_App,-5.33,0.0,26.45,Concluída
+99_874751517,Ana Oliveira,VEICULO_03,2026-05-15 09:29:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",14.9,32,53.08,Dinheiro,-11.84,0.0,41.24,Concluída
+99_874735324,Carlos Silva,VEICULO_02,2026-05-15 12:22:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",11.4,20,40.58,Voucher_App,-7.76,0.0,32.82,Concluída
+99_874179688,Carlos Silva,VEICULO_02,2026-05-15 12:51:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",4.0,9,19.9,Dinheiro,-4.05,0.0,15.85,Concluída
+99_874658623,Claus Miranda,VEICULO_01,2026-05-15 06:47:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",17.4,42,62.58,Cartao_Maquininha,-14.31,3.5,51.77,Concluída
+99_874766459,Ana Oliveira,VEICULO_03,2026-05-15 13:28:00,"Av. José Tozzi, 1200 - São Mateus, ES","Bairro Guriri, São Mateus - ES",12.0,25,43.9,Cartao_Maquininha,-10.12,0.0,33.78,Concluída
+99_874556732,Carlos Silva,VEICULO_02,2026-05-15 14:20:00,"Bairro Boa Vista, São Mateus - ES","Rodoviária de São Mateus, ES",5.4,13,24.58,Voucher_App,-5.11,3.5,22.97,Concluída
+99_874452737,Ana Oliveira,VEICULO_03,2026-05-15 15:48:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",0.0,0,6.0,Voucher_App,-1.2,0.0,4.8,Cancelada_Pelo_Passageiro
+99_874300337,Marcos Souza,VEICULO_04,2026-05-15 10:47:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",0.0,0,0.0,Voucher_App,0.0,0.0,0.0,Cancelada_Pelo_Passageiro
+99_874931450,Carlos Silva,VEICULO_02,2026-05-15 14:27:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",10.0,21,37.9,Voucher_App,-8.19,3.5,33.21,Concluída
+99_874546173,Claus Miranda,VEICULO_01,2026-05-15 14:09:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",0.0,0,6.0,Voucher_App,-1.2,0.0,4.8,Cancelada_Pelo_Passageiro
+99_874878967,Ana Oliveira,VEICULO_03,2026-05-15 11:28:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",11.0,21,40.1,Dinheiro,-6.15,0.0,33.95,Concluída
+99_874205409,Carlos Silva,VEICULO_02,2026-05-15 16:16:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",16.7,33,57.44,Dinheiro,-14.21,3.5,46.73,Concluída
+99_874232413,Ana Oliveira,VEICULO_03,2026-05-15 07:00:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",0.0,0,6.0,Cartao_Maquininha,-1.2,0.0,4.8,Cancelada_Pelo_Passageiro
+99_874219629,Claus Miranda,VEICULO_01,2026-05-15 10:23:00,"Av. José Tozzi, 1200 - São Mateus, ES","Bairro Guriri, São Mateus - ES",13.4,28,48.18,Voucher_App,-8.55,0.0,39.63,Concluída
+99_874360247,Marcos Souza,VEICULO_04,2026-05-15 11:16:00,"Bairro Boa Vista, São Mateus - ES","Rodoviária de São Mateus, ES",3.3,8,17.96,Voucher_App,-2.81,3.5,18.65,Concluída
+99_874420214,Marcos Souza,VEICULO_04,2026-05-15 11:09:00,"Guriri Beach, São Mateus - ES","Av. José Tozzi, São Mateus - ES",0.0,0,6.0,Voucher_App,-1.2,0.0,4.8,Cancelada_Pelo_Passageiro
+99_874264136,Claus Miranda,VEICULO_01,2026-05-15 15:30:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",14.4,25,49.18,Voucher_App,-7.73,0.0,41.45,Concluída
+99_874174637,Marcos Souza,VEICULO_04,2026-05-15 10:54:00,"Bairro Boa Vista, São Mateus - ES","Rodoviária de São Mateus, ES",15.7,29,53.64,Dinheiro,-8.88,3.5,48.26,Concluída
+99_874378535,Ana Oliveira,VEICULO_03,2026-05-15 09:55:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",13.7,30,49.64,Dinheiro,-9.27,3.5,43.87,Concluída
+99_874822131,Claus Miranda,VEICULO_01,2026-05-15 08:12:00,"Av. José Tozzi, 1200 - São Mateus, ES","Bairro Guriri, São Mateus - ES",5.2,14,24.54,Voucher_App,-5.92,0.0,18.62,Concluída
+99_874195763,Marcos Souza,VEICULO_04,2026-05-15 11:35:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",0.0,0,6.0,Dinheiro,-1.2,0.0,4.8,Cancelada_Pelo_Passageiro
+99_874290305,Claus Miranda,VEICULO_01,2026-05-15 13:37:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",18.4,37,62.78,Cartao_Maquininha,-12.04,3.5,54.24,Concluída
+99_874827369,Marcos Souza,VEICULO_04,2026-05-15 11:42:00,"Av. José Tozzi, 1200 - São Mateus, ES","Bairro Guriri, São Mateus - ES",11.3,23,41.56,Cartao_Maquininha,-8.88,0.0,32.68,Concluída
+99_874438977,Ana Oliveira,VEICULO_03,2026-05-15 11:27:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",20.9,48,72.68,Voucher_App,-10.47,0.0,62.21,Concluída
+99_874893188,Marcos Souza,VEICULO_04,2026-05-15 09:17:00,"Guriri Beach, São Mateus - ES","Av. José Tozzi, São Mateus - ES",0.0,0,6.0,Cartao_Maquininha,-1.2,0.0,4.8,Cancelada_Pelo_Passageiro
+99_874130271,Marcos Souza,VEICULO_04,2026-05-15 14:21:00,"Av. José Tozzi, 1200 - São Mateus, ES","Bairro Guriri, São Mateus - ES",5.9,14,26.08,Dinheiro,-4.91,3.5,24.67,Concluída
+99_874779172,Carlos Silva,VEICULO_02,2026-05-15 13:57:00,"R. Dr. Arlindo Sodré, 450 - São Mateus, ES","Hospital Roberto Silvares, São Mateus - ES",12.9,25,45.88,Dinheiro,-7.56,0.0,38.32,Concluída
+99_874678043,Marcos Souza,VEICULO_04,2026-05-15 10:14:00,"Centro, São Mateus - ES","Bairro Carapina, São Mateus - ES",7.7,20,32.44,Dinheiro,-7.52,0.0,24.92,Concluída
+99_874925981,Marcos Souza,VEICULO_04,2026-05-15 13:09:00,"Rod. Othovarino Duarte Santos, 500 - São Mateus, ES","Centro, São Mateus - ES",20.4,39,67.98,Voucher_App,-15.98,0.0,52.0,Concluída
