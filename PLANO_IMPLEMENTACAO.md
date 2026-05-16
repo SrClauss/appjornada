@@ -4,6 +4,13 @@
 > **API:** FastAPI + MongoDB (já operacional)  
 > **Clientes:** App Flutter (motoristas) + Painel React (administração)
 
+## Repositórios de Referência
+
+| Projeto | Repositório GitHub | Deploy do Protótipo |
+|---|---|---|
+| App do Motorista (Flutter) | [SrClauss/app-jornada](https://github.com/SrClauss/app-jornada) | [app-jornada.vercel.app](https://app-jornada.vercel.app) |
+| Painel Administrativo (React) | [SrClauss/app-jornada-painel-d](https://github.com/SrClauss/app-jornada-painel-d) | [app-jornada-alap.vercel.app](https://app-jornada-alap.vercel.app) |
+
 ---
 
 ## Contexto do Sistema
@@ -32,18 +39,100 @@ username=<email>&password=<senha_ou_pin>
 
 ---
 
+## Visão Geral das 20 Fases
+
+| # | Título | Domínio |
+|---|---|---|
+| 1 | Infraestrutura Comum e CORS | Ambos |
+| 2 | Flutter — Estrutura do Projeto | Flutter |
+| 3 | Flutter — Cliente HTTP e Modelos | Flutter |
+| 4 | Flutter — Autenticação e Tela de Login | Flutter |
+| 5 | Flutter — Tela Home | Flutter |
+| 6 | Flutter — Abrir Jornada | Flutter |
+| 7 | Flutter — Jornada Ativa (Pausar / Retomar) | Flutter |
+| 8 | Flutter — Encerrar Jornada | Flutter |
+| 9 | Flutter — Abastecimento | Flutter |
+| 10 | Flutter — Upload de Arquivos | Flutter |
+| 11 | Flutter — Rastreamento GPS em Background | Flutter |
+| 12 | Flutter — Histórico de Jornadas | Flutter |
+| 13 | Flutter — Perfil do Motorista | Flutter |
+| 14 | React — Fundação do Projeto | React |
+| 15 | React — Autenticação e Roteamento | React |
+| 16 | React — Dashboard | React |
+| 17 | React — Gestão de Motoristas | React |
+| 18 | React — Jornadas | React |
+| 19 | React — Veículos, Manutenções e Metas | React |
+| 20 | React — Relatórios | React |
+
+---
+
+---
+
+# Fase 1 — Infraestrutura Comum e CORS
+
+**Domínio:** Ambos os clientes  
+**Pré-requisito:** nenhum  
+**Entregável:** ambiente de desenvolvimento funcional com API acessível
+
+### 1.1 CORS no Backend
+
+Verificar `backend/app/main.py` e garantir que `CORSMiddleware` esteja configurado:
+
+```python
+# Origens a liberar
+# Desenvolvimento: http://localhost:5173 (Vite) e http://localhost:3000
+# Produção: domínio do painel React e bundle do Flutter (origem nativa)
+```
+
+### 1.2 Variáveis de Ambiente
+
+**Flutter** — via `--dart-define` (ou pacote `envied` para type-safety):
+```
+API_BASE_URL=https://api.suaempresa.com
+```
+
+**React** — `.env.local` (nunca commitar valores reais):
+```
+VITE_API_BASE_URL=https://api.suaempresa.com
+```
+
+### 1.3 Tratamento de Erros HTTP Padrão
+
+Ambos os clientes devem mapear os seguintes status de forma centralizada:
+
+| HTTP | Ação |
+|---|---|
+| `401` | Limpar token + redirecionar para login |
+| `403` | Exibir mensagem "Sem permissão" |
+| `409` | Exibir mensagem de conflito (ex: "Jornada já aberta hoje") |
+| `422` | Exibir erros de validação por campo |
+| `500` | Toast genérico de erro do servidor |
+
+### 1.4 Segurança
+
+- **Flutter:** usar `flutter_secure_storage` (keystore da plataforma — nunca `SharedPreferences` para tokens)
+- **React:** em produção, preferir `httpOnly cookie` ao `localStorage` para mitigar XSS; adicionar `Content-Security-Policy` no servidor
+- O PIN de 4 dígitos é enviado como `password` no fluxo OAuth2 — **HTTPS obrigatório** em qualquer ambiente além do desenvolvimento local
+
+---
+
 ---
 
 # Parte 1 — App Flutter (Motoristas)
 
-O protótipo de referência é um PWA (TypeScript/React em `https://app-jornada.vercel.app`).  
-O Flutter substituirá completamente essa implementação.
+> **Repositório do protótipo:** [github.com/SrClauss/app-jornada](https://github.com/SrClauss/app-jornada)  
+> **Deploy do protótipo:** [app-jornada.vercel.app](https://app-jornada.vercel.app)  
+> **Stack atual do protótipo:** PWA (TypeScript + React + Vite + shadcn/ui + Tailwind)  
+> O Flutter substituirá completamente essa implementação.
 
 ---
 
-## Fase 1 — Estrutura do Projeto
+# Fase 2 — Flutter — Estrutura do Projeto
 
-### Organização de pastas
+**Pré-requisito:** Flutter SDK instalado  
+**Entregável:** projeto criado, dependências instaladas, estrutura de pastas definida
+
+### 2.1 Organização de Pastas
 
 ```
 lib/
@@ -91,7 +180,7 @@ lib/
       app_button.dart
       app_text_field.dart
       loading_overlay.dart
-    models/                   # DTOs gerados ou escritos à mão
+    models/
       user_model.dart
       jornada_model.dart
       pausa_model.dart
@@ -102,7 +191,7 @@ lib/
       validators.dart
 ```
 
-### Dependências `pubspec.yaml`
+### 2.2 Dependências `pubspec.yaml`
 
 ```yaml
 dependencies:
@@ -118,240 +207,7 @@ dependencies:
   cached_network_image: ^3.3.0       # Cache de imagens de perfil
 ```
 
----
-
-## Fase 2 — Camada de Autenticação
-
-### `api_client.dart`
-
-Instância única do Dio configurada com:
-- `baseUrl` via variável de ambiente (`--dart-define=API_BASE_URL=...`)
-- `connectTimeout` de 10s, `receiveTimeout` de 30s
-- **Interceptor de request:** injeta `Authorization: Bearer <token>` em todas as requisições
-- **Interceptor de response:** detecta `401` → limpa token → navega para `/login`
-
-### `auth_service.dart`
-
-```dart
-// Login → POST /auth/login (form-urlencoded)
-Future<void> login(String email, String pin)
-
-// Logout → limpa token do secure storage
-Future<void> logout()
-
-// Recupera dados do usuário logado → GET /auth/me
-Future<UserModel> getMe()
-```
-
-### Tela de Login
-
-Fluxo visual baseado no PRD do protótipo:
-1. Logo do app
-2. Campo e-mail
-3. **PIN Pad customizado** (4 dígitos, layout 3×4 estilo bancário, botões com 60px mínimo)
-4. Botão "Entrar"
-
-Ao confirmar: `AuthService.login(email, pin)` → salva token com `flutter_secure_storage` → navega para `/home`.
-
-**Persistência de sessão:** ao inicializar o app (`main.dart`), verificar se token existe e válido via `GET /auth/me`. Se válido → Home; caso contrário → Login.
-
----
-
-## Fase 3 — Tela Home
-
-Endpoint: `GET /jornadas/aberta`
-
-A tela adapta seu conteúdo ao estado retornado:
-
-| Estado | Ação principal | Ações secundárias |
-|---|---|---|
-| `null` (sem jornada) | Botão "Abrir Jornada" | — |
-| `ABERTA` / `EM_ANDAMENTO` | Botão "Pausar" + Timer rodando | "Registrar Abastecimento", "Encerrar" |
-| `EM_PAUSA` | Botão "Retomar" | "Encerrar" |
-
-Cards informativos exibidos sempre:
-- Faturamento acumulado do dia (`faturamento.total_dia`)
-- Saldo de horas CLT do dia (`saldo_horas_dia`)
-- Km rodados no dia (`km.rodados`)
-
----
-
-## Fase 4 — Módulo Jornada
-
-### 4.1 Abrir Jornada
-
-**Endpoint:** `POST /jornadas/?pin={pin}&localizacao_lat={lat}&localizacao_lon={lon}`
-
-**Body JSON:**
-```json
-{
-  "motorista_id": "<id do usuário logado>",
-  "veiculo_id": "<selecionado pelo motorista>",
-  "km": { "inicial": 12500.0 }
-}
-```
-
-**Fluxo da tela:**
-1. Busca lista de veículos disponíveis → `GET /veiculos/`
-2. Motorista seleciona veículo (dropdown)
-3. Informa km inicial (campo numérico)
-4. Captura foto do hodômetro → `POST /uploads/` → retorna URL → inclui no campo `fotos.km_inicial_url`
-5. Solicita GPS do dispositivo → preenche `localizacao_lat` e `localizacao_lon`
-6. Confirma com PIN pad (4 dígitos) → chama endpoint
-
-### 4.2 Pausar Jornada
-
-**Endpoint:** `POST /jornadas/{id}/pausas?tipo={TIPO}`
-
-Tipos disponíveis:
-- `PAUSA_MOTORISTA` — pausa livre
-- `ALMOCO` — pausa para almoço
-- `ABASTECIMENTO` — registra pausa para abastecer
-
-Body opcional:
-```json
-{ "localizacao_inicio": { "lat": -23.55, "lon": -46.63 } }
-```
-
-**Resposta:** retorna a `Jornada` atualizada com status `EM_PAUSA`. Salvar o `id` da pausa criada para o fechamento.
-
-### 4.3 Retomar Jornada
-
-**Endpoint:** `PATCH /jornadas/{id}/pausas/{pausa_id}/fechar`
-
-Body opcional:
-```json
-{ "localizacao_fim": { "lat": -23.55, "lon": -46.63 } }
-```
-
-### 4.4 Encerrar Jornada
-
-**Endpoint:** `PATCH /jornadas/{id}/fechar`
-
-Query params:
-```
-km_final=12750
-faturamento_uber=185.50
-faturamento_99=67.00
-faturamento_outros=0
-foto_km_final_url=<url_do_upload>
-localizacao_lat=<lat>
-localizacao_lon=<lon>
-observacoes=<opcional>
-```
-
-**Fluxo da tela:**
-1. Campo km final (obrigatório)
-2. Foto do hodômetro final → `POST /uploads/`
-3. Campos de faturamento: Uber, 99, Outros
-4. Campo de observações (opcional)
-5. Botão "Encerrar Jornada" → confirmação via `AlertDialog`
-
-### 4.5 Registrar Abastecimento
-
-**Endpoint:** `POST /jornadas/{id}/abastecimentos`
-
-Body JSON:
-```json
-{
-  "km": 12600,
-  "valor_gasolina": 80.00,
-  "valor_gnv": 0,
-  "valor_etanol": 0,
-  "foto_comprovante_url": "<url_do_upload>"
-}
-```
-
----
-
-## Fase 5 — Rastreamento GPS em Background
-
-Durante jornada com status `ABERTA` ou `EM_ANDAMENTO`, o app envia localização periodicamente.
-
-**Endpoint:** `POST /gps/`
-
-```json
-{
-  "motorista_id": "<id>",
-  "jornada_id": "<id da jornada ativa>",
-  "lat": -23.5505,
-  "lon": -46.6333,
-  "timestamp": "2026-05-16T14:30:00Z"
-}
-```
-
-**Implementação:**
-- Usar `flutter_background_service` para manter o serviço ativo com tela desligada
-- Intervalo: **15 segundos** entre pontos
-- **Pausar envio** quando `status == EM_PAUSA`
-- **Parar serviço** quando jornada for encerrada
-- Solicitar permissão `ACCESS_BACKGROUND_LOCATION` (Android) e `Always` (iOS) na abertura da jornada
-
----
-
-## Fase 6 — Histórico de Jornadas
-
-**Endpoint:** `GET /jornadas/?skip=0&limit=20`
-
-- Lista paginada, ordenada por data decrescente
-- Motorista autenticado vê apenas as suas próprias jornadas (filtro automático da API)
-- Infinite scroll ou botão "carregar mais" com `skip` incremental
-- **Pull-to-refresh** para recarregar do início
-
-**Tela de detalhe** (bottom sheet ou nova rota):
-- Horário início/fim e duração total
-- Km inicial, final e rodados
-- Faturamento breakdown: Uber / 99 / Outros / Total
-- Saldo horas CLT do dia
-- Lista de pausas (tipo + duração cada)
-- Lista de abastecimentos (km + valores)
-
----
-
-## Fase 7 — Perfil do Motorista
-
-**Endpoint:** `GET /auth/me`
-
-O campo `perfil_motorista` do retorno contém:
-- CPF, telefone
-- `cnh.vencimento` — exibir badge vermelho se data < hoje
-- `dados_bancarios` — banco, agência, conta, CNPJ
-
-**Comportamento:**
-- CNH expirada: banner vermelho no topo da tela, mas não bloqueia uso
-- Botão "Sair" → `AuthService.logout()` → navega para `/login`
-
-**Edição de dados:** `PATCH /users/{id}` (somente campos permitidos para role MOTORISTA)
-
----
-
-## Fase 8 — Upload de Arquivos
-
-**Endpoint:** `POST /uploads/` com `multipart/form-data`
-
-Wrapper reutilizável:
-
-```dart
-class UploadService {
-  Future<String> uploadFoto(File file) async {
-    // Retorna a URL pública do arquivo salvo
-  }
-}
-```
-
-Utilizações:
-| Contexto | Campo destino na jornada |
-|---|---|
-| Hodômetro inicial | `fotos.km_inicial_url` |
-| Hodômetro final | `fotos.km_final_url` |
-| Comprovante Uber | `faturamento.comprovante_uber_url` |
-| Comprovante 99 | `faturamento.comprovante_99_url` |
-| Comprovante abastecimento | `abastecimentos[i].foto_comprovante_url` |
-| Foto CNH | `perfil_motorista.cnh.imagem_url` |
-
----
-
-## Diagrama de Navegação Flutter
+### 2.3 Diagrama de Navegação
 
 ```
 Splash
@@ -374,27 +230,355 @@ Splash
 
 ---
 
+# Fase 3 — Flutter — Cliente HTTP e Modelos
+
+**Pré-requisito:** Fase 2  
+**Entregável:** `api_client.dart` funcional e modelos Dart correspondentes aos schemas da API
+
+### 3.1 `api_client.dart`
+
+Instância única do Dio configurada com:
+- `baseUrl` via variável de ambiente (`--dart-define=API_BASE_URL=...`)
+- `connectTimeout` de 10s, `receiveTimeout` de 30s
+- **Interceptor de request:** injeta `Authorization: Bearer <token>` em todas as requisições
+- **Interceptor de response:** detecta `401` → limpa token → navega para `/login`; mapeia demais status conforme Fase 1.3
+
+### 3.2 `endpoints.dart`
+
+```dart
+class Endpoints {
+  static const login           = '/auth/login';
+  static const me              = '/auth/me';
+  static const jornadas        = '/jornadas';
+  static const jornadaAberta   = '/jornadas/aberta';
+  static const veiculos        = '/veiculos';
+  static const gps             = '/gps';
+  static const uploads         = '/uploads';
+  static const users           = '/users';
+}
+```
+
+### 3.3 Modelos Dart
+
+Criar classes com `fromJson` / `toJson` para cada entidade da API:
+
+| Modelo | Campos principais |
+|---|---|
+| `UserModel` | `id`, `nome`, `email`, `role`, `perfilMotorista` |
+| `JornadaModel` | `id`, `status`, `data`, `km`, `horario`, `faturamento`, `pausas`, `abastecimentos` |
+| `PausaModel` | `id`, `tipo`, `inicio`, `fim`, `duracaoSegundos` |
+| `AbastecimentoModel` | `id`, `km`, `valorGasolina`, `valorGnv`, `valorEtanol`, `fotoComprovante` |
+| `VeiculoModel` | `idPlaca`, `modelo`, `ano`, `status` |
+
+---
+
+# Fase 4 — Flutter — Autenticação e Tela de Login
+
+**Pré-requisito:** Fase 3  
+**Entregável:** fluxo de login completo com persistência de sessão
+
+### 4.1 `auth_service.dart`
+
+```dart
+// Login → POST /auth/login (form-urlencoded)
+Future<void> login(String email, String pin)
+
+// Logout → limpa token do secure storage
+Future<void> logout()
+
+// Recupera dados do usuário logado → GET /auth/me
+Future<UserModel> getMe()
+```
+
+### 4.2 `token_storage.dart`
+
+Wrapper sobre `flutter_secure_storage`:
+- `saveToken(String token)`
+- `readToken() → Future<String?>`
+- `deleteToken()`
+
+### 4.3 Tela de Login
+
+Fluxo visual baseado no PRD do protótipo:
+1. Logo do app
+2. Campo e-mail
+3. **PIN Pad customizado** — widget `PinPad` com layout 3×4 estilo bancário, botões com 60px mínimo, feedback visual por dígito preenchido
+4. Botão "Entrar"
+
+Ao confirmar: `AuthService.login(email, pin)` → salva token → navega para `/home`.
+
+### 4.4 Persistência de Sessão
+
+Em `main.dart`, antes de renderizar a tela inicial:
+1. `TokenStorage.readToken()` — se nulo, redireciona para `/login`
+2. `AuthService.getMe()` — se retornar 401, redireciona para `/login`; se OK, prossegue para `/home`
+
+---
+
+# Fase 5 — Flutter — Tela Home
+
+**Pré-requisito:** Fase 4  
+**Entregável:** tela Home adaptativa ao estado da jornada
+
+**Endpoint:** `GET /jornadas/aberta`
+
+A tela adapta seu conteúdo ao estado retornado:
+
+| Estado | Ação principal | Ações secundárias |
+|---|---|---|
+| `null` (sem jornada) | Botão "Abrir Jornada" | — |
+| `ABERTA` / `EM_ANDAMENTO` | Timer rodando + Botão "Pausar" | "Registrar Abastecimento", "Encerrar" |
+| `EM_PAUSA` | Botão "Retomar" | "Encerrar" |
+
+Cards informativos exibidos em qualquer estado:
+- Faturamento acumulado do dia (`faturamento.total_dia`)
+- Saldo de horas CLT do dia (`saldo_horas_dia`)
+- Km rodados no dia (`km.rodados`)
+
+O timer de jornada ativa é calculado localmente a partir de `horario.inicio` e atualizado a cada segundo com `Timer.periodic`.
+
+---
+
+# Fase 6 — Flutter — Abrir Jornada
+
+**Pré-requisito:** Fase 5  
+**Entregável:** tela de abertura de jornada integrada à API
+
+**Endpoint:** `POST /jornadas/?pin={pin}&localizacao_lat={lat}&localizacao_lon={lon}`
+
+**Body JSON:**
+```json
+{
+  "motorista_id": "<id do usuário logado>",
+  "veiculo_id": "<selecionado pelo motorista>",
+  "km": { "inicial": 12500.0 }
+}
+```
+
+**Fluxo da tela:**
+1. Carrega veículos disponíveis → `GET /veiculos/` → exibe em dropdown
+2. Motorista seleciona veículo
+3. Informa km inicial (campo numérico, obrigatório)
+4. Captura foto do hodômetro via `image_picker` → `POST /uploads/` → obtém URL → inclui em `fotos.km_inicial_url`
+5. Solicita GPS do dispositivo (`geolocator`) → preenche query params `localizacao_lat` e `localizacao_lon`
+6. Confirma com PIN pad → chama endpoint
+7. Em caso de sucesso: navega para `JornadaAtivaScreen`; em caso de `409`: exibe alerta "Jornada já aberta hoje"
+
+---
+
+# Fase 7 — Flutter — Jornada Ativa (Pausar / Retomar)
+
+**Pré-requisito:** Fase 6  
+**Entregável:** controles de pausa e retomada funcionais na tela de jornada ativa
+
+### 7.1 Pausar
+
+**Endpoint:** `POST /jornadas/{id}/pausas?tipo={TIPO}`
+
+Tipos disponíveis:
+- `PAUSA_MOTORISTA` — pausa livre
+- `ALMOCO` — pausa para almoço
+- `ABASTECIMENTO` — pausa para abastecer
+
+**Fluxo:**
+1. Botão "Pausar" → abre `AlertDialog` com seleção de tipo
+2. Obtém GPS atual (opcional)
+3. Chama endpoint com `tipo` e `localizacao_inicio` (se disponível)
+4. Resposta retorna jornada com status `EM_PAUSA` e a pausa criada — salva `pausa.id` no estado local para uso no retomar
+5. Para o serviço de GPS (Fase 11)
+
+### 7.2 Retomar
+
+**Endpoint:** `PATCH /jornadas/{id}/pausas/{pausa_id}/fechar`
+
+Body opcional:
+```json
+{ "localizacao_fim": { "lat": -23.55, "lon": -46.63 } }
+```
+
+Após retomar: reinicia o serviço de GPS.
+
+---
+
+# Fase 8 — Flutter — Encerrar Jornada
+
+**Pré-requisito:** Fase 7  
+**Entregável:** fluxo completo de encerramento com registro de faturamento
+
+**Endpoint:** `PATCH /jornadas/{id}/fechar`
+
+Query params:
+```
+km_final=12750
+faturamento_uber=185.50
+faturamento_99=67.00
+faturamento_outros=0
+foto_km_final_url=<url_do_upload>
+localizacao_lat=<lat>
+localizacao_lon=<lon>
+observacoes=<texto_opcional>
+```
+
+**Fluxo da tela:**
+1. Campo km final (obrigatório, validar que km_final > km_inicial)
+2. Botão para capturar foto do hodômetro final → `POST /uploads/`
+3. Campos de faturamento: Uber, 99, Outros (todos numéricos, permitem zero)
+4. Campo de observações (opcional)
+5. Botão "Encerrar Jornada" → `AlertDialog` de confirmação → chama endpoint
+6. Em caso de sucesso: para serviço GPS, limpa estado da jornada ativa, navega para Home
+
+---
+
+# Fase 9 — Flutter — Abastecimento
+
+**Pré-requisito:** Fase 6 (requer jornada ativa)  
+**Entregável:** tela de registro de abastecimento integrada
+
+**Endpoint:** `POST /jornadas/{id}/abastecimentos`
+
+Body JSON:
+```json
+{
+  "km": 12600,
+  "valor_gasolina": 80.00,
+  "valor_gnv": 0,
+  "valor_etanol": 0,
+  "foto_comprovante_url": "<url_do_upload>"
+}
+```
+
+**Fluxo da tela:**
+1. Acessível via card na Home ou durante pausa do tipo `ABASTECIMENTO`
+2. Campo km atual (pré-preenchido com `km.inicial` da jornada)
+3. Campos de valor por tipo de combustível (gasolina, GNV, etanol — somar os preenchidos)
+4. Foto do comprovante → `POST /uploads/` (opcional, mas recomendado)
+5. Salvar → retorna para tela anterior
+
+---
+
+# Fase 10 — Flutter — Upload de Arquivos
+
+**Pré-requisito:** Fase 3  
+**Entregável:** `UploadService` reutilizável em todas as features
+
+**Endpoint:** `POST /uploads/` com `multipart/form-data`
+
+```dart
+class UploadService {
+  Future<String> uploadFoto(File file) async {
+    // Retorna a URL pública do arquivo salvo
+  }
+}
+```
+
+Mapeamento de utilizações:
+
+| Contexto | Campo destino |
+|---|---|
+| Hodômetro inicial | `fotos.km_inicial_url` |
+| Hodômetro final | `fotos.km_final_url` |
+| Comprovante Uber | `faturamento.comprovante_uber_url` |
+| Comprovante 99 | `faturamento.comprovante_99_url` |
+| Comprovante abastecimento | `abastecimentos[i].foto_comprovante_url` |
+| Foto CNH | `perfil_motorista.cnh.imagem_url` |
+
+Solicitar permissão de câmera (`permission_handler`) antes do primeiro uso. Exibir preview da imagem antes de confirmar o upload.
+
+---
+
+# Fase 11 — Flutter — Rastreamento GPS em Background
+
+**Pré-requisito:** Fase 6  
+**Entregável:** serviço GPS ativo durante toda a jornada, mesmo com app em background
+
+**Endpoint:** `POST /gps/`
+
+```json
+{
+  "motorista_id": "<id>",
+  "jornada_id": "<id da jornada ativa>",
+  "lat": -23.5505,
+  "lon": -46.6333,
+  "timestamp": "2026-05-16T14:30:00Z"
+}
+```
+
+**Implementação:**
+- Usar `flutter_background_service` para manter o isolate ativo com tela desligada
+- Intervalo: **15 segundos** entre pontos
+- **Pausar envio** quando `status == EM_PAUSA` (Fase 7)
+- **Parar serviço** ao encerrar jornada (Fase 8)
+- Solicitar permissão `ACCESS_BACKGROUND_LOCATION` (Android) e modo `Always` (iOS) no momento de abertura da jornada — explicar ao usuário o motivo antes de solicitar
+
+---
+
+# Fase 12 — Flutter — Histórico de Jornadas
+
+**Pré-requisito:** Fase 4  
+**Entregável:** tela de histórico com paginação e detalhe completo
+
+**Endpoint:** `GET /jornadas/?skip=0&limit=20`
+
+A API filtra automaticamente pelo motorista autenticado quando `role == MOTORISTA`.
+
+**Tela de lista:**
+- Ordenada por data decrescente
+- Infinite scroll: incrementa `skip` a cada página
+- Pull-to-refresh: reinicia com `skip=0`
+- Cada item exibe: data, status (badge), km rodados, faturamento total
+
+**Bottom sheet de detalhe** (abre ao tocar na linha):
+- Horário início/fim e duração total
+- Km inicial, final e rodados
+- Faturamento breakdown: Uber / 99 / Outros / Total
+- Saldo horas CLT do dia (`saldo_horas_dia`)
+- Lista de pausas com tipo e duração
+- Lista de abastecimentos com km e valores
+
+---
+
+# Fase 13 — Flutter — Perfil do Motorista
+
+**Pré-requisito:** Fase 4  
+**Entregável:** tela de perfil com alertas de CNH e fluxo de logout
+
+**Endpoint:** `GET /auth/me`
+
+O campo `perfil_motorista` contém:
+- `cpf`, `telefone`
+- `cnh.vencimento` — comparar com data atual; se expirada, exibir banner vermelho proeminente (não bloqueia uso)
+- `dados_bancarios` — banco, agência, conta, CNPJ
+
+**Edição de dados:** `PATCH /users/{id}` com somente os campos permitidos para `role == MOTORISTA`.
+
+**Logout:** `AuthService.logout()` → `TokenStorage.deleteToken()` → navega para `/login` e limpa stack de navegação.
+
+---
+
 ---
 
 # Parte 2 — Painel Administrativo React
 
-O protótipo de referência está em `https://app-jornada-alap.vercel.app`.  
-A base do projeto já existe (Vite + React + TypeScript + Tailwind + shadcn/ui).
+> **Repositório:** [github.com/SrClauss/app-jornada-painel-d](https://github.com/SrClauss/app-jornada-painel-d)  
+> **Deploy do protótipo:** [app-jornada-alap.vercel.app](https://app-jornada-alap.vercel.app)  
+> **Stack:** Vite + React + TypeScript + Tailwind + shadcn/ui (scaffold já gerado)
 
 ---
 
-## Fase 1 — Fundação do Projeto
+# Fase 14 — React — Fundação do Projeto
 
-### Dependências adicionais
+**Pré-requisito:** Fase 1  
+**Entregável:** projeto configurado com cliente HTTP, React Query e estrutura de pastas
+
+### 14.1 Dependências
 
 ```bash
 npm install axios @tanstack/react-query react-router-dom recharts
 npm install react-hook-form zod @hookform/resolvers
-npm install date-fns
-npm install @tanstack/react-table   # tabelas com sort/filter/pagination
+npm install date-fns @tanstack/react-table
 ```
 
-### Estrutura de pastas
+### 14.2 Estrutura de Pastas
 
 ```
 src/
@@ -413,49 +597,13 @@ src/
     AuthContext.tsx
   pages/
     Login/
-      LoginPage.tsx
     Dashboard/
-      DashboardPage.tsx
-      components/
-        KpiCard.tsx
-        AlertsTable.tsx
-        RevenueChart.tsx
-        HoursChart.tsx
-        StatusPieChart.tsx
     Motoristas/
-      MotoristasPage.tsx
-      components/
-        MotoristasTable.tsx
-        MotoristaDrawer.tsx
-        CltProgressBar.tsx
     Jornadas/
-      JornadasPage.tsx
-      components/
-        JornadasTable.tsx
-        JornadaModal.tsx
-        KmChart.tsx
     Veiculos/
-      VeiculosPage.tsx
-      components/
-        VeiculoCard.tsx
-        VeiculoModal.tsx
     Relatorios/
-      RelatoriosPage.tsx
-      components/
-        ComparativoTable.tsx
-        PerformanceRadar.tsx
-        CsvImporter.tsx
     Metas/
-      MetasPage.tsx
-      components/
-        MetaCard.tsx
-        MetaModal.tsx
-        BonusChart.tsx
     Manutencoes/
-      ManutencoesPage.tsx
-      components/
-        ManutencoesTable.tsx
-        ManutencaoModal.tsx
   components/
     shared/
       Sidebar.tsx
@@ -468,30 +616,32 @@ src/
     formatters.ts
 ```
 
-### `client.ts` — Axios configurado
+### 14.3 `client.ts`
 
 ```typescript
 // Interceptor request: injeta Bearer token
 config.headers.Authorization = `Bearer ${localStorage.getItem('token')}`
 
-// Interceptor response: trata 401
-// → limpa token → window.location = '/login'
+// Interceptor response:
+// 401 → limpa token → window.location = '/login'
+// outros erros → mapear conforme Fase 1.3
 ```
 
-### React Query
+### 14.4 React Query
 
 `QueryClientProvider` no root com:
 - `staleTime: 30_000` (30s) para dados de dashboard
-- `retry: 1` para evitar múltiplas tentativas em erros de auth
+- `retry: 1` para evitar múltiplas tentativas em erros de autenticação
 
 ---
 
-## Fase 2 — Autenticação
+# Fase 15 — React — Autenticação e Roteamento
 
-**Endpoint:** `POST /auth/login`  
-Body: `application/x-www-form-urlencoded` com `username` e `password`
+**Pré-requisito:** Fase 14  
+**Entregável:** login funcional, contexto de auth e rotas protegidas
 
-**`AuthContext`** expõe:
+### 15.1 `AuthContext`
+
 ```typescript
 interface AuthContextType {
   user: UserPublic | null
@@ -501,50 +651,74 @@ interface AuthContextType {
 }
 ```
 
-**Fluxo:**
-1. Usuário preenche e-mail + senha no `LoginPage`
-2. `AuthContext.login()` → `POST /auth/login` → salva token em `localStorage`
-3. `GET /auth/me` → preenche dados do usuário no contexto
-4. `ProtectedRoute` redireciona para `/login` se `!isAuthenticated`
+**Fluxo de login:**
+1. `POST /auth/login` (body: `application/x-www-form-urlencoded`)
+2. Salva token em `localStorage`
+3. `GET /auth/me` → preenche `user` no contexto
+
+### 15.2 `ProtectedRoute`
+
+Redireciona para `/login` se `!isAuthenticated`. `MOTORISTA` não deve acessar o painel — verificar role após login e redirecionar com mensagem.
+
+### 15.3 Rotas React Router
+
+```
+/login
+/                           → Dashboard
+/motoristas                 → Gestão de motoristas
+/jornadas                   → Listagem de jornadas
+/veiculos                   → Frota de veículos
+/manutencoes                → Manutenções
+/metas                      → Metas e bônus
+/relatorios                 → Relatórios
+```
+
+Todas as rotas exceto `/login` são envolvidas por `ProtectedRoute`.
 
 ---
 
-## Fase 3 — Dashboard
+# Fase 16 — React — Dashboard
 
-### KPIs (compostos de múltiplas queries paralelas)
+**Pré-requisito:** Fase 15  
+**Entregável:** página inicial com KPIs, gráficos e tabela de alertas
 
-| Card | Fonte de dados | Cálculo |
+### 16.1 KPIs (queries paralelas)
+
+| Card | Fonte | Cálculo |
 |---|---|---|
-| Motoristas ativos hoje | `GET /jornadas/?data=hoje` | Contar `motorista_id` únicos com status `ABERTA` ou `EM_ANDAMENTO` |
+| Motoristas ativos | `GET /jornadas/?data=hoje` | Contar `motorista_id` únicos com status `ABERTA` ou `EM_ANDAMENTO` |
 | KM total do dia | `GET /jornadas/?data=hoje` | Somar `km.rodados` das jornadas encerradas |
 | Faturamento do dia | `GET /jornadas/?data=hoje` | Somar `faturamento.total_dia` |
-| Alertas ativos | Jornadas abertas há > 12h ou sem GPS recente | Flag manual |
+| Alertas | Derivado da mesma query | Jornadas abertas > 12h ou sem GPS |
 
-### Gráficos (Recharts)
+### 16.2 Gráficos (Recharts)
 
-- **`BarChart` — Faturamento semanal:** `GET /jornadas/?data=X` para os últimos 7 dias, agrupando por motorista
-- **`LineChart` — Horas CLT:** horas acumuladas no mês vs. meta de 220h, por motorista (calculado no frontend)
-- **`PieChart` — Status das jornadas:** distribuição de `ABERTA` / `EM_ANDAMENTO` / `EM_PAUSA` / `ENCERRADA` no dia
+- **`BarChart`** — Faturamento diário dos últimos 7 dias, agrupado por motorista
+- **`LineChart`** — Horas acumuladas no mês vs. meta CLT de 220h, por motorista
+- **`PieChart`** — Distribuição de status das jornadas do dia (`ABERTA` / `EM_ANDAMENTO` / `EM_PAUSA` / `ENCERRADA`)
 
-### Tabela de alertas
+### 16.3 Tabela de Alertas
 
-Linha por jornada que atende qualquer condição:
-- Status `ABERTA` com horário de início há mais de 12h
+Uma linha por jornada que atenda qualquer condição:
+- Status `ABERTA` com início há mais de 12h
 - Status `EM_PAUSA` há mais de 2h
-- Faturamento `total_dia == 0` em jornada encerrada
+- Jornada encerrada com `faturamento.total_dia == 0`
 
 ---
 
-## Fase 4 — Gestão de Motoristas
+# Fase 17 — React — Gestão de Motoristas
 
-### Listagem
+**Pré-requisito:** Fase 15  
+**Entregável:** CRUD completo de motoristas com drawer de perfil detalhado
 
-**Endpoint:** `GET /users/` (filtrar role = MOTORISTA no frontend ou query param)
+### 17.1 Listagem
 
-Tabela com colunas: nome, e-mail, status CNH, horas acumuladas no mês, ação "Ver detalhes".  
-Filtros: busca por nome, filtro por status CNH (válida/expirada).
+**Endpoint:** `GET /users/` (filtrar `role == MOTORISTA`)
 
-### Cadastro
+Tabela com: nome, e-mail, status CNH, horas acumuladas no mês, botão "Ver detalhes".  
+Filtros: busca por nome, filtro por status CNH (válida / expirada).
+
+### 17.2 Cadastro
 
 **Endpoint:** `POST /auth/registrar`
 
@@ -562,47 +736,56 @@ Filtros: busca por nome, filtro por status CNH (válida/expirada).
 }
 ```
 
-### Drawer de Perfil (`Sheet` do shadcn)
+### 17.3 Drawer de Perfil (`Sheet` do shadcn)
 
-Abas:
-1. **Dados Pessoais** — nome, CPF, telefone, `PATCH /users/{id}` ao salvar
-2. **CNH** — data de vencimento com barra de alerta visual (verde/amarelo/vermelho por prazo)
+Abre ao clicar em "Ver detalhes". Abas:
+1. **Dados Pessoais** — nome, CPF, telefone → `PATCH /users/{id}` ao salvar
+2. **CNH** — data de vencimento com indicador visual (verde > 60d, amarelo 30–60d, vermelho < 30d / expirada)
 3. **Dados Bancários** — banco, agência, conta, CNPJ
-4. **Horas CLT** — `ProgressBar` com total horas do mês vs. 220h (agrega `jornadas`)
-5. **Histórico** — últimas 10 jornadas do motorista (`GET /jornadas/?motorista_id=X&limit=10`)
+4. **Horas CLT** — `ProgressBar` total horas do mês vs. 220h (agrega `GET /jornadas/?motorista_id=X`)
+5. **Histórico** — últimas 10 jornadas (`GET /jornadas/?motorista_id=X&limit=10`)
 6. **Bônus** — bônus acumulado no mês (`bonus_acumulado_mes` das jornadas)
 
 ---
 
-## Fase 5 — Jornadas
+# Fase 18 — React — Jornadas
 
-### Listagem com filtros
+**Pré-requisito:** Fase 15  
+**Entregável:** listagem filtrada de jornadas com modal de detalhes completo
+
+### 18.1 Listagem com Filtros
 
 **Endpoint:** `GET /jornadas/?data=X&motorista_id=X&status_filtro=X&skip=0&limit=50`
 
 Filtros na UI:
-- Date picker (intervalo de datas)
-- Select de motorista
-- Select de status
+- Date picker (intervalo de datas — `date-fns` para manipulação)
+- Select de motorista (carregado de `GET /users/`)
+- Select de status (`ABERTA`, `EM_ANDAMENTO`, `EM_PAUSA`, `ENCERRADA`)
 
-Gráfico acima da tabela: `BarChart` de km rodados por jornada no período filtrado.
+`BarChart` acima da tabela: km rodados por jornada no período filtrado.
 
-### Modal de Detalhes (`Dialog` do shadcn)
+### 18.2 Modal de Detalhes (`Dialog` do shadcn)
 
-Seções:
-- **Cabeçalho:** data, motorista, veículo, status com badge colorido
-- **Horários:** início, fim, duração total, saldo CLT
-- **Quilometragem:** inicial, final, rodados, km morta
-- **Faturamento:** Uber / 99 / Outros / Total, com links para comprovantes
-- **Pausas:** timeline visual com tipo e duração de cada pausa
-- **Abastecimentos:** tabela com km, valores por tipo de combustível
-- **GPS:** placeholder de mapa com coordenadas inicial e final
+Disparado ao clicar em uma linha. Seções:
+
+| Seção | Conteúdo |
+|---|---|
+| Cabeçalho | data, motorista, veículo, status com badge colorido |
+| Horários | início, fim, duração total, saldo CLT |
+| Quilometragem | inicial, final, rodados, km morta |
+| Faturamento | Uber / 99 / Outros / Total, links para comprovantes |
+| Pausas | timeline visual com tipo e duração de cada pausa |
+| Abastecimentos | tabela com km e valores por tipo de combustível |
+| GPS | coordenadas inicial e final |
 
 ---
 
-## Fase 6 — Veículos, Manutenções e Metas
+# Fase 19 — React — Veículos, Manutenções e Metas
 
-### Veículos
+**Pré-requisito:** Fase 15  
+**Entregável:** três módulos CRUD integrados à API
+
+### 19.1 Veículos
 
 | Operação | Endpoint |
 |---|---|
@@ -610,23 +793,20 @@ Seções:
 | Criar | `POST /veiculos/` |
 | Editar | `PATCH /veiculos/{placa}` |
 
-**Grid de cards** com: placa, modelo, status (badge colorido), alertas de IPVA/inspeção expirados ou próximos (60d/30d → amarelo/vermelho).  
-Barra de status rápida no topo: contagem por status.
+Grid de cards com: placa, modelo, status (badge), alertas de IPVA/inspeção (amarelo ≤ 60d, vermelho ≤ 30d / expirado).  
+Barra de status no topo: contagem por status.
 
-### Manutenções
+### 19.2 Manutenções
 
 | Operação | Endpoint |
 |---|---|
-| Listar | `GET /manutencoes/` + filtro por `veiculo_id` |
+| Listar | `GET /manutencoes/?veiculo_id=X` |
 | Criar | `POST /manutencoes/` |
-| Atualizar status | `PATCH /manutencoes/{id}` |
+| Atualizar | `PATCH /manutencoes/{id}` |
 
-KPIs no topo da página:
-- Custo total do mês
-- Manutenções em andamento
-- Próximas revisões por km (alerta a 500km do intervalo)
+KPIs no topo: custo total do mês, manutenções em andamento, veículos próximos de revisão (500km do intervalo).
 
-### Metas e Bônus
+### 19.3 Metas e Bônus
 
 | Operação | Endpoint |
 |---|---|
@@ -635,27 +815,33 @@ KPIs no topo da página:
 | Editar | `PATCH /metas/{id}` |
 | Excluir | `DELETE /metas/{id}` |
 
-Modal "Nova Meta" com campos: tipo (faturamento/km/horas), escopo (individual/equipe), motorista_id (se individual), thresholds, valor do bônus.
+Modal "Nova Meta": tipo (faturamento/km/horas), escopo (individual/equipe), `motorista_id` (se individual), thresholds mínimo/máximo, valor do bônus.
 
 `BarChart` de bônus acumulado por motorista no mês corrente (agrega `bonus_acumulado_mes` das jornadas).
 
 ---
 
-## Fase 7 — Relatórios
+# Fase 20 — React — Relatórios
+
+**Pré-requisito:** Fase 15  
+**Entregável:** página de relatórios com importação CSV, comparativo e exportação
+
+Página com três abas (`Tabs` do shadcn):
 
 ### Aba 1 — Comparativo de Plataformas
 
 **Endpoints:**
-1. `POST /uploads/` — enviar arquivo CSV
-2. `POST /relatorios/comparativo` — processar comparativo
+1. `POST /uploads/` — enviar o arquivo CSV
+2. `POST /relatorios/comparativo` — processar e retornar comparativo
 
 **Fluxo:**
-1. Componente `CsvImporter` — drag & drop ou clique para selecionar CSV (Uber ou 99)
+1. Componente `CsvImporter` com drag & drop para CSV (Uber ou 99)
 2. Select de motorista e intervalo de datas
 3. `POST /uploads/` com o arquivo → obtém URL
-4. `POST /relatorios/comparativo` com referência ao arquivo
+4. `POST /relatorios/comparativo` com a URL do arquivo
 
 **Tabela de resultados:**
+
 | Coluna | Fonte |
 |---|---|
 | Data | Jornada |
@@ -665,104 +851,18 @@ Modal "Nova Meta" com campos: tipo (faturamento/km/horas), escopo (individual/eq
 | Fat. declarado | `faturamento.total_dia` |
 | Fat. plataforma | CSV |
 | Delta Fat. % | Calculado |
-| Status | 🟢 OK / 🔴 Alerta (> 20%) |
+| Status | Verde (OK) / Vermelho (delta > 20%) |
 
 ### Aba 2 — Performance por Motorista
 
-Radar chart por motorista normalizado (0–100):
+Radar chart (`RadarChart` do Recharts) por motorista, métricas normalizadas 0–100:
 - Faturamento médio/dia
 - KM médio/dia
-- Horas trabalhadas vs. CLT
+- Horas trabalhadas vs. meta CLT
 - Taxa de cumprimento de metas
 
 Dados calculados no frontend a partir de `GET /jornadas/?motorista_id=X`.
 
 ### Aba 3 — Exportação
 
-Botão "Exportar CSV" gera arquivo client-side (sem chamada à API) com os dados da tabela de jornadas atualmente filtrada.
-
----
-
-## Rotas React Router
-
-```
-/login
-/                           → Dashboard
-/motoristas                 → Tabela de motoristas + Drawer de perfil
-/jornadas                   → Tabela de jornadas + Modal de detalhes
-/veiculos                   → Grid de veículos + Modais CRUD
-/manutencoes                → Tabela de manutenções + Modais CRUD
-/metas                      → Grid de metas + Modal de criação/edição
-/relatorios                 → Tabs: Comparativo / Performance / Exportação
-```
-
-Todas as rotas exceto `/login` são protegidas por `ProtectedRoute`.  
-Roles `GESTOR` e `ADMIN` têm acesso total. `MOTORISTA` não deve acessar o painel.
-
----
-
----
-
-# Considerações de Integração Comuns
-
-## CORS
-
-Verificar `backend/app/main.py` para garantir que `CORSMiddleware` está configurado com:
-- Origens permitidas em produção: domínio do painel React
-- Em desenvolvimento: `http://localhost:5173` (Vite)
-
-## Variáveis de Ambiente
-
-**Flutter** — via `--dart-define` (ou pacote `envied` para type-safety):
-```
-API_BASE_URL=https://api.suaempresa.com
-```
-
-**React** — `.env.local`:
-```
-VITE_API_BASE_URL=https://api.suaempresa.com
-```
-
-## Tratamento de Erros HTTP
-
-Ambos os clientes devem mapear os seguintes status:
-
-| HTTP | Ação |
-|---|---|
-| `401` | Limpar token + redirecionar para login |
-| `403` | Exibir mensagem "Sem permissão" |
-| `409` | Exibir mensagem de conflito (ex: "Jornada já aberta hoje") |
-| `422` | Exibir erros de validação por campo |
-| `500` | Toast genérico de erro do servidor |
-
-## Segurança
-
-- **Flutter:** usar `flutter_secure_storage` (armazenamento encriptado pelo keystore da plataforma, nunca `SharedPreferences` para tokens)
-- **React:** em produção, preferir `httpOnly cookie` ao `localStorage` para mitigar XSS; adicionar `Content-Security-Policy` no servidor
-- O PIN de 4 dígitos é enviado como `password` no fluxo OAuth2 — **HTTPS obrigatório** em qualquer ambiente além do desenvolvimento local
-
-## Ordem de Implementação Sugerida
-
-```
-[API] ✅ Pronta
-
-[React — Painel]
-  1. Fundação (client, router, auth context)
-  2. Login
-  3. Motoristas (CRUD completo)
-  4. Jornadas (leitura + detalhes)
-  5. Dashboard (KPIs + gráficos)
-  6. Veículos + Manutenções
-  7. Metas e Bônus
-  8. Relatórios (CSV import + comparativo)
-
-[Flutter — App]
-  1. Projeto + estrutura + auth (login + PIN pad)
-  2. Home + integração jornada ativa
-  3. Abrir / pausar / retomar / encerrar jornada
-  4. Upload de fotos
-  5. GPS background service
-  6. Histórico de jornadas
-  7. Abastecimento
-  8. Perfil do motorista
-```
+Botão "Exportar CSV" gera arquivo client-side (sem nova chamada à API) com os dados da tabela de jornadas atualmente filtrada em memória pelo React Query.
