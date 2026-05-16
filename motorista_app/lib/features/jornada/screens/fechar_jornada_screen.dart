@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/errors/api_exception.dart';
+import '../../../core/gps/gps_background_service.dart';
 import '../../../shared/services/upload_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
@@ -117,6 +118,8 @@ class _FecharJornadaScreenState extends ConsumerState<FecharJornadaScreen> {
         lon: position?.longitude,
         observacoes: _obsCtrl.text.trim().isEmpty ? null : _obsCtrl.text.trim(),
       );
+
+      await GpsBackgroundService.stopTracking();
 
       if (mounted) context.go('/home');
     } on ApiException catch (e) {

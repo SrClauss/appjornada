@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/errors/api_exception.dart';
+import '../../../core/gps/gps_background_service.dart';
 import '../../../shared/models/jornada_model.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/loading_overlay.dart';
@@ -108,6 +109,7 @@ class _JornadaAtivaScreenState extends ConsumerState<JornadaAtivaScreen> {
         lat: position?.latitude,
         lon: position?.longitude,
       );
+      GpsBackgroundService.pauseTracking();
       _timer?.cancel();
       setState(() {
         _jornada = updated;
@@ -171,7 +173,10 @@ class _JornadaAtivaScreenState extends ConsumerState<JornadaAtivaScreen> {
         _jornada = updated;
         _isBusy = false;
       });
-      if (updated.isAberta) _startTimer(updated);
+      if (updated.isAberta) {
+        GpsBackgroundService.resumeTracking();
+        _startTimer(updated);
+      }
     } on ApiException catch (e) {
       setState(() => _isBusy = false);
       if (mounted) {

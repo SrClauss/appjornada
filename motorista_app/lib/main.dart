@@ -3,14 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/auth/token_storage.dart';
 import 'core/auth/auth_provider.dart';
+import 'core/gps/gps_background_service.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/jornada/screens/abrir_jornada_screen.dart';
 import 'features/jornada/screens/jornada_ativa_screen.dart';
 import 'features/jornada/screens/fechar_jornada_screen.dart';
 import 'features/abastecimento/screens/abastecimento_screen.dart';
+import 'features/historico/screens/historico_screen.dart';
+import 'features/perfil/screens/perfil_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await GpsBackgroundService.initialize();
   runApp(const ProviderScope(child: AppJornada()));
 }
 
@@ -52,6 +57,14 @@ final _router = GoRouter(
           kmAtual: extra?['kmAtual'] as double?,
         );
       },
+    ),
+    GoRoute(
+      path: '/historico',
+      builder: (context, state) => const HistoricoScreen(),
+    ),
+    GoRoute(
+      path: '/perfil',
+      builder: (context, state) => const PerfilScreen(),
     ),
   ],
 );

@@ -121,6 +121,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: Text('Olá, ${user?.nome.split(' ').first ?? 'Motorista'}'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.history_rounded),
+            tooltip: 'Histórico',
+            onPressed: () => context.push('/historico'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_rounded),
+            tooltip: 'Perfil',
+            onPressed: () => context.push('/perfil'),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sair',
             onPressed: _logout,

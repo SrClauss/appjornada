@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/errors/api_exception.dart';
+import '../../../core/gps/gps_background_service.dart';
 import '../../../shared/models/veiculo_model.dart';
 import '../../../shared/services/upload_service.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -107,7 +108,7 @@ class _AbrirJornadaScreenState extends ConsumerState<AbrirJornadaScreen> {
       final position = await _getGps();
       final user = ref.read(authProvider).user;
 
-      await JornadaService.abrirJornada(
+      final jornada = await JornadaService.abrirJornada(
         motoristaId: user!.id,
         veiculoId: _veiculoSelecionado!.idPlaca,
         kmInicial: double.parse(_kmCtrl.text.replaceAll(',', '.')),
@@ -117,7 +118,14 @@ class _AbrirJornadaScreenState extends ConsumerState<AbrirJornadaScreen> {
         lon: position?.longitude,
       );
 
-      if (mounted) context.go('/home');
+      if (mounted) {
+        await GpsBackgroundService.startTracking(
+          context,
+          jornadaId: jornada.id,
+          motoristaId: user!.id,
+        );
+        context.go('/home');
+      }
     } on ApiException catch (e) {
       setState(() {
         _isSaving = false;
