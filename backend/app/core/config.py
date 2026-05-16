@@ -1,3 +1,4 @@
+from typing import List
 from pydantic_settings import BaseSettings
 
 
@@ -10,7 +11,16 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8 horas
 
+    # CORS — origens separadas por vírgula; use "*" para liberar tudo (apenas dev)
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    def get_cors_origins(self) -> List[str]:
+        """Retorna lista de origens CORS a partir da variável de ambiente."""
+        if self.CORS_ORIGINS.strip() == "*":
+            return ["*"]
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
 
 settings = Settings()
