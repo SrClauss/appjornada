@@ -1,8 +1,5 @@
 import { useMemo, useState, type ChangeEvent, type DragEvent } from 'react'
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
   PolarAngleAxis,
   PolarGrid,
   PolarRadiusAxis,
@@ -10,8 +7,6 @@ import {
   RadarChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from 'recharts'
 import { useJornadas } from '../../api/hooks/useJornadas'
 import { useMetas } from '../../api/hooks/useMetas'
@@ -85,7 +80,7 @@ export function RelatoriosPage() {
   const motoristasQuery = useMotoristas()
   const metasQuery = useMetas()
 
-  const motoristas = motoristasQuery.data ?? []
+  const motoristas = useMemo(() => motoristasQuery.data ?? [], [motoristasQuery.data])
   const motoristasById = useMemo(
     () => motoristas.reduce<Record<string, string>>((acc, motorista) => {
       acc[motorista.id] = motorista.nome

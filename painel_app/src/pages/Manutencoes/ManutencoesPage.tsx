@@ -127,8 +127,8 @@ export function ManutencoesPage() {
     () => [...(manutencoesQuery.data ?? [])].sort((a, b) => `${b.entrada ?? ''}`.localeCompare(`${a.entrada ?? ''}`)),
     [manutencoesQuery.data],
   )
-  const veiculos = veiculosQuery.data ?? []
-  const motoristas = motoristasQuery.data ?? []
+  const veiculos = useMemo(() => veiculosQuery.data ?? [], [veiculosQuery.data])
+  const motoristas = useMemo(() => motoristasQuery.data ?? [], [motoristasQuery.data])
   const veiculosById = useMemo(
     () => veiculos.reduce<Record<string, number | undefined>>((acc, veiculo) => {
       acc[veiculo.id_placa] = veiculo.km_atual

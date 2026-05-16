@@ -87,7 +87,15 @@ export function VeiculosPage() {
     if (!payload.id_placa) return
 
     if (selectedVeiculo) {
-      const { id_placa, ...updatePayload } = payload
+      const updatePayload = {
+        marca_modelo: payload.marca_modelo,
+        ano_modelo: payload.ano_modelo,
+        cor: payload.cor,
+        situacao: payload.situacao,
+        km_atual: payload.km_atual,
+        vencimento_ipva: payload.vencimento_ipva,
+        imagem_clrv_url: payload.imagem_clrv_url,
+      }
       await updateMutation.mutateAsync(updatePayload)
     } else {
       await createMutation.mutateAsync(payload)

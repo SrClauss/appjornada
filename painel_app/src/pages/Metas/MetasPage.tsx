@@ -79,7 +79,7 @@ export function MetasPage() {
   const [form, setForm] = useState<MetaFormState>(emptyForm)
   const updateMutation = useUpdateMeta(selectedMeta?.id)
 
-  const motoristas = motoristasQuery.data ?? []
+  const motoristas = useMemo(() => motoristasQuery.data ?? [], [motoristasQuery.data])
   const motoristaMap = useMemo(
     () => motoristas.reduce<Record<string, string>>((acc, motorista) => {
       acc[motorista.id] = motorista.nome

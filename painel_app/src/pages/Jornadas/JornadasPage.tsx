@@ -176,7 +176,7 @@ export function JornadasPage() {
   const [statusFiltro, setStatusFiltro] = useState('')
   const [selectedJornada, setSelectedJornada] = useState<Jornada | null>(null)
 
-  const motoristas = motoristasQuery.data ?? []
+  const motoristas = useMemo(() => motoristasQuery.data ?? [], [motoristasQuery.data])
   const motoristasById = useMemo(
     () => motoristas.reduce<Record<string, string>>((acc, motorista) => {
       acc[motorista.id] = motorista.nome
