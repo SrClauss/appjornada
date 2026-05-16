@@ -98,7 +98,7 @@ class _FecharJornadaScreenState extends ConsumerState<FecharJornadaScreen> {
     try {
       String? fotoUrl;
       if (_fotoOdometro != null) {
-        fotoUrl = await UploadService.uploadFoto(_fotoOdometro!);
+        fotoUrl = await UploadService.uploadFoto(_fotoOdometro!, contexto: 'km_final');
       }
 
       final position = await _getGps();

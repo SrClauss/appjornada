@@ -73,7 +73,7 @@ class _AbastecimentoScreenState extends ConsumerState<AbastecimentoScreen> {
     try {
       String? fotoUrl;
       if (_fotoComprovante != null) {
-        fotoUrl = await UploadService.uploadFoto(_fotoComprovante!);
+        fotoUrl = await UploadService.uploadFoto(_fotoComprovante!, contexto: 'comprovante');
       }
 
       await JornadaService.registrarAbastecimento(
