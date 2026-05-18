@@ -1,0 +1,25 @@
+{
+  "terminals": [
+    {
+      "name": "Backend",
+      "promptName": "🐍 FastAPI Backend",
+      "command": "source venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+      "cwd": "backend",
+      "keepOpen": false
+    },
+    {
+      "name": "Painel",
+      "promptName": "⚛️ Painel Admin",
+      "command": "npm run dev",
+      "cwd": "painel_app",
+      "keepOpen": false
+    },
+    {
+      "name": "MinIO",
+      "promptName": "🟩 MinIO",
+      "command": "docker compose up -d minio",
+      "cwd": ".",
+      "keepOpen": false
+    }
+  ]
+}

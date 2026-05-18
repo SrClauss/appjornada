@@ -17,7 +17,7 @@ async def criar_veiculo(
     db=Depends(get_db),
     _=Depends(require_roles(Role.ADMIN, Role.GESTOR)),
 ):
-    doc = dados.model_dump()
+    doc = dados.model_dump(mode="json")
     doc["_id"] = dados.id_placa
     try:
         await db["veiculos"].insert_one(doc)
@@ -53,7 +53,7 @@ async def atualizar_veiculo(
     db=Depends(get_db),
     _=Depends(require_roles(Role.ADMIN, Role.GESTOR)),
 ):
-    update = dados.model_dump(exclude_none=True)
+    update = dados.model_dump(exclude_none=True, mode="json")
     resultado = await db["veiculos"].update_one({"_id": placa}, {"$set": update})
     if resultado.matched_count == 0:
         raise HTTPException(status_code=404, detail="Veículo não encontrado")

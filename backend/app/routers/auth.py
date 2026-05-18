@@ -26,3 +26,10 @@ async def endpoint_registrar(dados: UserCreate, db=Depends(get_db)):
 @router.get("/me", response_model=UserPublic)
 async def endpoint_me(current_user: UserPublic = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/setup-needed")
+async def setup_needed(db=Depends(get_db)):
+    """Retorna se o banco ainda não tem nenhum usuário (primeiro acesso)."""
+    count = await db["users"].count_documents({})
+    return {"setup_needed": count == 0}

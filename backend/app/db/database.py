@@ -1,7 +1,11 @@
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo import ASCENDING, GEOSPHERE
+import asyncio
+import logging
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 _client: AsyncIOMotorClient | None = None
 
@@ -17,39 +21,40 @@ def get_db() -> AsyncIOMotorDatabase:
     return get_client().get_default_database()
 
 
+async def _tentar_criar_indice(db, colecao: str, keys, **kwargs) -> None:
+    """Cria um índice com timeout. Loga aviso se falhar, não interrompe o startup."""
+    try:
+        await asyncio.wait_for(
+            db[colecao].create_index(keys, **kwargs),
+            timeout=8.0,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Timeout ao criar índice em '%s' — será criado sob demanda.", colecao)
+    except Exception as exc:
+        logger.warning("Falha ao criar índice em '%s': %s", colecao, exc)
+
+
 async def _criar_indices(db: AsyncIOMotorDatabase) -> None:
     """Garante índices essenciais na inicialização. Operação idempotente."""
     # users — unicidade de e-mail
-    await db["users"].create_index("email", unique=True, background=True)
+    await _tentar_criar_indice(db, "users", "email", unique=True)
 
     # jornadas — busca por motorista+data (query mais comum)
-    await db["jornadas"].create_index(
-        [("motorista_id", ASCENDING), ("data", ASCENDING)],
-        background=True,
-    )
+    await _tentar_criar_indice(db, "jornadas", [("motorista_id", ASCENDING), ("data", ASCENDING)])
     # jornadas abertas — dashboard do gestor
-    await db["jornadas"].create_index("status", background=True)
+    await _tentar_criar_indice(db, "jornadas", "status")
 
     # historico_gps — série temporal por motorista
-    await db["historico_gps"].create_index(
-        [("motorista_id", ASCENDING), ("timestamp", ASCENDING)],
-        background=True,
-    )
+    await _tentar_criar_indice(db, "historico_gps", [("motorista_id", ASCENDING), ("timestamp", ASCENDING)])
     # historico_gps — queries geoespaciais (2dsphere obrigatório)
-    await db["historico_gps"].create_index(
-        [("localizacao", GEOSPHERE)],
-        background=True,
-    )
+    await _tentar_criar_indice(db, "historico_gps", [("localizacao", GEOSPHERE)])
 
     # manutencoes — por veículo e data
-    await db["manutencoes"].create_index(
-        [("veiculo_id", ASCENDING), ("entrada", ASCENDING)],
-        background=True,
-    )
+    await _tentar_criar_indice(db, "manutencoes", [("veiculo_id", ASCENDING), ("entrada", ASCENDING)])
 
     # corridas uber/99 — upsert sem duplicata
-    await db["corridas_uber"].create_index("trip_id", unique=True, background=True)
-    await db["corridas_99"].create_index("trip_id", unique=True, background=True)
+    await _tentar_criar_indice(db, "corridas_uber", "trip_id", unique=True)
+    await _tentar_criar_indice(db, "corridas_99", "trip_id", unique=True)
 
 
 async def connect_db():

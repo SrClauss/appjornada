@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     # CORS — origens separadas por vírgula; use "*" para liberar tudo (apenas dev)
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
+    # MinIO / S3
+    MINIO_ENDPOINT: str = ""
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
+    MINIO_BUCKET: str = "app-jornada"
+    MINIO_SECURE: bool = False
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     def get_cors_origins(self) -> List[str]:
