@@ -4,7 +4,7 @@ Inclui testes unitários dos parsers _parse_uber_csv e _parse_99_csv.
 """
 import io
 import pytest
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, time
 
 from tests.conftest import UBER_CSV_VALIDO, NOVENOVECSVVALIDO
 
@@ -216,3 +216,323 @@ class TestComparativo:
         assert resp.status_code == 200
         data = resp.json()
         assert data["motoristas"] == []
+
+    async def test_comparativo_com_corridas_uber_importadas(
+        self, client, db, jornada_encerrada, admin_headers, motorista_user
+    ):
+        """Corridas Uber importadas devem aparecer no comparativo do dia."""
+        ontem = (date.today() - timedelta(days=1))
+        inicio_dt = datetime.combine(ontem, time(8, 0, 0))
+        fim_dt = datetime.combine(ontem, time(8, 30, 0))
+
+        await db["corridas_uber"].insert_one({
+            "id_viagem": "test-uber-cmp-001",
+            "nome_motorista": "Motorista Teste",
+            "inicio": inicio_dt,
+            "fim": fim_dt,
+            "tarifa_base": 50.0,
+            "gorjeta": 0.0,
+            "pedagio": 0.0,
+            "ajuste_tarifa": 0.0,
+            "total_bruto": 50.0,
+            "total_cobrado": 50.0,
+            "origem": "A",
+            "destino": "B",
+        })
+
+        resp = await client.get(
+            f"/relatorios/comparativo?data={ontem.isoformat()}",
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        motoristas = data["motoristas"]
+        assert len(motoristas) >= 1
+        mot = next((m for m in motoristas if m["motorista_nome"] == "Motorista Teste"), None)
+        assert mot is not None
+        assert mot["total_corridas_uber"] == 1
+        assert mot["faturamento_uber_relatorio"] == 50.0
+
+    async def test_comparativo_gera_alerta_faturamento(
+        self, client, db, jornada_encerrada, admin_headers
+    ):
+        """Delta de faturamento > 5% deve gerar alerta."""
+        ontem = (date.today() - timedelta(days=1))
+        inicio_dt = datetime.combine(ontem, time(9, 0, 0))
+        fim_dt = datetime.combine(ontem, time(9, 30, 0))
+
+        # Faturamento Uber no relatório = 200, mas jornada declarou 150
+        await db["corridas_uber"].insert_one({
+            "id_viagem": "test-alerta-uber-001",
+            "nome_motorista": "Motorista Teste",
+            "inicio": inicio_dt,
+            "fim": fim_dt,
+            "tarifa_base": 200.0,
+            "gorjeta": 0.0,
+            "pedagio": 0.0,
+            "ajuste_tarifa": 0.0,
+            "total_bruto": 200.0,
+            "total_cobrado": 200.0,
+            "origem": "X",
+            "destino": "Y",
+        })
+
+        resp = await client.get(
+            f"/relatorios/comparativo?data={ontem.isoformat()}",
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        mot = next(
+            (m for m in data["motoristas"] if m["motorista_nome"] == "Motorista Teste"),
+            None,
+        )
+        assert mot is not None
+        # delta_uber = 200 - 150 = 50, que é 25% > 5% → deve haver alerta
+        assert len(mot["alertas"]) >= 1
+        assert any("Uber" in a for a in mot["alertas"])
+
+    async def test_comparativo_corridas_sem_jornada_geram_alerta(
+        self, client, db, admin_headers
+    ):
+        """Corridas importadas sem jornada correspondente devem gerar alerta."""
+        data_alvo = date(2024, 6, 1)
+        inicio_dt = datetime.combine(data_alvo, time(10, 0, 0))
+
+        await db["corridas_99"].insert_one({
+            "id_corrida": "99-sem-jornada-001",
+            "nome_motorista": "Motorista Sem Jornada",
+            "solicitacao": inicio_dt,
+            "origem": "A",
+            "destino": "B",
+            "distancia_km": 5.0,
+            "duracao_minutos": 15,
+            "tarifa_bruta": 20.0,
+            "valor_liquido": 16.0,
+            "status": "Concluída",
+        })
+
+        resp = await client.get(
+            f"/relatorios/comparativo?data={data_alvo.isoformat()}",
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+        data_resp = resp.json()
+        mot = next(
+            (m for m in data_resp["motoristas"] if m["motorista_nome"] == "Motorista Sem Jornada"),
+            None,
+        )
+        assert mot is not None
+        assert len(mot["corridas_fora_jornada"]) == 1
+        assert mot["corridas_fora_jornada"][0]["motivo"] == "SEM_JORNADA"
+        assert any("sem jornada" in a.lower() for a in mot["alertas"])
+
+    async def test_comparativo_filtro_por_motorista_nome(
+        self, client, db, admin_headers
+    ):
+        """filtro motorista_nome deve retornar apenas motoristas cujo nome contém o termo."""
+        data_alvo = date(2024, 7, 1)
+        inicio_dt = datetime.combine(data_alvo, time(8, 0, 0))
+
+        for nome in ["Ana Motorista", "Carlos Motorista", "Gestor Silva"]:
+            await db["corridas_99"].insert_one({
+                "id_corrida": f"filtro-{nome}-001",
+                "nome_motorista": nome,
+                "solicitacao": inicio_dt,
+                "origem": "A",
+                "destino": "B",
+                "distancia_km": 2.0,
+                "duracao_minutos": 10,
+                "tarifa_bruta": 10.0,
+                "valor_liquido": 8.0,
+                "status": "Concluída",
+            })
+
+        resp = await client.get(
+            f"/relatorios/comparativo?data={data_alvo.isoformat()}&motorista_nome=Motorista",
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+        nomes = [m["motorista_nome"] for m in resp.json()["motoristas"]]
+        assert all("Motorista" in n for n in nomes)
+        assert "Gestor Silva" not in nomes
+
+    async def test_comparativo_corrida_uber_fora_horario_jornada(
+        self, client, db, jornada_encerrada, admin_headers
+    ):
+        """Corrida Uber fora do horário da jornada deve aparecer como FORA_DO_HORARIO."""
+        ontem = (date.today() - timedelta(days=1))
+        # Corrida às 22h, mas jornada vai até 17h
+        inicio_dt = datetime.combine(ontem, time(22, 0, 0))
+        fim_dt = datetime.combine(ontem, time(22, 30, 0))
+
+        await db["corridas_uber"].insert_one({
+            "id_viagem": "test-fora-horario-uber-001",
+            "nome_motorista": "Motorista Teste",
+            "inicio": inicio_dt,
+            "fim": fim_dt,
+            "tarifa_base": 30.0,
+            "gorjeta": 0.0,
+            "pedagio": 0.0,
+            "ajuste_tarifa": 0.0,
+            "total_bruto": 30.0,
+            "total_cobrado": 30.0,
+            "origem": "A",
+            "destino": "B",
+        })
+
+        resp = await client.get(
+            f"/relatorios/comparativo?data={ontem.isoformat()}",
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+        mot = next(
+            (m for m in resp.json()["motoristas"] if m["motorista_nome"] == "Motorista Teste"),
+            None,
+        )
+        assert mot is not None
+        foras = mot["corridas_fora_jornada"]
+        assert any(f["motivo"] == "FORA_DO_HORARIO" and f["plataforma"] == "UBER" for f in foras)
+
+
+# ── Testes unitários dos helpers ───────────────────────────────────────────
+
+class TestHelpersRelatorios:
+    def test_float_valor_valido(self):
+        from app.routers.relatorios import _float
+        assert _float("30.50") == 30.50
+
+    def test_float_com_virgula(self):
+        from app.routers.relatorios import _float
+        assert _float("30,50") == 30.50
+
+    def test_float_string_vazia(self):
+        from app.routers.relatorios import _float
+        assert _float("") == 0.0
+        assert _float("  ") == 0.0
+
+    def test_float_valor_invalido_retorna_zero(self):
+        from app.routers.relatorios import _float
+        assert _float("nao_e_numero") == 0.0
+        assert _float("abc,def") == 0.0
+
+    def test_dt_formato_iso(self):
+        from app.routers.relatorios import _dt
+        result = _dt("2026-05-15 10:00:00")
+        assert result == datetime(2026, 5, 15, 10, 0, 0)
+
+    def test_dt_formato_iso_com_t(self):
+        from app.routers.relatorios import _dt
+        result = _dt("2026-05-15T10:00:00")
+        assert result == datetime(2026, 5, 15, 10, 0, 0)
+
+    def test_dt_formato_br(self):
+        from app.routers.relatorios import _dt
+        result = _dt("15/05/2026 10:00")
+        assert result == datetime(2026, 5, 15, 10, 0)
+
+    def test_dt_formato_invalido_retorna_none(self):
+        from app.routers.relatorios import _dt
+        assert _dt("nao_e_data") is None
+        assert _dt("") is None
+        assert _dt("2026/05/15") is None  # formato não suportado
+
+    def test_time_from_str_valido(self):
+        from app.routers.relatorios import _time_from_str
+        assert _time_from_str("08:30:00") == time(8, 30, 0)
+        assert _time_from_str("08:30") == time(8, 30, 0)
+
+    def test_time_from_str_none(self):
+        from app.routers.relatorios import _time_from_str
+        assert _time_from_str(None) is None
+        assert _time_from_str("") is None
+
+    def test_corrida_dentro_jornada_dentro(self):
+        from app.routers.relatorios import _corrida_dentro_jornada
+        jornada = {"horario": {"inicio": "08:00:00", "fim": "17:00:00"}}
+        corrida_inicio = datetime(2026, 5, 15, 10, 0, 0)
+        assert _corrida_dentro_jornada(corrida_inicio, None, jornada) is True
+
+    def test_corrida_dentro_jornada_fora(self):
+        from app.routers.relatorios import _corrida_dentro_jornada
+        jornada = {"horario": {"inicio": "08:00:00", "fim": "17:00:00"}}
+        corrida_inicio = datetime(2026, 5, 15, 22, 0, 0)
+        assert _corrida_dentro_jornada(corrida_inicio, None, jornada) is False
+
+    def test_corrida_dentro_jornada_sem_fim(self):
+        """Jornada sem fim definido: corrida é válida se após o início."""
+        from app.routers.relatorios import _corrida_dentro_jornada
+        jornada = {"horario": {"inicio": "08:00:00", "fim": None}}
+        corrida_antes = datetime(2026, 5, 15, 6, 0, 0)
+        corrida_depois = datetime(2026, 5, 15, 10, 0, 0)
+        assert _corrida_dentro_jornada(corrida_antes, None, jornada) is False
+        assert _corrida_dentro_jornada(corrida_depois, None, jornada) is True
+
+    def test_corrida_dentro_jornada_sem_horario(self):
+        """Jornada sem horario definido retorna False."""
+        from app.routers.relatorios import _corrida_dentro_jornada
+        jornada = {"horario": None}
+        corrida_inicio = datetime(2026, 5, 15, 10, 0, 0)
+        assert _corrida_dentro_jornada(corrida_inicio, None, jornada) is False
+
+    def test_parse_uber_csv_linha_sem_inicio_ignorada(self):
+        """Linhas com Data/Hora de início vazia devem ser ignoradas."""
+        from app.routers.relatorios import _parse_uber_csv
+        csv_com_linha_invalida = (
+            "ID da viagem,Nome próprio,E-mail,ID do colaborador,"
+            "Endereço de recolha,Endereço de entrega,"
+            "Data/Hora de início,Data/Hora de término,"
+            "Programa / Grupo,Tipo de transação,Montante da transação,"
+            "Moeda,Total de débitos,Outras Promoções,Método de pagamento,URL da fatura\n"
+            "trip-invalido,Motorista X,x@test.com,F01,"
+            "A,B,,,"
+            ",Tarifa base,10.00,BRL,10.00,0.0,Uber_Conta,\n"
+        )
+        corridas = _parse_uber_csv(csv_com_linha_invalida)
+        assert len(corridas) == 0
+
+    def test_parse_uber_csv_ajuste_de_tarifa(self):
+        """Tipo 'Ajuste de Tarifa' deve ser somado ao ajuste_tarifa."""
+        from app.routers.relatorios import _parse_uber_csv
+        csv = (
+            "ID da viagem,Nome próprio,E-mail,ID do colaborador,"
+            "Endereço de recolha,Endereço de entrega,"
+            "Data/Hora de início,Data/Hora de término,"
+            "Programa / Grupo,Tipo de transação,Montante da transação,"
+            "Moeda,Total de débitos,Outras Promoções,Método de pagamento,URL da fatura\n"
+            "trip-ajuste-001,Motorista X,x@test.com,F01,"
+            "A,B,"
+            "2026-05-15 10:00:00,2026-05-15 10:30:00,"
+            "Grupo A,Tarifa base,25.00,BRL,25.00,0.0,Uber_Conta,\n"
+            "trip-ajuste-001,Motorista X,x@test.com,F01,"
+            "A,B,"
+            "2026-05-15 10:00:00,2026-05-15 10:30:00,"
+            "Grupo A,Ajuste de Tarifa,5.00,BRL,30.00,0.0,Uber_Conta,\n"
+        )
+        corridas = _parse_uber_csv(csv)
+        assert len(corridas) == 1
+        assert corridas[0].ajuste_tarifa == 5.0
+        assert corridas[0].total_bruto == 30.0  # tarifa_base + ajuste
+
+    def test_parse_uber_csv_pedagio(self):
+        """Tipo 'Pedágio' deve ser somado ao pedagio mas não ao total_bruto."""
+        from app.routers.relatorios import _parse_uber_csv
+        csv = (
+            "ID da viagem,Nome próprio,E-mail,ID do colaborador,"
+            "Endereço de recolha,Endereço de entrega,"
+            "Data/Hora de início,Data/Hora de término,"
+            "Programa / Grupo,Tipo de transação,Montante da transação,"
+            "Moeda,Total de débitos,Outras Promoções,Método de pagamento,URL da fatura\n"
+            "trip-ped-001,Motorista Y,y@test.com,F02,"
+            "C,D,"
+            "2026-05-15 11:00:00,2026-05-15 11:30:00,"
+            "Grupo B,Tarifa base,20.00,BRL,20.00,0.0,Uber_Conta,\n"
+            "trip-ped-001,Motorista Y,y@test.com,F02,"
+            "C,D,"
+            "2026-05-15 11:00:00,2026-05-15 11:30:00,"
+            "Grupo B,Pedágio,3.00,BRL,23.00,0.0,Uber_Conta,\n"
+        )
+        corridas = _parse_uber_csv(csv)
+        assert len(corridas) == 1
+        assert corridas[0].pedagio == 3.0
+        assert corridas[0].total_bruto == 20.0  # pedágio não entra no bruto

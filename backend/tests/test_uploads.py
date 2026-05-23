@@ -107,7 +107,11 @@ class TestUploadArquivo:
     async def test_url_retornada_tem_caminho_estatico(
         self, client, motorista_headers, tmp_path, monkeypatch
     ):
-        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path))
+        """Quando MinIO está desabilitado, a URL deve apontar para /static/uploads/."""
+        import sys
+        _mod = sys.modules["app.routers.uploads"]
+        monkeypatch.setattr(_mod, "MINIO_ENABLED", False)
+        monkeypatch.setattr(_mod, "UPLOAD_DIR", tmp_path)
         resp = await client.post(
             "/uploads/km_final",
             files=_make_file("km.jpg"),
@@ -115,3 +119,79 @@ class TestUploadArquivo:
         )
         assert resp.status_code == 201
         assert resp.json()["url"].startswith("/static/uploads/")
+
+    async def test_upload_sem_minio_cria_arquivo_local(
+        self, client, motorista_headers, tmp_path, monkeypatch
+    ):
+        """Sem MinIO: arquivo é salvo localmente e URL segue padrão /static/uploads/."""
+        import sys
+        _mod = sys.modules["app.routers.uploads"]
+        monkeypatch.setattr(_mod, "MINIO_ENABLED", False)
+        monkeypatch.setattr(_mod, "UPLOAD_DIR", tmp_path)
+        resp = await client.post(
+            "/uploads/cnh",
+            files=_make_file("cnh.png", content_type="image/png"),
+            headers=motorista_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert "cnh" in data["url"]
+        assert data["url"].endswith(".png")
+        # Arquivo deve ter sido criado no diretório tmp
+        contexto_dir = tmp_path / "cnh"
+        assert contexto_dir.exists()
+        arquivos = list(contexto_dir.iterdir())
+        assert len(arquivos) == 1
+
+    async def test_upload_minio_habilitado_retorna_url_minio(
+        self, client, motorista_headers, monkeypatch
+    ):
+        """Com MinIO mockado, URL deve ter o formato http://<endpoint>/<bucket>/..."""
+        import sys
+        from unittest.mock import MagicMock
+
+        _mod = sys.modules["app.routers.uploads"]
+        mock_client = MagicMock()
+        mock_client.bucket_exists.return_value = True
+
+        monkeypatch.setattr(_mod, "MINIO_ENABLED", True)
+        monkeypatch.setattr(_mod, "MINIO_CLIENT", mock_client)
+        monkeypatch.setattr(_mod, "MINIO_BUCKET", "test-bucket")
+
+        resp = await client.post(
+            "/uploads/outros",
+            files=_make_file("doc.pdf", content_type="application/pdf"),
+            headers=motorista_headers,
+        )
+        assert resp.status_code == 201
+        mock_client.put_object.assert_called_once()
+
+    async def test_ensure_minio_bucket_cria_quando_nao_existe(self):
+        """_ensure_minio_bucket deve criar o bucket quando ele não existe."""
+        import sys
+        from unittest.mock import MagicMock
+
+        _mod = sys.modules["app.routers.uploads"]
+        mock_client = MagicMock()
+        mock_client.bucket_exists.return_value = False
+
+        original_client = _mod.MINIO_CLIENT
+        _mod.MINIO_CLIENT = mock_client
+        try:
+            _mod._ensure_minio_bucket()
+            mock_client.make_bucket.assert_called_once()
+            mock_client.set_bucket_policy.assert_called_once()
+        finally:
+            _mod.MINIO_CLIENT = original_client
+
+    async def test_ensure_minio_bucket_sem_cliente_retorna_sem_erro(self):
+        """_ensure_minio_bucket retorna silenciosamente quando MINIO_CLIENT é None."""
+        import sys
+        _mod = sys.modules["app.routers.uploads"]
+
+        original_client = _mod.MINIO_CLIENT
+        _mod.MINIO_CLIENT = None
+        try:
+            _mod._ensure_minio_bucket()  # não deve lançar exceção
+        finally:
+            _mod.MINIO_CLIENT = original_client

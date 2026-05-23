@@ -180,3 +180,64 @@ class TestMe:
         data = resp.json()
         assert "senha_hash" not in data
         assert "pin_hash" not in data
+
+
+class TestSetupNeeded:
+    async def test_setup_needed_true_quando_sem_usuarios(self, client, db):
+        """Retorna setup_needed=True quando não há usuários no banco."""
+        resp = await client.get("/auth/setup-needed")
+        assert resp.status_code == 200
+        assert resp.json()["setup_needed"] is True
+
+    async def test_setup_needed_false_quando_ha_usuarios(
+        self, client, admin_user
+    ):
+        """Retorna setup_needed=False quando já há ao menos um usuário."""
+        resp = await client.get("/auth/setup-needed")
+        assert resp.status_code == 200
+        assert resp.json()["setup_needed"] is False
+
+
+class TestDependenciesEdgeCases:
+    async def test_token_sem_sub_retorna_401(self, client):
+        """Token JWT sem campo 'sub' deve retornar 401."""
+        from app.core.security import criar_access_token
+
+        token = criar_access_token({"role": "ADMIN"})  # sem 'sub'
+        resp = await client.get(
+            "/auth/me", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 401
+
+    async def test_token_usuario_deletado_retorna_401(self, client, db):
+        """Token válido mas usuário inexistente no banco deve retornar 401."""
+        from app.core.security import criar_access_token
+        from bson import ObjectId
+
+        uid_inexistente = str(ObjectId())
+        token = criar_access_token({"sub": uid_inexistente, "role": "ADMIN"})
+        resp = await client.get(
+            "/auth/me", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 401
+
+
+class TestAuthService:
+    async def test_buscar_usuario_por_id_sucesso(self, db, admin_user):
+        """buscar_usuario_por_id deve retornar UserPublic quando usuário existe."""
+        from app.services.auth_service import buscar_usuario_por_id
+
+        result = await buscar_usuario_por_id(db, admin_user["id"])
+        assert result.email == admin_user["email"]
+        assert result.role == "ADMIN"
+
+    async def test_buscar_usuario_por_id_nao_encontrado_retorna_404(self, db):
+        """buscar_usuario_por_id deve lançar HTTPException 404 quando não encontrado."""
+        from fastapi import HTTPException
+        from app.services.auth_service import buscar_usuario_por_id
+        from bson import ObjectId
+
+        uid_inexistente = str(ObjectId())
+        with pytest.raises(HTTPException) as exc_info:
+            await buscar_usuario_por_id(db, uid_inexistente)
+        assert exc_info.value.status_code == 404
