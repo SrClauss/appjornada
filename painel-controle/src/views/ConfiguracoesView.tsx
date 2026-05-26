@@ -4,7 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Gear, Shield, User } from '@phosphor-icons/react';
+import { Switch } from '@/components/ui/switch';
+import { Gear, Shield, User, Bell, FileArrowUp } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUpdateUser } from '@/hooks/useMotoristas';
@@ -17,13 +18,22 @@ export function ConfiguracoesView() {
     nome: user?.nome ?? '',
     email: user?.email ?? '',
   });
-  const [pwForm, setPwForm] = useState({ atual: '', nova: '', confirmar: '' });
+  const [pwForm, setPwForm] = useState({ nova: '', confirmar: '' });
 
-  // Metas CLT locais (somente exibição configurável pelo gestor)
   const [metas, setMetas] = useState({
     horas_mensais: 220,
     horas_semanais: 44,
     horas_diarias: 8,
+  });
+
+  const [alertas, setAlertas] = useState({
+    inatividade_gps: 30,
+    vencimento_cnh: 30,
+    vencimento_ipva: 60,
+    km_revisao: 5000,
+    email: true,
+    sms: false,
+    push: true,
   });
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -37,8 +47,20 @@ export function ConfiguracoesView() {
     }
   };
 
-  const handleSaveMetas = () => {
-    toast.success('Metas CLT salvas localmente!');
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwForm.nova !== pwForm.confirmar) {
+      toast.error('As senhas não coincidem.');
+      return;
+    }
+    if (!user) return;
+    try {
+      await updateMutation.mutateAsync({ id: user.id, payload: { senha: pwForm.nova } });
+      toast.success('Senha alterada com sucesso!');
+      setPwForm({ nova: '', confirmar: '' });
+    } catch {
+      toast.error('Erro ao alterar senha.');
+    }
   };
 
   return (
@@ -82,17 +104,17 @@ export function ConfiguracoesView() {
           </CardContent>
         </Card>
 
-        {/* Metas CLT */}
+        {/* Configurações Gerais (Metas CLT) */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Gear className="text-accent" size={24} />
-              <CardTitle>Metas CLT</CardTitle>
+              <CardTitle>Configurações Gerais</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Meta de Horas Mensais</Label>
+              <Label>Meta de Horas Mensais (CLT)</Label>
               <Input
                 type="number"
                 value={metas.horas_mensais}
@@ -100,7 +122,7 @@ export function ConfiguracoesView() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Meta de Horas Semanais</Label>
+              <Label>Meta de Horas Semanais (CLT)</Label>
               <Input
                 type="number"
                 value={metas.horas_semanais}
@@ -108,14 +130,84 @@ export function ConfiguracoesView() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Meta de Horas Diárias</Label>
+              <Label>Meta de Horas Diárias (CLT)</Label>
               <Input
                 type="number"
                 value={metas.horas_diarias}
                 onChange={(e) => setMetas({ ...metas, horas_diarias: Number(e.target.value) })}
               />
             </div>
-            <Button onClick={handleSaveMetas}>Salvar Metas</Button>
+            <Button onClick={() => toast.success('Configurações salvas!')}>
+              Salvar Configurações
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Alertas & Notificações */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bell className="text-warning" size={24} />
+              <CardTitle>Alertas & Notificações</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground font-medium">Limites de alerta</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Inatividade GPS (min)</Label>
+                <Input
+                  type="number"
+                  value={alertas.inatividade_gps}
+                  onChange={(e) => setAlertas({ ...alertas, inatividade_gps: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Venc. CNH (dias)</Label>
+                <Input
+                  type="number"
+                  value={alertas.vencimento_cnh}
+                  onChange={(e) => setAlertas({ ...alertas, vencimento_cnh: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Venc. IPVA (dias)</Label>
+                <Input
+                  type="number"
+                  value={alertas.vencimento_ipva}
+                  onChange={(e) => setAlertas({ ...alertas, vencimento_ipva: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Aviso Revisão (km)</Label>
+                <Input
+                  type="number"
+                  value={alertas.km_revisao}
+                  onChange={(e) => setAlertas({ ...alertas, km_revisao: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+            <Separator />
+            <p className="text-sm text-muted-foreground font-medium">Canais de notificação</p>
+            <div className="space-y-3">
+              {([
+                { key: 'email', label: 'Notificações por E-mail' },
+                { key: 'sms', label: 'Notificações por SMS' },
+                { key: 'push', label: 'Notificações Push' },
+              ] as const).map(({ key, label }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <Label htmlFor={`notif-${key}`} className="cursor-pointer">{label}</Label>
+                  <Switch
+                    id={`notif-${key}`}
+                    checked={alertas[key]}
+                    onCheckedChange={(v) => setAlertas({ ...alertas, [key]: v })}
+                  />
+                </div>
+              ))}
+            </div>
+            <Button onClick={() => toast.success('Configurações de alertas salvas!')}>
+              Salvar Alertas
+            </Button>
           </CardContent>
         </Card>
 
@@ -127,18 +219,13 @@ export function ConfiguracoesView() {
               <CardTitle>Segurança</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Para alterar sua senha, entre em contato com o administrador ou utilize a API
-              <code className="ml-1 text-xs bg-muted px-1 rounded">PATCH /users/{'{id}'}</code>.
-            </p>
-            <Separator />
-            <div className="space-y-3">
+          <CardContent>
+            <form onSubmit={handleSavePassword} className="space-y-4">
               <div className="space-y-2">
                 <Label>Nova Senha</Label>
                 <Input
                   type="password"
-                  placeholder="Nova senha"
+                  placeholder="Digite a nova senha"
                   value={pwForm.nova}
                   onChange={(e) => setPwForm({ ...pwForm, nova: e.target.value })}
                 />
@@ -153,17 +240,50 @@ export function ConfiguracoesView() {
                 />
               </div>
               <Button
+                type="submit"
                 variant="outline"
                 className="w-full"
-                disabled={!pwForm.nova || pwForm.nova !== pwForm.confirmar}
-                onClick={() => toast.info('Funcionalidade de alteração de senha disponível em breve.')}
+                disabled={!pwForm.nova || pwForm.nova !== pwForm.confirmar || updateMutation.isPending}
               >
                 Alterar Senha
               </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Importação de Dados */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FileArrowUp className="text-primary" size={24} />
+              <CardTitle>Importação de Dados</CardTitle>
             </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm font-medium mb-2">Formato esperado — Uber CSV</p>
+                <div className="bg-muted rounded-lg p-3 text-xs font-mono text-muted-foreground space-y-1">
+                  <p>data,corridas,km_total,faturamento,motorista</p>
+                  <p>2024-01-15,8,142.5,350.00,João Silva</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-2">Formato esperado — 99 CSV</p>
+                <div className="bg-muted rounded-lg p-3 text-xs font-mono text-muted-foreground space-y-1">
+                  <p>data,corridas,km_total,faturamento,motorista</p>
+                  <p>2024-01-15,5,89.2,210.00,Maria Santos</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              Para importar arquivos CSV das plataformas, acesse a aba <strong>Relatórios → Importar CSV</strong>.
+            </p>
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
+

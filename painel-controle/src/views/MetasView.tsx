@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { format, startOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,8 +15,12 @@ import {
 } from '@/components/ui/select';
 import { Target, Trophy, CurrencyDollar } from '@phosphor-icons/react';
 import { toast } from 'sonner';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { useMetas, useCreateMeta, useDeleteMeta } from '@/hooks/useMetas';
-import type { CreateMetaPayload, GoalType, GoalReference } from '@/lib/types';
+import api from '@/lib/api';
+import type { Jornada, CreateMetaPayload, GoalType, GoalReference } from '@/lib/types';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -30,6 +36,26 @@ export function MetasView() {
   const createMutation = useCreateMeta();
   const deleteMutation = useDeleteMeta();
   const [openCreate, setOpenCreate] = useState(false);
+
+  // Busca jornadas do mês para calcular bônus acumulado por motorista
+  const mesAtual = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+  const { data: jornadasMes = [] } = useQuery({
+    queryKey: ['metas', 'jornadas-mes', mesAtual],
+    queryFn: async () => {
+      const { data } = await api.get<Jornada[]>('/jornadas', { params: { limit: 200 } });
+      return data.filter((j) => j.data >= mesAtual);
+    },
+    staleTime: 60_000,
+  });
+
+  const bonusChartData = (() => {
+    const map: Record<string, number> = {};
+    for (const j of jornadasMes) {
+      const nome = (j.motorista_nome ?? j.motorista_id).split(' ')[0];
+      map[nome] = (map[nome] ?? 0) + (j.bonus_dia ?? 0);
+    }
+    return Object.entries(map).map(([name, bonus]) => ({ name, bonus }));
+  })();
 
   const emptyForm: CreateMetaPayload = {
     tipo: 'FATURAMENTO_DIA',
@@ -121,6 +147,26 @@ export function MetasView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Gráfico de bônus acumulado no mês */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Bônus Acumulado no Mês por Motorista</h3>
+        {bonusChartData.length === 0 ? (
+          <p className="text-muted-foreground text-sm py-8 text-center">
+            Nenhum bônus registrado este mês.
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={bonusChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$${v}`} />
+              <Tooltip formatter={(v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
+              <Bar dataKey="bonus" fill="#10b981" name="Bônus" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Card>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

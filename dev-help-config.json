@@ -11,7 +11,7 @@
       "name": "Painel",
       "promptName": "⚛️ Painel Admin",
       "command": "npm run dev",
-      "cwd": "painel_app",
+      "cwd": "painel-controle",
       "keepOpen": false
     },
     {

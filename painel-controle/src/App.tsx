@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/pages/LoginPage';
+import { SetupPage } from '@/pages/SetupPage';
 import { AppSidebar } from '@/components/AppSidebar';
 import { AppHeader } from '@/components/AppHeader';
 import { DashboardView } from '@/views/DashboardView';
@@ -16,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 
 function App() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, setupNeeded } = useAuth();
   const [activeView, setActiveView] = useState('dashboard');
 
   if (isLoading) {
@@ -28,6 +29,15 @@ function App() {
           <Skeleton className="h-6 w-1/2" />
         </div>
       </div>
+    );
+  }
+
+  if (setupNeeded) {
+    return (
+      <>
+        <SetupPage />
+        <Toaster />
+      </>
     );
   }
 
