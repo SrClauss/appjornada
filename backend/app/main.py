@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.db.database import connect_db, close_db
-from app.routers import auth, users, veiculos, jornadas, gps, manutencoes, metas, relatorios, uploads
+from app.routers import auth, users, veiculos, jornadas, gps, manutencoes, metas, relatorios, uploads, coleta
 from app.services.scheduler import criar_scheduler
 
 UPLOAD_DIR = Path("/tmp/app_jornada_uploads")
@@ -47,6 +47,7 @@ app.include_router(manutencoes)
 app.include_router(metas)
 app.include_router(relatorios)
 app.include_router(uploads)
+app.include_router(coleta)
 
 # Serve arquivos de upload via /static/uploads/
 app.mount("/static/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")

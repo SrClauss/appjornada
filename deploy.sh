@@ -5,6 +5,9 @@ SERVER="root@2.24.121.189"
 REMOTE_DIR="/src/app_jornada"
 LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+echo "==> Garantindo que $REMOTE_DIR existe no servidor ..."
+ssh "$SERVER" "mkdir -p $REMOTE_DIR"
+
 echo "==> Sincronizando $LOCAL_DIR → $SERVER:$REMOTE_DIR ..."
 rsync -avz --delete \
   --exclude='.git' \
@@ -19,9 +22,6 @@ rsync -avz --delete \
   --exclude='backend/venv' \
   "$LOCAL_DIR/" \
   "$SERVER:$REMOTE_DIR/"
-
-echo "==> Garantindo que /src existe no servidor ..."
-ssh "$SERVER" "mkdir -p /src"
 
 echo "==> Executando docker compose up --build no servidor ..."
 ssh "$SERVER" bash <<EOF
