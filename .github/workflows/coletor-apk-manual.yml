@@ -3,6 +3,9 @@ name: Gerar APK do Coletor
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
