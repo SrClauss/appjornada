@@ -1,3 +1,5 @@
+import csv
+import io
 import json
 import os
 from datetime import datetime
@@ -5,9 +7,11 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
+from app.core.dependencies import get_current_user, require_roles
 from app.db.database import get_db
+from app.models.user import Role
 
 router = APIRouter(prefix="/coleta", tags=["coleta"])
 
@@ -164,3 +168,169 @@ async def listar_arquivos():
             "tamanho_kb": round(f.stat().st_size / 1024, 1),
         })
     return arquivos
+
+
+# ─── ADMIN (JWT Auth — painel de controle) ────────────────────────────────────
+
+_admin_dep = Depends(require_roles(Role.ADMIN, Role.GESTOR))
+
+
+@router.get("/admin/arquivos", dependencies=[_admin_dep])
+async def admin_listar_arquivos():
+    """Lista todos os arquivos raw no disco (para o painel de controle)."""
+    if not COLETA_DIR.exists():
+        return []
+    arquivos = []
+    for f in sorted(COLETA_DIR.rglob("*.jsonl"), reverse=True):
+        rel = f.relative_to(COLETA_DIR)
+        partes = rel.parts  # [package, data, nome_arquivo]
+        arquivos.append({
+            "caminho": str(rel),
+            "package": partes[0] if len(partes) > 0 else "",
+            "data": partes[1] if len(partes) > 1 else "",
+            "nome": partes[-1],
+            "telas": sum(1 for _ in f.open(encoding="utf-8")),
+            "tamanho_kb": round(f.stat().st_size / 1024, 1),
+            "modificado_em": datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+        })
+    return arquivos
+
+
+@router.get("/admin/telas", dependencies=[_admin_dep])
+async def admin_listar_telas(
+    package: Optional[str] = None,
+    db=Depends(get_db),
+):
+    """Retorna telas únicas capturadas (via MongoDB), protegido por JWT."""
+    filtro: dict = {}
+    if package:
+        filtro["packageName"] = package
+
+    pipeline = [
+        {"$match": filtro},
+        {"$group": {
+            "_id": {"package": "$packageName", "activity": "$activityClass"},
+            "total_capturas": {"$sum": 1},
+            "primeiro_visto": {"$min": "$timestamp"},
+            "ultimo_visto": {"$max": "$timestamp"},
+        }},
+        {"$sort": {"total_capturas": -1}},
+    ]
+
+    resultado = await db["coleta_snapshots"].aggregate(pipeline).to_list(500)
+    return [
+        {
+            "package": r["_id"]["package"],
+            "activity": r["_id"]["activity"],
+            "total_capturas": r["total_capturas"],
+            "primeiro_visto": r["primeiro_visto"],
+            "ultimo_visto": r["ultimo_visto"],
+        }
+        for r in resultado
+    ]
+
+
+@router.get("/admin/snapshots", dependencies=[_admin_dep])
+async def admin_listar_snapshots(
+    package: Optional[str] = None,
+    activity: Optional[str] = None,
+    dispositivo: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    db=Depends(get_db),
+):
+    """Lista snapshots individuais com filtros e paginação."""
+    filtro: dict = {}
+    if package:
+        filtro["packageName"] = package
+    if activity:
+        filtro["activityClass"] = {"$regex": activity, "$options": "i"}
+    if dispositivo:
+        filtro["_dispositivo"] = {"$regex": dispositivo, "$options": "i"}
+
+    cursor = db["coleta_snapshots"].find(filtro, {"_id": 0}).skip(skip).limit(limit)
+    docs = await cursor.to_list(limit)
+    total = await db["coleta_snapshots"].count_documents(filtro)
+    return {"total": total, "skip": skip, "limit": limit, "items": docs}
+
+
+@router.get("/admin/download/{caminho:path}", dependencies=[_admin_dep])
+async def admin_download_arquivo(caminho: str):
+    """Faz o download de um arquivo .jsonl raw pelo caminho relativo."""
+    # Segurança: impede path traversal
+    try:
+        alvo = (COLETA_DIR / caminho).resolve()
+        alvo.relative_to(COLETA_DIR.resolve())
+    except (ValueError, Exception):
+        raise HTTPException(status_code=400, detail="Caminho inválido")
+
+    if not alvo.exists() or not alvo.is_file():
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+
+    conteudo = alvo.read_bytes()
+    return StreamingResponse(
+        io.BytesIO(conteudo),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{alvo.name}"'},
+    )
+
+
+@router.get("/admin/export-csv", dependencies=[_admin_dep])
+async def admin_exportar_csv(
+    package: Optional[str] = None,
+    activity: Optional[str] = None,
+    limit: int = 1000,
+    db=Depends(get_db),
+):
+    """Exporta snapshots como CSV para análise."""
+    filtro: dict = {}
+    if package:
+        filtro["packageName"] = package
+    if activity:
+        filtro["activityClass"] = {"$regex": activity, "$options": "i"}
+
+    cursor = db["coleta_snapshots"].find(filtro, {"_id": 0}).limit(limit)
+    docs = await cursor.to_list(limit)
+
+    if not docs:
+        raise HTTPException(status_code=404, detail="Nenhum snapshot encontrado")
+
+    # Coleta todas as chaves presentes
+    colunas = list(dict.fromkeys(k for d in docs for k in d.keys()))
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=colunas, extrasaction="ignore")
+    writer.writeheader()
+    for doc in docs:
+        # Serializa campos complexos como JSON string
+        row = {k: (json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v) for k, v in doc.items()}
+        writer.writerow(row)
+
+    output.seek(0)
+    nome = f"coleta_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    return StreamingResponse(
+        io.StringIO(output.getvalue()),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nome}"'},
+    )
+
+
+@router.delete("/admin/arquivo", dependencies=[_admin_dep])
+async def admin_deletar_arquivo(caminho: str, db=Depends(get_db)):
+    """Remove um arquivo .jsonl raw do disco e seus snapshots do MongoDB."""
+    try:
+        alvo = (COLETA_DIR / caminho).resolve()
+        alvo.relative_to(COLETA_DIR.resolve())
+    except (ValueError, Exception):
+        raise HTTPException(status_code=400, detail="Caminho inválido")
+
+    if not alvo.exists() or not alvo.is_file():
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+
+    nome_arquivo = alvo.name
+    alvo.unlink()
+
+    # Remove snapshots associados ao arquivo do MongoDB
+    resultado = await db["coleta_snapshots"].delete_many({"_arquivo_origem": nome_arquivo})
+
+    return {"status": "ok", "arquivo_removido": caminho, "snapshots_removidos": resultado.deleted_count}

@@ -7,7 +7,8 @@ import {
   Wrench, 
   Target, 
   ChartBar, 
-  Gear 
+  Gear,
+  Database
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ export const navItems: NavItem[] = [
   { icon: Wrench, label: 'Manutenções', id: 'manutencoes' },
   { icon: Target, label: 'Metas & Bônus', id: 'metas' },
   { icon: ChartBar, label: 'Relatórios', id: 'relatorios' },
+  { icon: Database, label: 'Coleta de Dados', id: 'coleta' },
   { icon: Gear, label: 'Configurações', id: 'configuracoes' },
 ];
 

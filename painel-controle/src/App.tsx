@@ -13,6 +13,7 @@ import { ManutencoesView } from '@/views/ManutencoesView';
 import { MetasView } from '@/views/MetasView';
 import { RelatoriosView } from '@/views/RelatoriosView';
 import { ConfiguracoesView } from '@/views/ConfiguracoesView';
+import { ColetaView } from '@/views/ColetaView';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -60,6 +61,7 @@ function App() {
       case 'manutencoes':    return <ManutencoesView />;
       case 'metas':          return <MetasView />;
       case 'relatorios':     return <RelatoriosView />;
+      case 'coleta':          return <ColetaView />;
       case 'configuracoes':  return <ConfiguracoesView />;
       default:               return <DashboardView />;
     }
