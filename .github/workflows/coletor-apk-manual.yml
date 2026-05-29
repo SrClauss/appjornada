@@ -1,0 +1,35 @@
+name: Gerar APK do Coletor
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coletor/flutter
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Instalar dependências
+        run: flutter pub get
+
+      - name: Gerar APK release
+        run: flutter build apk --release
+
+      - name: Publicar artefato APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: appjornada-coletor-apk
+          path: coletor/flutter/build/app/outputs/flutter-apk/*.apk

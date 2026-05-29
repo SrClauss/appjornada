@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AppJornada Coletor</string>
+    <string name="accessibility_service_description">Coleta telas dos apps 99, Uber Driver e GitHub em background para análise.</string>
+</resources>
