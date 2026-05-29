@@ -28,13 +28,14 @@ jobs:
       - name: Gerar APK release
         run: |
           set +e
-          flutter build apk --release
+          flutter clean
+          flutter build apk --release --verbose
           status=$?
           set -e
 
           if [ "$status" -ne 0 ]; then
             echo "flutter build retornou código $status; verificando se o APK foi gerado..."
-            if find build/app/outputs -type f -name "*.apk" | grep -q .; then
+            if [ -d build/app/outputs ] && find build/app/outputs -type f -name "*.apk" | grep -q .; then
               echo "APK encontrado mesmo com retorno de erro do flutter; continuando."
             else
               exit "$status"
