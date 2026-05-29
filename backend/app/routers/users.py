@@ -10,7 +10,7 @@ from app.core.security import hash_senha
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/", response_model=List[UserPublic])
+@router.get("", response_model=List[UserPublic])
 async def listar_users(
     role: Optional[Role] = None,
     situacao: Optional[str] = None,

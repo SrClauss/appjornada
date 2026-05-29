@@ -16,7 +16,7 @@ MINUTOS_INATIVIDADE_ALERTA = 15
 router = APIRouter(prefix="/gps", tags=["gps"])
 
 
-@router.post("/", response_model=HistoricoGPS, status_code=201)
+@router.post("", response_model=HistoricoGPS, status_code=201)
 async def registrar_ponto_gps(
     dados: HistoricoGPSCreate,
     db=Depends(get_db),

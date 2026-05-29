@@ -10,7 +10,7 @@ from app.core.dependencies import get_current_user, require_roles
 router = APIRouter(prefix="/metas", tags=["metas e bônus"])
 
 
-@router.post("/", response_model=MetaBonus, status_code=201)
+@router.post("", response_model=MetaBonus, status_code=201)
 async def criar_meta(
     dados: MetaBonusCreate,
     db=Depends(get_db),
@@ -22,7 +22,7 @@ async def criar_meta(
     return MetaBonus(**criado)
 
 
-@router.get("/", response_model=List[MetaBonus])
+@router.get("", response_model=List[MetaBonus])
 async def listar_metas(
     db=Depends(get_db),
     _=Depends(get_current_user),

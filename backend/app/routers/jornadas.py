@@ -29,7 +29,7 @@ def _calcular_saldo_horas(segundos: Optional[int]) -> Optional[float]:
 
 # ─── CRUD principal ──────────────────────────────────────────────────────────
 
-@router.post("/", response_model=Jornada, status_code=201)
+@router.post("", response_model=Jornada, status_code=201)
 async def abrir_jornada(
     dados: JornadaCreate,
     pin: str,
@@ -105,7 +105,7 @@ async def jornada_aberta(
     return Jornada(**doc) if doc else None
 
 
-@router.get("/", response_model=List[Jornada])
+@router.get("", response_model=List[Jornada])
 async def listar_jornadas(
     data: Optional[date] = None,
     motorista_id: Optional[str] = None,

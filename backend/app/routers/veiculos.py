@@ -11,7 +11,7 @@ from app.core.dependencies import get_current_user, require_roles
 router = APIRouter(prefix="/veiculos", tags=["veículos"])
 
 
-@router.post("/", response_model=Veiculo, status_code=201)
+@router.post("", response_model=Veiculo, status_code=201)
 async def criar_veiculo(
     dados: VeiculoCreate,
     db=Depends(get_db),
@@ -29,7 +29,7 @@ async def criar_veiculo(
     return Veiculo(**doc)
 
 
-@router.get("/", response_model=List[Veiculo])
+@router.get("", response_model=List[Veiculo])
 async def listar_veiculos(
     db=Depends(get_db),
     _=Depends(get_current_user),

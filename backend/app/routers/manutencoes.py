@@ -10,7 +10,7 @@ from app.core.dependencies import get_current_user, require_roles
 router = APIRouter(prefix="/manutencoes", tags=["manutenções"])
 
 
-@router.post("/", response_model=Manutencao, status_code=201)
+@router.post("", response_model=Manutencao, status_code=201)
 async def registrar_manutencao(
     dados: ManutencaoCreate,
     db=Depends(get_db),
@@ -24,7 +24,7 @@ async def registrar_manutencao(
     return Manutencao(**criado)
 
 
-@router.get("/", response_model=List[Manutencao])
+@router.get("", response_model=List[Manutencao])
 async def listar_manutencoes(
     veiculo_id: Optional[str] = None,
     db=Depends(get_db),
