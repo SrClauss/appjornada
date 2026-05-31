@@ -4,11 +4,10 @@ import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 
 class MonitorAccessibilityService : AccessibilityService() {
-    private lateinit var eventStore: EventStore
+    private val eventStore: EventStore by lazy { EventStore(applicationContext) }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        eventStore = EventStore(applicationContext)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -26,6 +25,7 @@ class MonitorAccessibilityService : AccessibilityService() {
             "com.app99.driver",
             "com.ubercab.driver",
             "com.github.android",
+            "com.github.android.beta",
         )
     }
 }
