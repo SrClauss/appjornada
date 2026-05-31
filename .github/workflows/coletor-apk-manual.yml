@@ -35,7 +35,7 @@ jobs:
 
           if [ "$status" -ne 0 ]; then
             echo "flutter build retornou código $status; verificando se o APK foi gerado..."
-            if [ -d build/app/outputs ] && find build/app/outputs -type f -name "*.apk" | grep -q .; then
+            if { [ -d build/app/outputs ] && find build/app/outputs -type f -name "*.apk" | grep -q .; } || { [ -d android/app/build/outputs ] && find android/app/build/outputs -type f -name "*.apk" | grep -q .; }; then
               echo "APK encontrado mesmo com retorno de erro do flutter; continuando."
             else
               exit "$status"
@@ -49,3 +49,4 @@ jobs:
           path: |
             coletor/flutter/build/app/outputs/flutter-apk/*.apk
             coletor/flutter/build/app/outputs/apk/release/*.apk
+            coletor/flutter/android/app/build/outputs/apk/release/*.apk
