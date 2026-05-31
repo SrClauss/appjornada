@@ -1,6 +1,7 @@
 package com.srclauss.coletor
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -22,6 +23,17 @@ class MonitorAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        serviceInfo = (serviceInfo ?: AccessibilityServiceInfo()).apply {
+            eventTypes =
+                AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+            packageNames = TARGET_PACKAGES.toTypedArray()
+            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+            notificationTimeout = NOTIFICATION_TIMEOUT_MS
+            flags =
+                AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -117,6 +129,7 @@ class MonitorAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val DEBOUNCE_MS = 500L
+        private const val NOTIFICATION_TIMEOUT_MS = 200L
         val TARGET_PACKAGES: Set<String> = setOf(
             "com.app99.driver",
             "com.ubercab.driver",
