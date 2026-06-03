@@ -20,6 +20,8 @@ rsync -avz --delete \
   --exclude='painel-controle/.vite' \
   --exclude='backend/.venv' \
   --exclude='backend/venv' \
+  --exclude='coletor_app/' \
+  --exclude='coletor/*.apk' \
   "$LOCAL_DIR/" \
   "$SERVER:$REMOTE_DIR/"
 
