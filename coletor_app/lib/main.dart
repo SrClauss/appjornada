@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(const ColetorApp());
@@ -88,17 +90,20 @@ class _DashboardPageState extends State<DashboardPage> {
   String _searchQuery = '';
   bool _isPaused = false;
 
+  // Configurações de Persistência Local
+  int _totalPendingCount = 0;
+
   // Configurações do Servidor
   final TextEditingController _urlController = TextEditingController(text: 'http://2.24.121.189:3000/api');
   final TextEditingController _keyController = TextEditingController(text: 'coleta-dev-key');
-  final TextEditingController _deviceController = TextEditingController(text: 'Celular Cláudio');
-  bool _autoUpload = true; // Ativo por padrão
+  final TextEditingController _deviceController = TextEditingController(text: 'Celular Motorista');
   bool _isSyncing = false;
   bool _showSettings = false;
 
   @override
   void initState() {
     super.initState();
+    _loadLogsFromDisk();
     _startListening();
   }
 
@@ -109,6 +114,73 @@ class _DashboardPageState extends State<DashboardPage> {
     _keyController.dispose();
     _deviceController.dispose();
     super.dispose();
+  }
+
+  // Pega o caminho do arquivo persistente local
+  Future<File> get _localFile async {
+    final directory = await getApplicationDocumentsDirectory();
+    return File('${directory.path}/logs_acumulados.jsonl');
+  }
+
+  // Carrega os logs salvos em disco no carregamento da tela
+  Future<void> _loadLogsFromDisk() async {
+    try {
+      final file = await _localFile;
+      if (!await file.exists()) {
+        setState(() {
+          _totalPendingCount = 0;
+        });
+        return;
+      }
+      final lines = await file.readAsLines();
+      final List<LogItem> loaded = [];
+
+      for (var line in lines) {
+        if (line.trim().isEmpty) continue;
+        try {
+          final data = jsonDecode(line);
+          final List<String> flatTexts = _extractFlatTexts(data['tree'] ?? {});
+          loaded.insert(
+            0,
+            LogItem(
+              timestamp: DateTime.parse(data['timestamp']),
+              packageName: data['packageName'] ?? '',
+              className: data['activityClass'] ?? '',
+              eventType: data['eventType'] ?? '',
+              tree: data['tree'] ?? {},
+              flatTexts: flatTexts,
+              isSynced: false,
+            ),
+          );
+        } catch (_) {}
+      }
+
+      setState(() {
+        _logs.clear();
+        // Mantém apenas os últimos 50 na RAM para não pesar a UI visual
+        _logs.addAll(loaded.take(50));
+        _totalPendingCount = loaded.length;
+      });
+    } catch (e) {
+      debugPrint("Erro ao ler logs do disco: $e");
+    }
+  }
+
+  // Grava o novo log no arquivo de lote do disco
+  Future<void> _saveLogToDisk(LogItem log) async {
+    try {
+      final file = await _localFile;
+      final String line = jsonEncode({
+        "timestamp": log.timestamp.toIso8601String(),
+        "packageName": log.packageName,
+        "activityClass": log.className,
+        "eventType": log.eventType,
+        "tree": log.tree,
+      }) + '\n';
+      await file.writeAsString(line, mode: FileMode.append);
+    } catch (e) {
+      debugPrint("Erro ao salvar log no disco: $e");
+    }
   }
 
   List<String> _extractFlatTexts(Map<String, dynamic> node) {
@@ -153,13 +225,17 @@ class _DashboardPageState extends State<DashboardPage> {
           isSynced: false,
         );
 
-        setState(() {
-          _logs.insert(0, newLog);
-        });
+        // Salva silenciosamente em disco no arquivo do lote acumulado
+        _saveLogToDisk(newLog);
 
-        if (_autoUpload) {
-          _uploadSingleLog(newLog);
-        }
+        setState(() {
+          // Insere na visualização da tela
+          _logs.insert(0, newLog);
+          if (_logs.length > 50) {
+            _logs.removeLast(); // Mantém UI leve
+          }
+          _totalPendingCount++;
+        });
       }
     }, onError: (dynamic error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -183,37 +259,38 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  Future<bool> _uploadToServer(List<LogItem> logsToUpload) async {
-    if (logsToUpload.isEmpty) return true;
+  // Envia todo o arquivo .jsonl acumulado localmente para o servidor
+  Future<void> _syncDailyLogs() async {
+    final file = await _localFile;
+    if (!await file.exists() || _totalPendingCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhum log acumulado para enviar!')),
+      );
+      return;
+    }
 
-    final int recordCount = logsToUpload.length;
-    final String package = logsToUpload.length == 1 ? logsToUpload.first.packageName : 'coleta_lote';
+    setState(() {
+      _isSyncing = true;
+    });
+
+    final int recordCount = _totalPendingCount;
     final String dateStr = DateTime.now().toIso8601String().replaceAll(':', '-');
-    final String filename = "${package}_$dateStr.jsonl";
+    final String filename = "coleta_diaria_$dateStr.jsonl";
 
     try {
-      final String jsonlContent = logsToUpload.map((log) {
-        return jsonEncode({
-          "timestamp": log.timestamp.toIso8601String(),
-          "packageName": log.packageName,
-          "activityClass": log.className,
-          "eventType": log.eventType,
-          "tree": log.tree,
-        });
-      }).join('\n') + '\n';
-
       final String baseUrl = _urlController.text.trim();
       final Uri uri = Uri.parse("$baseUrl/coleta/upload");
 
       final request = http.MultipartRequest('POST', uri);
       request.headers['x-api-key'] = _keyController.text.trim();
 
-      final file = http.MultipartFile.fromBytes(
+      // Envia o arquivo persistente do disco diretamente
+      final filePart = await http.MultipartFile.fromPath(
         'arquivo',
-        utf8.encode(jsonlContent),
+        file.path,
         filename: filename,
       );
-      request.files.add(file);
+      request.files.add(filePart);
 
       final deviceName = _deviceController.text.trim();
       if (deviceName.isNotEmpty) {
@@ -224,7 +301,14 @@ class _DashboardPageState extends State<DashboardPage> {
       final body = await response.stream.bytesToString();
 
       if (response.statusCode == 200) {
+        // Limpa o arquivo de lote acumulado no disco, pois o upload deu OK!
+        await file.delete();
+
         setState(() {
+          for (var log in _logs) {
+            log.isSynced = true;
+          }
+          _totalPendingCount = 0;
           _uploadHistory.insert(
             0,
             UploadHistoryItem(
@@ -236,7 +320,13 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           );
         });
-        return true;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$recordCount logs do dia enviados com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       } else {
         setState(() {
           _uploadHistory.insert(
@@ -250,7 +340,13 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           );
         });
-        return false;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Falha no upload (Status ${response.statusCode}). Verifique o histórico de envios.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       setState(() {
@@ -265,52 +361,32 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         );
       });
-      return false;
-    }
-  }
 
-  Future<void> _uploadSingleLog(LogItem log) async {
-    final success = await _uploadToServer([log]);
-    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro excepcional de rede: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
       setState(() {
-        log.isSynced = true;
+        _isSyncing = false;
       });
     }
   }
 
-  Future<void> _syncAllUnsynced() async {
-    final unsynced = _logs.where((log) => !log.isSynced).toList();
-    if (unsynced.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Todos os logs já estão no servidor!')),
-      );
-      return;
+  // Deleta o arquivo acumulado e limpa histórico local
+  Future<void> _clearLocalLogs() async {
+    final file = await _localFile;
+    if (await file.exists()) {
+      await file.delete();
     }
-
     setState(() {
-      _isSyncing = true;
+      _logs.clear();
+      _totalPendingCount = 0;
     });
-
-    final success = await _uploadToServer(unsynced);
-
-    setState(() {
-      _isSyncing = false;
-      if (success) {
-        for (var log in unsynced) {
-          log.isSynced = true;
-        }
-      }
-    });
-
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? '${unsynced.length} logs sincronizados com sucesso!'
-              : 'Falha ao sincronizar logs com o servidor.',
-        ),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
+      const SnackBar(content: Text('Cache local de logs do dia limpo.')),
     );
   }
 
@@ -429,7 +505,6 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredLogs;
-    final int unsyncedCount = _logs.where((log) => !log.isSynced).length;
 
     return DefaultTabController(
       length: 2,
@@ -463,7 +538,7 @@ class _DashboardPageState extends State<DashboardPage> {
           elevation: 4,
           actions: [
             IconButton(
-              tooltip: 'Configurações do Servidor',
+              tooltip: 'Configurações de Conexão',
               icon: Icon(Icons.cloud_upload_outlined, color: _showSettings ? const Color(0xFF10B981) : const Color(0xFF06B6D4)),
               onPressed: () {
                 setState(() {
@@ -477,19 +552,34 @@ class _DashboardPageState extends State<DashboardPage> {
               onPressed: _openAccessibilitySettings,
             ),
             IconButton(
-              tooltip: 'Limpar Logs',
+              tooltip: 'Limpar Logs Acumulados',
               icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
               onPressed: () {
-                setState(() {
-                  _logs.clear();
-                });
+                // Alerta para confirmar limpeza
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Limpar Cache de Logs?'),
+                    content: const Text('Isso apagará todos os logs acumulados hoje do armazenamento do telefone.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _clearLocalLogs();
+                        },
+                        child: const Text('Confirmar', style: TextStyle(color: Colors.redAccent)),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ],
           bottom: const TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.radar), text: 'Layouts da Tela'),
-              Tab(icon: Icon(Icons.cloud_sync), text: 'Envios para o Servidor'),
+              Tab(icon: Icon(Icons.radar), text: 'Layouts Recentes'),
+              Tab(icon: Icon(Icons.cloud_sync), text: 'Logs de Envios'),
             ],
             indicatorColor: Color(0xFF10B981),
             labelColor: Color(0xFF10B981),
@@ -549,22 +639,6 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Sincronizar em Tempo Real (Upload Automático)'),
-                        Switch(
-                          value: _autoUpload,
-                          activeColor: const Color(0xFF10B981),
-                          onChanged: (val) {
-                            setState(() {
-                              _autoUpload = val;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -576,11 +650,12 @@ class _DashboardPageState extends State<DashboardPage> {
             Expanded(
               child: TabBarView(
                 children: [
-                  // Tab 1: Layouts da Tela (Radar de Captura)
+                  // Tab 1: Radar de Layouts do Dia
                   Column(
                     children: [
+                      // Painel Superior de Status e Ação de Sincronização Única
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         color: const Color(0xFF1E293B),
                         child: Column(
                           children: [
@@ -591,19 +666,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Telas Capturadas: ${_logs.length}',
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
+                                      'Logs Acumulados: $_totalPendingCount',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                     ),
-                                    if (unsyncedCount > 0)
-                                      Text(
-                                        '$unsyncedCount logs pendentes de nuvem',
-                                        style: const TextStyle(fontSize: 12, color: Colors.amberAccent),
-                                      )
-                                    else
-                                      const Text(
-                                        'Tudo sincronizado',
-                                        style: TextStyle(fontSize: 12, color: Color(0xFF10B981)),
-                                      ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Salvos localmente no disco',
+                                      style: TextStyle(fontSize: 11, color: Colors.white38),
+                                    ),
                                   ],
                                 ),
                                 Row(
@@ -617,15 +687,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                           child: CircularProgressIndicator(strokeWidth: 2),
                                         ),
                                       )
-                                    else if (unsyncedCount > 0)
+                                    else
                                       ElevatedButton.icon(
-                                        onPressed: _syncAllUnsynced,
-                                        icon: const Icon(Icons.sync, size: 16),
-                                        label: const Text('Sincronizar'),
+                                        onPressed: _syncDailyLogs,
+                                        icon: const Icon(Icons.cloud_upload_sharp, size: 16),
+                                        label: const Text('Enviar para o Servidor'),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF06B6D4),
+                                          backgroundColor: const Color(0xFF10B981), // Emerald 500
                                           foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                         ),
                                       ),
@@ -643,7 +713,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 10),
                             TextField(
                               onChanged: (val) {
                                 setState(() {
@@ -679,7 +749,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                     const SizedBox(height: 16),
                                     Text(
                                       _logs.isEmpty
-                                          ? 'Aguardando layouts estruturados...\n(Abra e navegue no GitHub, Uber ou 99)'
+                                          ? 'Nenhum log no cache local.\n(Navegue nos apps monitorados para coletar)'
                                           : 'Nenhum log corresponde ao filtro.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(color: Colors.white.withOpacity(0.5)),
@@ -691,7 +761,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                         icon: const Icon(Icons.accessibility_new),
                                         label: const Text('Ativar Acessibilidade'),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF10B981),
+                                          backgroundColor: const Color(0xFF06B6D4),
                                           foregroundColor: Colors.white,
                                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                           shape: RoundedRectangleBorder(
@@ -710,7 +780,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                   return LogCard(
                                     log: log,
                                     onInspect: () => _showTreeDetails(log),
-                                    onSync: () => _uploadSingleLog(log),
                                   );
                                 },
                               ),
@@ -718,7 +787,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ],
                   ),
 
-                  // Tab 2: Logs de Envio (Histórico de Envios para a Nuvem)
+                  // Tab 2: Logs de Envio (Histórico)
                   _uploadHistory.isEmpty
                       ? Center(
                           child: Column(
@@ -731,7 +800,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Nenhum arquivo enviado ao servidor ainda.\nOs envios automáticos ou manuais aparecerão aqui.',
+                                'Nenhum arquivo enviado ao servidor ainda.\nOs envios de fim do dia aparecerão aqui.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: Colors.white.withOpacity(0.5)),
                               ),
@@ -832,13 +901,11 @@ class _DashboardPageState extends State<DashboardPage> {
 class LogCard extends StatefulWidget {
   final LogItem log;
   final VoidCallback onInspect;
-  final VoidCallback onSync;
 
   const LogCard({
     super.key,
     required this.log,
     required this.onInspect,
-    required this.onSync,
   });
 
   @override
@@ -878,38 +945,26 @@ class _LogCardState extends State<LogCard> {
           leading: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.15),
+              color: const Color(0xFF06B6D4).withOpacity(0.15), // Cyan 500
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               log.eventType.replaceFirst('TYPE_', '').split('_').last,
               style: const TextStyle(
-                color: Color(0xFF10B981),
+                color: Color(0xFF06B6D4),
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  log.packageName,
-                  style: const TextStyle(
-                    color: Color(0xFF06B6D4),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                log.isSynced ? Icons.cloud_done : Icons.cloud_queue,
-                size: 16,
-                color: log.isSynced ? const Color(0xFF10B981) : Colors.white30,
-              ),
-            ],
+          title: Text(
+            log.packageName,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
             'Layout com ${log.flatTexts.length} textos · $timeStr',
@@ -1017,14 +1072,6 @@ class _LogCardState extends State<LogCard> {
                           ),
                         ),
                       ),
-                      if (!log.isSynced) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          tooltip: 'Enviar este log agora',
-                          icon: const Icon(Icons.cloud_upload, color: Color(0xFF10B981)),
-                          onPressed: widget.onSync,
-                        ),
-                      ]
                     ],
                   ),
                 ],
