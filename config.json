@@ -1,0 +1,72 @@
+{
+    "credentials": {
+        "username": "lucas@borbon.com.br",
+        "password": ""
+    },
+    "scraping_settings": {
+        "num_workers": 20,
+        "save_interval": 15,
+        "login_batch_size": 3,
+        "request_timeout": 30,
+        "max_retries": 3,
+        "retry_delay": 5
+    },
+    "excel_settings": {
+        "input_columns": {
+            "code": "A",
+            "name": "B"
+        },
+        "output_columns": [
+            "CÃ³digo",
+            "Nome",
+            "PreÃ§o",
+            "Desconto",
+            "PreÃ§o com Impostos",
+            "Cofins",
+            "Cofins Valor",
+            "Difal ST",
+            "Difal ST Valor",
+            "Fecop",
+            "Fecop Valor",
+            "ICMI Valor",
+            "ICMS",
+            "ICMS Valor",
+            "IPI",
+            "IPI Valor",
+            "PIS",
+            "PIS Valor",
+            "ST",
+            "ST Valor",
+            "Peso",
+            "Status",
+            "PaÃ­s de Origem",
+            "Tarifa Aduaneira",
+            "Possibilidade de DevoluÃ§Ã£o"
+        ],
+        "summary": {
+            "enabled": true,
+            "sheet_name": "Resumo",
+            "fields": [
+                "code",
+                "name",
+                "pricing",
+                "discount"
+            ],
+            "split_taxes": true,
+            "file_suffix": "_RESUMO"
+        }
+    },
+    "system": {
+        "log_level": "INFO",
+        "chrome_options": {
+            "window_size": "1200,800",
+            "headless": true,
+            "disable_extensions": true,
+            "sandbox": false
+        }
+    },
+    "translation": {
+        "enabled": true,
+        "lang": "pt"
+    }
+}

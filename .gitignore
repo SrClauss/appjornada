@@ -61,4 +61,6 @@ Thumbs.db
 # ─── Docker ──────────────────────────────────────────────────────────────────
 docker-compose.override.yml
 
-/app-jornada-painel-d
+# ─── Mobile Binaries ─────────────────────────────────────────────────────────
+*.apk
+/coletor/*.apk
