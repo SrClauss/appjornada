@@ -653,7 +653,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   // Tab 1: Radar de Layouts do Dia
                   Column(
                     children: [
-                      // Painel Superior de Status e Ação de Sincronização Única
+                      // Painel Superior de Status (Sem o botão Enviar para evitar overflow)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         color: const Color(0xFF1E293B),
@@ -666,50 +666,24 @@ class _DashboardPageState extends State<DashboardPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Logs Acumulados: $_totalPendingCount',
+                                      'Layouts Recentes (${filtered.length})',
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                     ),
                                     const SizedBox(height: 2),
-                                    const Text(
-                                      'Salvos localmente no disco',
-                                      style: TextStyle(fontSize: 11, color: Colors.white38),
+                                    Text(
+                                      'Apenas visualização em tempo real',
+                                      style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.38)),
                                     ),
                                   ],
                                 ),
-                                Row(
-                                  children: [
-                                    if (_isSyncing)
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 12),
-                                        child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        ),
-                                      )
-                                    else
-                                      ElevatedButton.icon(
-                                        onPressed: _syncDailyLogs,
-                                        icon: const Icon(Icons.cloud_upload_sharp, size: 16),
-                                        label: const Text('Enviar para o Servidor'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF10B981), // Emerald 500
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
-                                      ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      tooltip: _isPaused ? 'Retomar captura' : 'Pausar captura',
-                                      icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause, color: _isPaused ? Colors.green : Colors.amber),
-                                      onPressed: () {
-                                        setState(() {
-                                          _isPaused = !_isPaused;
-                                        });
-                                      },
-                                    ),
-                                  ],
+                                IconButton(
+                                  tooltip: _isPaused ? 'Retomar captura' : 'Pausar captura',
+                                  icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause, color: _isPaused ? Colors.green : Colors.amber),
+                                  onPressed: () {
+                                    setState(() {
+                                      _isPaused = !_isPaused;
+                                    });
+                                  },
                                 ),
                               ],
                             ),
@@ -787,107 +761,164 @@ class _DashboardPageState extends State<DashboardPage> {
                     ],
                   ),
 
-                  // Tab 2: Logs de Envio (Histórico)
-                  _uploadHistory.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.cloud_off_outlined,
-                                size: 64,
-                                color: Colors.white.withOpacity(0.2),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Nenhum arquivo enviado ao servidor ainda.\nOs envios de fim do dia aparecerão aqui.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white.withOpacity(0.5)),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _uploadHistory.length,
-                          itemBuilder: (context, index) {
-                            final item = _uploadHistory[index];
-                            final isSuccess = item.status == 'SUCESSO';
-                            final timeStr =
-                                '${item.timestamp.hour.toString().padLeft(2, '0')}:${item.timestamp.minute.toString().padLeft(2, '0')}:${item.timestamp.second.toString().padLeft(2, '0')}';
-
-                            return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: isSuccess ? const Color(0xFF10B981).withOpacity(0.2) : Colors.redAccent.withOpacity(0.2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: ExpansionTile(
-                                leading: Icon(
-                                  isSuccess ? Icons.cloud_done : Icons.error_outline,
-                                  color: isSuccess ? const Color(0xFF10B981) : Colors.redAccent,
-                                  size: 32,
-                                ),
-                                title: Text(
-                                  item.filename,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    fontFamily: 'monospace',
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                subtitle: Text(
-                                  'Status: ${item.status} · $timeStr · ${item.recordCount} telas',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.5),
-                                    fontSize: 11,
-                                  ),
-                                ),
+                  // Tab 2: Logs de Envio (Histórico com botão de Enviar no topo)
+                  Column(
+                    children: [
+                      // Painel de sincronização no topo da aba de envios (Botão normal sem overflow)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        color: const Color(0xFF1E293B),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Divider(height: 1, color: Colors.white10),
-                                        const SizedBox(height: 12),
-                                        const Text(
-                                          'RESPOSTA DO SERVIDOR:',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF06B6D4),
-                                          ),
+                                  Text(
+                                    'Logs Acumulados: $_totalPendingCount',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Salvos localmente no disco',
+                                    style: TextStyle(fontSize: 11, color: Colors.white38),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            if (_isSyncing)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            else
+                              ElevatedButton(
+                                onPressed: _syncDailyLogs,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981), // Emerald 500
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                child: const Text(
+                                  'Enviar ao Servidor',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1, color: Colors.white10),
+                      Expanded(
+                        child: _uploadHistory.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.cloud_off_outlined,
+                                      size: 64,
+                                      color: Colors.white.withOpacity(0.2),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Nenhum arquivo enviado ao servidor ainda.\nToque em "Enviar ao Servidor" acima para subir os logs.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: _uploadHistory.length,
+                                itemBuilder: (context, index) {
+                                  final item = _uploadHistory[index];
+                                  final isSuccess = item.status == 'SUCESSO';
+                                  final timeStr =
+                                      '${item.timestamp.hour.toString().padLeft(2, '0')}:${item.timestamp.minute.toString().padLeft(2, '0')}:${item.timestamp.second.toString().padLeft(2, '0')}';
+
+                                  return Card(
+                                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(
+                                        color: isSuccess ? const Color(0xFF10B981).withOpacity(0.2) : Colors.redAccent.withOpacity(0.2),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: ExpansionTile(
+                                      leading: Icon(
+                                        isSuccess ? Icons.cloud_done : Icons.error_outline,
+                                        color: isSuccess ? const Color(0xFF10B981) : Colors.redAccent,
+                                        size: 32,
+                                      ),
+                                      title: Text(
+                                        item.filename,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          fontFamily: 'monospace',
                                         ),
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF050B14),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.white10),
-                                          ),
-                                          child: SelectableText(
-                                            item.responseMessage,
-                                            style: const TextStyle(
-                                              fontFamily: 'monospace',
-                                              fontSize: 11,
-                                              color: Color(0xFFE2E8F0),
-                                            ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      subtitle: Text(
+                                        'Status: ${item.status} · $timeStr · ${item.recordCount} telas',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.5),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Divider(height: 1, color: Colors.white10),
+                                              const SizedBox(height: 12),
+                                              const Text(
+                                                'RESPOSTA DO SERVIDOR:',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF06B6D4),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Container(
+                                                width: double.infinity,
+                                                padding: const EdgeInsets.all(12),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF050B14),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: Colors.white10),
+                                                ),
+                                                child: SelectableText(
+                                                  item.responseMessage,
+                                                  style: const TextStyle(
+                                                    fontFamily: 'monospace',
+                                                    fontSize: 11,
+                                                    color: Color(0xFFE2E8F0),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
