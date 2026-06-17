@@ -9,13 +9,17 @@ class EventStore(context: Context) {
     private val prefs = context.getSharedPreferences("coletor_events", Context.MODE_PRIVATE)
 
     fun append(packageName: String, activityClass: String?) {
-        val events = loadAll()
-        val entry = JSONObject()
-            .put("timestamp", System.currentTimeMillis())
-            .put("packageName", packageName)
-            .put("activityClass", activityClass ?: "")
-            .put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
+        append(
+            JSONObject()
+                .put("timestamp", System.currentTimeMillis())
+                .put("packageName", packageName)
+                .put("activityClass", activityClass ?: "")
+                .put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
+        )
+    }
 
+    fun append(entry: JSONObject) {
+        val events = loadAll()
         events.put(entry)
 
         val trimmed = JSONArray()
@@ -25,6 +29,22 @@ class EventStore(context: Context) {
         }
 
         prefs.edit().putString(KEY_EVENTS, trimmed.toString()).apply()
+    }
+
+    fun appendViewHierarchy(
+        packageName: String,
+        activityClass: String?,
+        viewHierarchy: JSONArray
+    ) {
+        val entry = JSONObject()
+            .put("timestamp", System.currentTimeMillis())
+            .put("packageName", packageName)
+            .put("activityClass", activityClass ?: "")
+            .put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
+            .put("viewHierarchy", viewHierarchy)
+        if (viewHierarchy.length() > 0) {
+            append(entry)
+        }
     }
 
     fun loadAll(): JSONArray {
