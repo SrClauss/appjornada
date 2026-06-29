@@ -1194,3 +1194,39 @@ async def finalizar_corrida_particular(
     }
     
     return corrida_atualizada
+
+
+@router.delete("/{jornada_id}")
+async def deletar_jornada(
+    jornada_id: str,
+    db=Depends(get_db),
+    current_user=Depends(require_roles(Role.ADMIN, Role.GESTOR))
+):
+    """
+    Remove uma jornada do banco de dados (endpoint administrativo temporário).
+    """
+    try:
+        from bson import ObjectId
+        query = {"$or": [{"_id": jornada_id}]}
+        if ObjectId.is_valid(jornada_id):
+            query["$or"].append({"_id": ObjectId(jornada_id)})
+
+        res = await db["jornadas"].delete_one(query)
+        if res.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Jornada não encontrada")
+
+        # Também remove os registros de GPS associados
+        gps_query = {"$or": [{"jornada_id": jornada_id}]}
+        if ObjectId.is_valid(jornada_id):
+            gps_query["$or"].append({"jornada_id": ObjectId(jornada_id)})
+
+        try:
+            await db["historico_gps"].delete_many(gps_query)
+        except Exception:
+            pass
+
+        return {"status": "ok", "message": "Jornada deletada com sucesso"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao deletar jornada: {str(e)}")

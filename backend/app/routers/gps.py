@@ -248,11 +248,48 @@ async def obter_alertas_inatividade(
 @router.get("/geocoder")
 async def geocoder(query: str):
     """
-    Pesquisa coordenadas (lat, lon) a partir de um texto utilizando a API pública do OpenStreetMap Nominatim.
+    Pesquisa coordenadas (lat, lon) a partir de um texto utilizando Google Places API
+    com fallback para OpenStreetMap Nominatim.
     """
     if not query:
         return []
-    
+
+    # 1. Tenta utilizar a API do Google se configurada
+    if settings.GOOGLE_API_KEY:
+        google_params = {
+            "query": query,
+            "key": settings.GOOGLE_API_KEY,
+            "language": "pt-BR"
+        }
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.get(
+                    "https://maps.googleapis.com/maps/api/place/textsearch/json",
+                    params=google_params,
+                    timeout=5.0
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    status = data.get("status")
+                    if status in ("OK", "ZERO_RESULTS"):
+                        results = []
+                        for item in data.get("results", []):
+                            lat = item.get("geometry", {}).get("location", {}).get("lat")
+                            lon = item.get("geometry", {}).get("location", {}).get("lng")
+                            name = item.get("name", "")
+                            addr = item.get("formatted_address", "")
+                            display_name = f"{name}, {addr}" if name and name not in addr else addr
+                            if lat is not None and lon is not None:
+                                results.append({
+                                    "display_name": display_name,
+                                    "lat": float(lat),
+                                    "lon": float(lon)
+                                })
+                        return results
+            except Exception as e:
+                print("Erro no geocoder Google:", e)
+
+    # 2. Fallback para OpenStreetMap Nominatim
     params = {
         "q": query,
         "format": "json",
@@ -311,51 +348,556 @@ async def calcular_rota(origin_lat: float, origin_lon: float, destination_lat: f
     raise HTTPException(status_code=500, detail="Não foi possível calcular a rota com o OSRM.")
 
 
+@router.get("/reverse")
+async def reverse_geocode(lat: float, lon: float):
+    """
+    Obtém o nome da rua ou local a partir de coordenadas lat e lon.
+    """
+    # 1. Tenta OSRM nearest
+    try:
+        url = f"{settings.OSRM_URL}/nearest/v1/driving/{lon},{lat}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=2.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("code") == "Ok" and data.get("waypoints"):
+                    wp = data["waypoints"][0]
+                    nome_rua = wp.get("name")
+                    if nome_rua:
+                        return {"display_name": nome_rua, "lat": lat, "lon": lon}
+    except Exception:
+        pass
+
+    # 2. Fallback Nominatim reverse
+    headers = {"User-Agent": "SuaJornadaApp/1.0 (claus@example.com)"}
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lon, "format": "json"},
+                headers=headers,
+                timeout=3.0
+            )
+            if r.status_code == 200:
+                data = r.json()
+                return {
+                    "display_name": data.get("display_name"),
+                    "lat": lat,
+                    "lon": lon
+                }
+        except Exception:
+            pass
+
+    return {"display_name": f"Localização em {lat:.5f}, {lon:.5f}", "lat": lat, "lon": lon}
+
+
+@router.get("/resolver-maps")
+async def resolver_maps(url: str):
+    """
+    Resolve links do Google Maps (curto ou longo) ou coordenadas brancas e extrai lat, lon e endereço.
+    """
+    import re
+    from urllib.parse import unquote
+
+    if not url:
+        raise HTTPException(status_code=400, detail="URL inválida")
+
+    # Extrai URL se for texto livre
+    url_match = re.search(r'(https?://\S+)', url)
+    url_to_resolve = url_match.group(1) if url_match else url
+
+    # Verifica se são coordenadas diretas "-20.123,-40.123"
+    coords_match = re.search(r'(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)', url_to_resolve)
+    if coords_match:
+        lat = float(coords_match.group(1))
+        lon = float(coords_match.group(2))
+        rev = await reverse_geocode(lat, lon)
+        return rev
+
+    resolved_url = url_to_resolve
+    try:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            resp = await client.head(url_to_resolve, timeout=5.0)
+            resolved_url = str(resp.url)
+    except Exception:
+        try:
+            async with httpx.AsyncClient(follow_redirects=True) as client:
+                resp = await client.get(url_to_resolve, timeout=5.0)
+                resolved_url = str(resp.url)
+        except Exception as e:
+            print("Erro ao resolver URL:", e)
+
+    lat, lon = None, None
+    at_match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', resolved_url)
+    if at_match:
+        lat = float(at_match.group(1))
+        lon = float(at_match.group(2))
+    else:
+        q_match = re.search(r'[?&](?:q|query)=(-?\d+\.\d+),(-?\d+\.\d+)', resolved_url)
+        if q_match:
+            lat = float(q_match.group(1))
+            lon = float(q_match.group(2))
+        else:
+            ll_match = re.search(r'[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)', resolved_url)
+            if ll_match:
+                lat = float(ll_match.group(1))
+                lon = float(ll_match.group(2))
+
+    place_match = re.search(r'/place/([^/]+)', resolved_url)
+    display_name = "Localização Compartilhada"
+    if place_match:
+        display_name = unquote(place_match.group(1)).replace('+', ' ')
+
+    if lat is not None and lon is not None:
+        if display_name == "Localização Compartilhada":
+            rev = await reverse_geocode(lat, lon)
+            display_name = rev.get("display_name") or display_name
+        return {
+            "display_name": display_name,
+            "lat": lat,
+            "lon": lon
+        }
+
+    if place_match:
+        search_query = unquote(place_match.group(1)).replace('+', ' ')
+        results = await geocoder(search_query)
+        if results:
+            return results[0]
+
+    raise HTTPException(status_code=400, detail="Não foi possível extrair coordenadas deste link.")
+
+
+@router.post("/atualizar-destino")
+async def atualizar_destino(
+    jornada_id: str,
+    lat: float,
+    lon: float,
+    endereco: str,
+    db=Depends(get_db)
+):
+    """
+    Grava o destino temporário na jornada e, se houver corrida particular em andamento, atualiza-a.
+    """
+    try:
+        query = {"$or": [{"_id": jornada_id}, {"_id": ObjectId(jornada_id)}]}
+    except Exception:
+        query = {"_id": jornada_id}
+
+    jornada = await db["jornadas"].find_one(query)
+    if not jornada:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+
+    temp_destino = {
+        "endereco": endereco,
+        "lat": lat,
+        "lon": lon
+    }
+
+    corridas = jornada.get("corridas_particulares", [])
+    active_idx = None
+    for idx, c in enumerate(corridas):
+        if c.get("status") == "EM_ANDAMENTO":
+            active_idx = idx
+            break
+
+    update_fields = {"temp_destino": temp_destino}
+    if active_idx is not None:
+        update_fields[f"corridas_particulares.{active_idx}.destino_endereco"] = endereco
+        update_fields[f"corridas_particulares.{active_idx}.destino_coordenadas"] = {"lat": lat, "lon": lon}
+
+    await db["jornadas"].update_one(query, {"$set": update_fields})
+    return {"status": "ok", "temp_destino": temp_destino}
+
+
 @router.get("/mapa-particular", response_class=HTMLResponse)
-async def mapa_particular(origin_lat: float, origin_lon: float, destination_lat: float, destination_lon: float):
+async def mapa_particular(
+    origin_lat: float,
+    origin_lon: float,
+    destination_lat: Optional[float] = None,
+    destination_lon: Optional[float] = None,
+    jornada_id: Optional[str] = None
+):
     """
-    Retorna uma página HTML com um mapa Leaflet exibindo a rota entre origem e destino.
+    Retorna uma página HTML com mapa Leaflet escuro e interativo para localizar e definir destino.
     """
+    dest_lat_js = destination_lat if destination_lat is not None else origin_lat
+    dest_lon_js = destination_lon if destination_lon is not None else origin_lon
+    has_dest_js = "true" if destination_lat is not None else "false"
+    jId_str = jornada_id if jornada_id is not None else ""
+
     html_content = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Mapa da Corrida</title>
+        <title>Mapa da Corrida Particular</title>
+        <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <style>
-            body, html, #map {{ margin: 0; padding: 0; width: 100%; height: 100%; }}
+            body, html {{ margin: 0; padding: 0; width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0F172A; color: white; overflow: hidden; }}
+            #map {{ width: 100%; height: 100%; z-index: 1; }}
+            
+            .search-container {{
+                position: absolute;
+                top: 16px;
+                left: 16px;
+                right: 16px;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                background: rgba(30, 41, 59, 0.95);
+                backdrop-filter: blur(8px);
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }}
+            .search-input-wrapper {{
+                display: flex;
+                align-items: center;
+                padding: 12px 16px;
+            }}
+            .search-input-wrapper input {{
+                flex: 1;
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 15px;
+                outline: none;
+            }}
+            .search-input-wrapper input::placeholder {{ color: #94A3B8; }}
+            .search-btn {{
+                background: none;
+                border: none;
+                color: #38BDF8;
+                font-size: 16px;
+                cursor: pointer;
+                font-weight: bold;
+            }}
+            
+            .suggestions-box {{
+                max-height: 200px;
+                overflow-y: auto;
+                border-top: 1px solid rgba(255, 255, 255, 0.05);
+                display: none;
+            }}
+            .suggestion-item {{
+                padding: 12px 16px;
+                font-size: 14px;
+                color: #CBD5E1;
+                cursor: pointer;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }}
+            .suggestion-item:hover {{ background: rgba(255, 255, 255, 0.05); }}
+            
+            .info-card {{
+                position: absolute;
+                bottom: 24px;
+                left: 16px;
+                right: 16px;
+                z-index: 1000;
+                background: rgba(30, 41, 59, 0.95);
+                backdrop-filter: blur(8px);
+                border-radius: 16px;
+                padding: 16px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }}
+            .info-title {{ font-size: 14px; font-weight: bold; color: #38BDF8; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }}
+            .info-dest {{ font-size: 13px; color: #E2E8F0; margin: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+            .info-grid {{ display: flex; justify-content: space-between; font-size: 13px; color: #94A3B8; margin-top: 4px; }}
+            .info-value {{ color: white; font-weight: 600; }}
+            .price-highlight {{ font-size: 16px; font-weight: bold; color: #10B981; }}
+            
+            .btn-confirm {{
+                width: 100%;
+                background: #6366F1;
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: bold;
+                cursor: pointer;
+                margin-top: 8px;
+                transition: background 0.2s;
+            }}
+            .btn-confirm:disabled {{ background: #475569; color: #94A3B8; cursor: not-allowed; }}
+            .btn-confirm:not(:disabled):hover {{ background: #4F46E5; }}
+            
+            .success-overlay {{
+                position: fixed;
+                top: 0; left: 0; width: 100%; height: 100%;
+                background: #0F172A;
+                z-index: 9999;
+                display: none;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 16px;
+                padding: 24px;
+                text-align: center;
+            }}
+            .success-icon {{ font-size: 48px; color: #10B981; }}
+            .success-title {{ font-size: 20px; font-weight: bold; }}
+            .success-text {{ font-size: 14px; color: #94A3B8; }}
+            .success-btn {{ background: #10B981; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }}
         </style>
     </head>
     <body>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" id="search-input" placeholder="Pesquisar endereço de destino..." autocomplete="off">
+                <button class="search-btn" id="search-btn">Buscar</button>
+            </div>
+            <div id="suggestions" class="suggestions-box"></div>
+        </div>
+
         <div id="map"></div>
+
+        <div class="info-card">
+            <h4 class="info-title">Rota Particular</h4>
+            <p class="info-dest" id="info-dest-txt">Destino: Selecione tocando ou arrastando</p>
+            <div class="info-grid">
+                <span>Distância: <span class="info-value" id="dist-val">-- km</span></span>
+                <span>Duração: <span class="info-value" id="dur-val">-- min</span></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 4px;">
+                <span style="font-size:13px; color:#94A3B8;">Preço Estimado:</span>
+                <span class="price-highlight" id="price-val">--</span>
+            </div>
+            <button id="btn-confirm" class="btn-confirm" disabled>Confirmar Destino</button>
+        </div>
+
+        <div class="success-overlay" id="success-screen">
+            <div class="success-icon">✓</div>
+            <h2 class="success-title">Destino Confirmado!</h2>
+            <p class="success-text">As informações de rota e valores estimados foram sincronizadas.</p>
+            <button class="success-btn" onclick="window.close()">Voltar ao App</button>
+        </div>
+
         <script>
             const originLat = {origin_lat};
             const originLon = {origin_lon};
-            const destLat = {destination_lat};
-            const destLon = {destination_lon};
+            let destLat = {dest_lat_js};
+            let destLon = {dest_lon_js};
+            let hasDest = {has_dest_js};
+            const jornadaId = "{jId_str}";
 
-            const map = L.map('map').setView([originLat, originLon], 13);
+            let currentRouteLine = null;
+            let currentDestName = "";
 
-            L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-                attribution: '&copy; OpenStreetMap contributors'
+            // Inicializa mapa escuro premium
+            const map = L.map('map', {{ zoomControl: false }}).setView([originLat, originLon], 14);
+            L.control.zoom({{ position: 'bottomright' }}).addTo(map);
+
+            L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+                attribution: '&copy; CartoDB &copy; OpenStreetMap'
             }}).addTo(map);
 
-            L.marker([originLat, originLon]).addTo(map).bindPopup('Origem (Embarque)').openPopup();
-            L.marker([destLat, destLon]).addTo(map).bindPopup('Destino');
+            // Marcador de Origem (Verde)
+            const originIcon = L.divIcon({{
+                html: '<div style="background-color: #10B981; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                className: '',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            }});
+            L.marker([originLat, originLon], {{ icon: originIcon }}).addTo(map).bindPopup('Local de Partida');
 
-            fetch(`/gps/calcular-rota?origin_lat=${{originLat}}&origin_lon=${{originLon}}&destination_lat=${{destLat}}&destination_lon=${{destLon}}`)
+            // Marcador de Destino (Vermelho/Teal)
+            const destIcon = L.divIcon({{
+                html: '<div style="background-color: #6366F1; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                className: '',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            }});
+
+            let destMarker = null;
+
+            if (hasDest) {{
+                createOrUpdateDestMarker(destLat, destLon);
+                recalcularRota();
+            }}
+
+            // Clique no mapa para definir destino
+            map.on('click', function(e) {{
+                createOrUpdateDestMarker(e.latlng.lat, e.latlng.lng);
+                recalcularRota();
+            }});
+
+            function createOrUpdateDestMarker(lat, lon) {{
+                destLat = lat;
+                destLon = lon;
+                hasDest = true;
+                
+                if (destMarker) {{
+                    destMarker.setLatLng([lat, lon]);
+                }} else {{
+                    destMarker = L.marker([lat, lon], {{ icon: destIcon, draggable: true }}).addTo(map);
+                    destMarker.on('dragend', function() {{
+                        const pos = destMarker.getLatLng();
+                        destLat = pos.lat;
+                        destLon = pos.lng;
+                        recalcularRota();
+                    }});
+                }}
+            }}
+
+            // Busca de endereço
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+            const suggestionsBox = document.getElementById('suggestions');
+
+            searchBtn.addEventListener('click', () => triggerSearch());
+            searchInput.addEventListener('keypress', (e) => {{
+                if (e.key === 'Enter') triggerSearch();
+            }});
+
+            function triggerSearch() {{
+                const query = searchInput.value;
+                if (!query.trim()) return;
+
+                fetch(`/gps/geocoder?query=${{encodeURIComponent(query)}}`)
+                    .then(res => res.json())
+                    .then(data => {{
+                        suggestionsBox.innerHTML = '';
+                        if (data.length > 0) {{
+                            suggestionsBox.style.display = 'block';
+                            data.forEach(item => {{
+                                const div = document.createElement('div');
+                                div.className = 'suggestion-item';
+                                div.innerText = item.display_name;
+                                div.addEventListener('click', () => {{
+                                    searchInput.value = item.display_name;
+                                    suggestionsBox.style.display = 'none';
+                                    createOrUpdateDestMarker(item.lat, item.lon);
+                                    map.setView([item.lat, item.lon], 15);
+                                    recalcularRota();
+                                }});
+                                suggestionsBox.appendChild(div);
+                            }});
+                        }} else {{
+                            suggestionsBox.style.display = 'none';
+                        }}
+                    }});
+            }}
+
+            // Oculta sugestões ao clicar fora
+            document.addEventListener('click', (e) => {{
+                if (!e.target.closest('.search-container')) {{
+                    suggestionsBox.style.display = 'none';
+                }}
+            }});
+
+            function calculatePrice(distanceKm, durationMin) {{
+                return fetch('/config/precos-particulares')
+                    .then(res => res.json())
+                    .then(bands => {{
+                        const agora = new Date();
+                        const horaMinutosStr = String(agora.getHours()).padStart(2, '0') + ':' + String(agora.getMinutes()).padStart(2, '0');
+                        for (let faixa of bands) {{
+                            const inicio = faixa.hora_inicio;
+                            const fim = faixa.hora_fim;
+                            let matches = false;
+                            if (inicio <= fim) {{
+                                matches = horaMinutosStr >= inicio && horaMinutosStr <= fim;
+                            }} else {{
+                                matches = horaMinutosStr >= inicio || horaMinutosStr <= fim;
+                            }}
+                            if (matches) {{
+                                return (distanceKm * faixa.preco_km) + (durationMin * faixa.preco_minuto);
+                            }}
+                        }}
+                        if (bands.length > 0) {{
+                            return (distanceKm * bands[0].preco_km) + (durationMin * bands[0].preco_minuto);
+                        }}
+                        return (distanceKm * 2.5) + (durationMin * 0.5);
+                    }})
+                    .catch(() => {{
+                        return (distanceKm * 2.5) + (durationMin * 0.5);
+                    }});
+            }}
+
+            function recalcularRota() {{
+                if (!hasDest) return;
+
+                // 1. Obtém o endereço das coordenadas de destino (reverse)
+                fetch(`/gps/reverse?lat=${{destLat}}&lon=${{destLon}}`)
+                    .then(res => res.json())
+                    .then(data => {{
+                        currentDestName = data.display_name || `Lat: ${{destLat.toFixed(4)}}, Lon: ${{destLon.toFixed(4)}}`;
+                        document.getElementById('info-dest-txt').innerText = `Destino: ${{currentDestName}}`;
+                        document.getElementById('info-dest-txt').title = currentDestName;
+                    }});
+
+                // 2. Calcula rota OSRM
+                fetch(`/gps/calcular-rota?origin_lat=${{originLat}}&origin_lon=${{originLon}}&destination_lat=${{destLat}}&destination_lon=${{destLon}}`)
+                    .then(res => res.json())
+                    .then(data => {{
+                        if (data.distance_km !== undefined) {{
+                            const dist = data.distance_km;
+                            const dur = data.duration_minutes;
+
+                            document.getElementById('dist-val').innerText = `${{dist.toFixed(2)}} km`;
+                            document.getElementById('dur-val').innerText = `${{dur.toFixed(1)}} min`;
+
+                            calculatePrice(dist, dur).then(price => {{
+                                document.getElementById('price-val').innerText = `R$ ${{price.toFixed(2)}}`;
+                            }});
+
+                            document.getElementById('btn-confirm').disabled = false;
+
+                            // Desenha trajeto
+                            if (currentRouteLine) {{
+                                map.removeLayer(currentRouteLine);
+                            }}
+                            if (data.geometry) {{
+                                currentRouteLine = L.geoJSON(data.geometry, {{
+                                    style: {{ color: '#6366F1', weight: 5, opacity: 0.8 }}
+                                }}).addTo(map);
+                                map.fitBounds(currentRouteLine.getBounds(), {{ padding: [50, 80] }});
+                            }}
+                        }}
+                    }})
+                    .catch(err => {{
+                        console.error('Erro ao recalcular rota:', err);
+                        document.getElementById('btn-confirm').disabled = true;
+                    }});
+            }}
+
+            // Confirmação
+            const btnConfirm = document.getElementById('btn-confirm');
+            btnConfirm.addEventListener('click', () => {{
+                if (!jornadaId) {{
+                    alert('Erro: jornada_id não fornecido.');
+                    return;
+                }}
+                btnConfirm.disabled = true;
+                btnConfirm.innerText = 'Salvando...';
+
+                fetch(`/gps/atualizar-destino?jornada_id=${{jornadaId}}&lat=${{destLat}}&lon=${{destLon}}&endereco=${{encodeURIComponent(currentDestName)}}`, {{
+                    method: 'POST'
+                }})
                 .then(res => res.json())
                 .then(data => {{
-                    if (data.geometry) {{
-                        const routeGeoJSON = L.geoJSON(data.geometry, {{
-                            style: {{ color: '#6366F1', weight: 5, opacity: 0.8 }}
-                        }}).addTo(map);
-                        map.fitBounds(routeGeoJSON.getBounds(), {{ padding: [50, 50] }});
+                    if (data.status === 'ok') {{
+                        document.getElementById('success-screen').style.display = 'flex';
+                    }} else {{
+                        alert('Erro ao confirmar destino no servidor.');
+                        btnConfirm.disabled = false;
+                        btnConfirm.innerText = 'Confirmar Destino';
                     }}
                 }})
-                .catch(err => console.error('Erro ao carregar rota:', err));
+                .catch(err => {{
+                    console.error(err);
+                    alert('Erro de conexão ao confirmar destino.');
+                    btnConfirm.disabled = false;
+                    btnConfirm.innerText = 'Confirmar Destino';
+                }});
+            }});
         </script>
     </body>
     </html>

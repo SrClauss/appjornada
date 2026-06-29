@@ -86,6 +86,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
   Map<String, dynamic>? _jornadaAberta;
   StreamSubscription? _intentSub;
   String? _sharedImagePath;
+  String? _sharedDestinationQuery;
 
   @override
   void initState() {
@@ -145,11 +146,20 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     }
 
     if (files.isNotEmpty) {
-      setState(() {
-        _jornadaAberta = j;
-        _sharedImagePath = files.first.path;
-        _currentScreen = 'processar_print';
-      });
+      final first = files.first;
+      if (first.type == SharedMediaType.text || first.type == SharedMediaType.url || first.path.startsWith('http') || first.path.contains('maps') || first.path.contains('.gl') || first.path.contains('google.com')) {
+        setState(() {
+          _jornadaAberta = j;
+          _sharedDestinationQuery = first.path;
+          _currentScreen = 'corrida_particular';
+        });
+      } else {
+        setState(() {
+          _jornadaAberta = j;
+          _sharedImagePath = first.path;
+          _currentScreen = 'processar_print';
+        });
+      }
     }
   }
 
@@ -342,6 +352,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       case 'corrida_particular':
         return CorridaParticularScreen(
           jornada: _jornadaAberta!,
+          initialDestinationQuery: _sharedDestinationQuery,
           onJornadaUpdated: (updated) {
             setState(() {
               _jornadaAberta = updated;
@@ -349,6 +360,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
           },
           onBack: () {
             setState(() {
+              _sharedDestinationQuery = null;
               _currentScreen = 'dashboard';
             });
           },

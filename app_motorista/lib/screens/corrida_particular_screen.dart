@@ -10,12 +10,14 @@ class CorridaParticularScreen extends StatefulWidget {
   final Map<String, dynamic> jornada;
   final Function(Map<String, dynamic>) onJornadaUpdated;
   final VoidCallback onBack;
+  final String? initialDestinationQuery;
 
   const CorridaParticularScreen({
     super.key,
     required this.jornada,
     required this.onJornadaUpdated,
     required this.onBack,
+    this.initialDestinationQuery,
   });
 
   @override
@@ -41,17 +43,25 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   // Timer para corrida ativa
   Timer? _timer;
   Duration _elapsed = Duration.zero;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _checkActiveCorrida();
     _loadPrecosBands();
+    _startPolling();
+    if (widget.initialDestinationQuery != null && widget.initialDestinationQuery!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _resolveAndSearchDestination(widget.initialDestinationQuery!);
+      });
+    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _pollingTimer?.cancel();
     _kmController.dispose();
     _destController.dispose();
     super.dispose();
@@ -67,6 +77,15 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
       if (active != null) {
         setState(() {
           _activeCorrida = Map<String, dynamic>.from(active);
+          final coords = _activeCorrida!['destino_coordenadas'] as List?;
+          if (coords != null && coords.length >= 2) {
+            _selectedDest = {
+              'display_name': _activeCorrida!['destino_endereco'] ?? '',
+              'lat': coords[1],
+              'lon': coords[0],
+            };
+            _destController.text = _activeCorrida!['destino_endereco'] ?? '';
+          }
         });
         _startTimer();
       }
@@ -102,6 +121,103 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     } catch (e) {
       print('Erro ao carregar faixas de preço: $e');
     }
+  }
+
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        _refreshJornada();
+      }
+    });
+  }
+
+  Future<void> _refreshJornada() async {
+    try {
+      final jId = widget.jornada['_id'] ?? widget.jornada['id'];
+      final res = await http.get(
+        Uri.parse('${ApiService.baseUrl}/jornadas/$jId'),
+        headers: ApiService.headers,
+      );
+      if (res.statusCode == 200) {
+        final updated = json.decode(res.body);
+        widget.onJornadaUpdated(updated);
+        _checkActiveCorrida();
+        
+        // Verifica se há temp_destino gravado pelo mapa
+        final temp = updated['temp_destino'];
+        if (temp != null) {
+          final double lat = (temp['lat'] as num).toDouble();
+          final double lon = (temp['lon'] as num).toDouble();
+          final String endereco = temp['endereco'] ?? '';
+          
+          if (_selectedDest == null || 
+              _selectedDest!['lat'] != lat || 
+              _selectedDest!['lon'] != lon) {
+            setState(() {
+              _selectedDest = {
+                'display_name': endereco,
+                'lat': lat,
+                'lon': lon,
+              };
+              _destController.text = endereco;
+            });
+            await _calculateRoute();
+          }
+        }
+      }
+    } catch (e) {
+      print('Erro ao sincronizar jornada: $e');
+    }
+  }
+
+  Future<void> _resolveAndSearchDestination(String query) async {
+    if (query.trim().isEmpty) return;
+
+    setState(() {
+      _searchingDest = true;
+      _suggestions.clear();
+      _selectedDest = null;
+      _estimatedDistanceKm = null;
+      _estimatedDurationMin = null;
+      _estimatedPrice = null;
+    });
+
+    if (query.contains('http') || query.contains('maps') || query.contains('.gl') || query.contains('google.com')) {
+      try {
+        final uri = Uri.parse('${ApiService.baseUrl}/gps/resolver-maps').replace(
+          queryParameters: {'url': query}
+        );
+        final res = await http.get(uri, headers: ApiService.headers);
+        if (res.statusCode == 200) {
+          final resolved = json.decode(res.body);
+          setState(() {
+            _selectedDest = resolved;
+            _destController.text = resolved['display_name'] ?? '';
+            _suggestions.clear();
+          });
+          await _calculateRoute();
+
+          // Sincroniza com backend temp_destino
+          final jId = widget.jornada['_id'] ?? widget.jornada['id'];
+          await http.post(
+            Uri.parse('${ApiService.baseUrl}/gps/atualizar-destino').replace(
+              queryParameters: {
+                'jornada_id': jId,
+                'lat': resolved['lat'].toString(),
+                'lon': resolved['lon'].toString(),
+                'endereco': resolved['display_name'] ?? '',
+              }
+            ),
+            headers: ApiService.headers,
+          );
+          return;
+        }
+      } catch (e) {
+        print('Erro ao resolver link do Maps: $e');
+      }
+    }
+    
+    await _searchDestination(query);
   }
 
   double? _calculatePrice(double distanceKm, double durationMin) {
@@ -218,7 +334,6 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   }
 
   Future<void> _abrirMapa() async {
-    if (_selectedDest == null) return;
     try {
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -226,12 +341,22 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
       );
       final originLat = pos.latitude;
       final originLon = pos.longitude;
-      final destLat = _selectedDest!['lat'];
-      final destLon = _selectedDest!['lon'];
       
-      final url = Uri.parse('${ApiService.baseUrl}/gps/mapa-particular'
-          '?origin_lat=$originLat&origin_lon=$originLon'
-          '&destination_lat=$destLat&destination_lon=$destLon');
+      final String jId = widget.jornada['_id'] ?? widget.jornada['id'] ?? '';
+      
+      Uri url;
+      if (_selectedDest != null) {
+        final destLat = _selectedDest!['lat'];
+        final destLon = _selectedDest!['lon'];
+        url = Uri.parse('${ApiService.baseUrl}/gps/mapa-particular'
+            '?origin_lat=$originLat&origin_lon=$originLon'
+            '&destination_lat=$destLat&destination_lon=$destLon'
+            '&jornada_id=$jId');
+      } else {
+        url = Uri.parse('${ApiService.baseUrl}/gps/mapa-particular'
+            '?origin_lat=$originLat&origin_lon=$originLon'
+            '&jornada_id=$jId');
+      }
           
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -248,7 +373,12 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   }
 
   Future<void> _abrirGoogleMaps() async {
-    if (_selectedDest == null) return;
+    if (_selectedDest == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, defina um destino primeiro para abrir o Google Maps.')),
+      );
+      return;
+    }
     try {
       final destLat = _selectedDest!['lat'];
       final destLon = _selectedDest!['lon'];
@@ -557,6 +687,36 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                             'Destino: ${_activeCorrida!['destino_endereco']}',
                             style: const TextStyle(color: Colors.white70, fontSize: 15),
                             textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.map, color: Colors.tealAccent, size: 18),
+                                  label: const Text('Mapa Interno', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Colors.teal),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  onPressed: _abrirMapa,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.navigation, color: Colors.white, size: 18),
+                                  label: const Text('Google Maps', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  onPressed: _abrirGoogleMaps,
+                                ),
+                              ),
+                            ],
                           ),
                         ]
                       ]

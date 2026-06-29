@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:app_motorista/core/api_service.dart';
 import 'package:app_motorista/widgets/abastecimento_modal.dart';
 import 'package:app_motorista/widgets/manutencao_dialog.dart';
-import 'package:app_motorista/widgets/encerrar_jornada_dialog.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 

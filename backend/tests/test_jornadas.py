@@ -469,3 +469,19 @@ class TestUploadComprovanteGemini:
         assert data["origem"] == "Rua A"
         assert data["destino"] == "Rua B"
         assert data["url_comprovante"] == "http://mock/print_uber.png"
+
+
+class TestDeletarJornada:
+    async def test_deletar_jornada_sucesso(self, client, jornada_aberta, admin_headers):
+        jId = str(jornada_aberta["_id"])
+        resp = await client.delete(f"/jornadas/{jId}", headers=admin_headers)
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
+        resp_check = await client.get(f"/jornadas/{jId}", headers=admin_headers)
+        assert resp_check.status_code == 404
+
+    async def test_deletar_jornada_motorista_sem_permissao(self, client, jornada_aberta, motorista_headers):
+        jId = str(jornada_aberta["_id"])
+        resp = await client.delete(f"/jornadas/{jId}", headers=motorista_headers)
+        assert resp.status_code == 403

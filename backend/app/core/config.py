@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Gemini
     GEMINI_API_KEY: Optional[str] = None
 
+    # Google Maps/Places API Key
+    GOOGLE_API_KEY: Optional[str] = None
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     def get_cors_origins(self) -> List[str]:

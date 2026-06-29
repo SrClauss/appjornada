@@ -174,3 +174,87 @@ class TestAlertasInatividadeConfiguravel:
         assert alerta["minutos_parado"] == 5
         assert "Lat: -20.2193, Lon: -40.2648" in alerta["ultima_posicao"]
 
+
+class TestGPSExtra:
+    async def test_reverse_geocode(self, client, motorista_headers):
+        resp = await client.get("/gps/reverse?lat=-20.219344&lon=-40.264764", headers=motorista_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "display_name" in data
+        assert data["lat"] == -20.219344
+        assert data["lon"] == -40.264764
+
+    async def test_resolver_maps_coords(self, client, motorista_headers):
+        resp = await client.get("/gps/resolver-maps?url=-20.219344,-40.264764", headers=motorista_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "display_name" in data
+        assert data["lat"] == -20.219344
+        assert data["lon"] == -40.264764
+
+    async def test_resolver_maps_invalid(self, client, motorista_headers):
+        resp = await client.get("/gps/resolver-maps?url=http://invalid-url-domain-xyz.com/path", headers=motorista_headers)
+        assert resp.status_code == 400
+
+    async def test_atualizar_destino(self, client, jornada_aberta, motorista_headers):
+        jId = jornada_aberta["_id"]
+        resp = await client.post(
+            f"/gps/atualizar-destino?jornada_id={jId}&lat=-20.22&lon=-40.26&endereco=Rua%20Teste",
+            headers=motorista_headers
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert data["temp_destino"]["endereco"] == "Rua Teste"
+        assert data["temp_destino"]["lat"] == -20.22
+        assert data["temp_destino"]["lon"] == -40.26
+
+    async def test_mapa_particular(self, client, motorista_headers):
+        resp = await client.get(
+            "/gps/mapa-particular?origin_lat=-20.22&origin_lon=-40.26&destination_lat=-20.23&destination_lon=-40.27",
+            headers=motorista_headers
+        )
+        assert resp.status_code == 200
+        assert "text/html" in resp.headers["content-type"]
+        assert "Mapa da Corrida Particular" in resp.text
+
+    async def test_geocoder_google_mock(self, client, monkeypatch, motorista_headers):
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "GOOGLE_API_KEY", "dummy-google-key")
+
+        class MockResponse:
+            status_code = 200
+            def json(self):
+                return {
+                    "status": "OK",
+                    "results": [
+                        {
+                            "name": "Igreja Bonita",
+                            "formatted_address": "Rua das Flores, 123",
+                            "geometry": {
+                                "location": {
+                                    "lat": -20.25,
+                                    "lng": -40.25
+                                }
+                            }
+                        }
+                    ]
+                }
+
+        import httpx
+        original_get = httpx.AsyncClient.get
+        async def mock_get(self_instance, url, *args, **kwargs):
+            if "maps.googleapis.com" in str(url):
+                return MockResponse()
+            return await original_get(self_instance, url, *args, **kwargs)
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
+
+        resp = await client.get("/gps/geocoder?query=Igreja", headers=motorista_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["display_name"] == "Igreja Bonita, Rua das Flores, 123"
+        assert data[0]["lat"] == -20.25
+        assert data[0]["lon"] == -40.25
+

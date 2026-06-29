@@ -423,6 +423,20 @@ export function JornadasView() {
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
+  const handleDeleteJornada = async (jId: string) => {
+    if (!window.confirm("Tem certeza que deseja apagar esta jornada? Esta ação é irreversível e removerá também todo o histórico de GPS correspondente.")) {
+      return;
+    }
+    try {
+      await api.delete(`/jornadas/${jId}`);
+      alert("Jornada deletada com sucesso!");
+      window.location.reload();
+    } catch (e) {
+      console.error("Erro ao deletar jornada:", e);
+      alert("Erro ao deletar jornada. Apenas administradores ou gestores possuem permissão.");
+    }
+  };
+
   // Estados dos eventos em tempo real
   const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [filtroTipoEvento, setFiltroTipoEvento] = useState('');
@@ -1123,9 +1137,14 @@ export function JornadasView() {
                                 <Badge variant={statusBadgeVariant(j.status)}>{j.status}</Badge>
                               </TableCell>
                               <TableCell>
-                                <Button size="sm" variant="ghost" onClick={() => handleOpenJornada(j)}>
-                                  <Eye size={16} />
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="ghost" onClick={() => handleOpenJornada(j)}>
+                                    <Eye size={16} />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleDeleteJornada(j.id || (j as any)._id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                    <Trash size={16} />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))
