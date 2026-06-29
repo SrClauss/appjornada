@@ -390,8 +390,23 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     return StepperLayout(
       currentStep: _trilhoStep,
       onLogout: _onLogout,
+      onBack: _onTrilhoBack,
       child: _buildTrilhoStepContent(),
     );
+  }
+
+  void _onTrilhoBack() {
+    setState(() {
+      if (_trilhoStep == 'veiculo') {
+        _trilhoStep = 'auditoria';
+      } else if (_trilhoStep == 'vistoria') {
+        _trilhoStep = 'veiculo';
+      } else if (_trilhoStep == 'km_inicial') {
+        _trilhoStep = 'vistoria';
+      } else if (_trilhoStep == 'km_morta') {
+        _trilhoStep = 'km_inicial';
+      }
+    });
   }
 
   Widget _buildTrilhoStepContent() {
@@ -416,6 +431,8 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       case 'vistoria':
         return VistoriaStep(
           checklist: _checklist,
+          observacoes: _observacoesVistoria,
+          fotoAvariaUrl: _fotoAvariaUrl,
           onCompleted: (checklist, obs, fotoAvaria) {
             setState(() {
               _checklist = checklist;
@@ -428,6 +445,8 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       case 'km_inicial':
         return KmInicialStep(
           veiculo: _selectedVeiculo!,
+          initialKm: _kmInicial > 0 ? _kmInicial : null,
+          fotoHodometroUrl: _fotoHodometroInicialUrl,
           onCompleted: (km, alertMorta, valorMorta, fotoUrl) {
             setState(() {
               _kmInicial = km;

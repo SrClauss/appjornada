@@ -4,8 +4,16 @@ import 'package:app_motorista/core/api_service.dart';
 
 class KmInicialStep extends StatefulWidget {
   final Map<String, dynamic> veiculo;
+  final double? initialKm;
+  final String? fotoHodometroUrl;
   final Function(double, bool, double, String?) onCompleted;
-  const KmInicialStep({super.key, required this.veiculo, required this.onCompleted});
+  const KmInicialStep({
+    super.key,
+    required this.veiculo,
+    this.initialKm,
+    this.fotoHodometroUrl,
+    required this.onCompleted,
+  });
 
   @override
   State<KmInicialStep> createState() => _KmInicialStepState();
@@ -22,13 +30,28 @@ class _KmInicialStepState extends State<KmInicialStep> {
   @override
   void initState() {
     super.initState();
-    final kmAtual = widget.veiculo['km_atual'];
-    if (kmAtual != null) {
-      if (kmAtual % 1 == 0) {
-        _kmController.text = kmAtual.toInt().toString();
+    if (widget.initialKm != null) {
+      if (widget.initialKm! % 1 == 0) {
+        _kmController.text = widget.initialKm!.toInt().toString();
       } else {
-        _kmController.text = kmAtual.toString();
+        _kmController.text = widget.initialKm!.toString();
       }
+    } else {
+      final kmRaw = widget.veiculo['km_atual'];
+      if (kmRaw != null) {
+        final double? kmParsed = double.tryParse(kmRaw.toString());
+        if (kmParsed != null) {
+          if (kmParsed % 1 == 0) {
+            _kmController.text = kmParsed.toInt().toString();
+          } else {
+            _kmController.text = kmParsed.toString();
+          }
+        }
+      }
+    }
+    _fotoHodometroUrl = widget.fotoHodometroUrl;
+    if (_fotoHodometroUrl != null) {
+      _fotoHodometro = true;
     }
     _kmController.addListener(_onKmChanged);
   }

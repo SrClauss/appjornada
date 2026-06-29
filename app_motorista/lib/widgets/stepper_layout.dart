@@ -4,7 +4,8 @@ class StepperLayout extends StatelessWidget {
   final String currentStep;
   final Widget child;
   final VoidCallback? onLogout;
-  const StepperLayout({super.key, required this.currentStep, required this.child, this.onLogout});
+  final VoidCallback? onBack;
+  const StepperLayout({super.key, required this.currentStep, required this.child, this.onLogout, this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +19,13 @@ class StepperLayout extends StatelessWidget {
         centerTitle: true,
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
+        leading: onBack != null && currentIdx > 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: onBack,
+                tooltip: 'Voltar ao passo anterior',
+              )
+            : null,
         actions: onLogout != null ? [
           IconButton(
             icon: const Icon(Icons.logout),

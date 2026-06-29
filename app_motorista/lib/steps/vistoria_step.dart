@@ -4,8 +4,16 @@ import 'package:app_motorista/core/api_service.dart';
 
 class VistoriaStep extends StatefulWidget {
   final Map<String, bool> checklist;
+  final String observacoes;
+  final String? fotoAvariaUrl;
   final Function(Map<String, bool>, String, String?) onCompleted;
-  const VistoriaStep({super.key, required this.checklist, required this.onCompleted});
+  const VistoriaStep({
+    super.key,
+    required this.checklist,
+    required this.observacoes,
+    this.fotoAvariaUrl,
+    required this.onCompleted,
+  });
 
   @override
   State<VistoriaStep> createState() => _VistoriaStepState();
@@ -22,6 +30,8 @@ class _VistoriaStepState extends State<VistoriaStep> {
   void initState() {
     super.initState();
     _localChecklist = Map.from(widget.checklist);
+    _obsController.text = widget.observacoes;
+    _fotoAvariaUrl = widget.fotoAvariaUrl;
   }
 
   @override

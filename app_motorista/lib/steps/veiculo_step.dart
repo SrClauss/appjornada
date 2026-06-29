@@ -44,9 +44,9 @@ class _VeiculoStepState extends State<VeiculoStep> {
   void _setMockVeiculos() {
     setState(() {
       _veiculos = [
-        {'id_placa': 'TST1A23', 'marca_modelo': 'FIAT/UNO ATTRACTIVE 1.0', 'cor': 'BRANCO', 'situacao': 'RODANDO'},
-        {'id_placa': 'ABC1D23', 'marca_modelo': 'VW/GOL', 'cor': 'PRATA', 'situacao': 'RODANDO'},
-        {'id_placa': 'XYZ9K88', 'marca_modelo': 'HYU/HB20', 'cor': 'AZUL', 'situacao': 'RODANDO'},
+        {'id_placa': 'TST1A23', 'marca_modelo': 'FIAT/UNO ATTRACTIVE 1.0', 'cor': 'BRANCO', 'situacao': 'RODANDO', 'km_atual': 50000.0},
+        {'id_placa': 'ABC1D23', 'marca_modelo': 'VW/GOL', 'cor': 'PRATA', 'situacao': 'RODANDO', 'km_atual': 82300.0},
+        {'id_placa': 'XYZ9K88', 'marca_modelo': 'HYU/HB20', 'cor': 'AZUL', 'situacao': 'RODANDO', 'km_atual': 12400.0},
       ];
       _loading = false;
     });
