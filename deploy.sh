@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Se um comentário de commit for fornecido como primeiro argumento
+if [ $# -gt 0 ] && [ -n "$1" ]; then
+  COMMIT_MSG="$1"
+  echo "==> Atualizando repositório local e enviando para o GitHub..."
+  cd "$LOCAL_DIR"
+  git add .
+  git commit -m "$COMMIT_MSG" || echo "==> Sem novas alterações para commit."
+  git push origin master || echo "==> Falha no git push, mas prosseguindo com o deploy..."
+else
+  echo "==> Nenhum comentário de commit fornecido. Pulando atualização do GitHub."
+fi
+
 SERVER="root@2.24.121.189"
 REMOTE_DIR="/src/app_jornada"
-LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "==> Garantindo que $REMOTE_DIR existe no servidor ..."
 ssh "$SERVER" "mkdir -p $REMOTE_DIR"
