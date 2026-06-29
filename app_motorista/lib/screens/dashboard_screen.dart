@@ -72,35 +72,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  String _formatDuration(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
   String _formatTimer() {
+    return _formatDuration(_elapsedJornada);
+  }
+
+  String _getSubtitleText() {
     if (_isWeekendOrHoliday) {
-      // Começa em 00:00:00 e conta positivo
-      final h = _elapsedJornada.inHours.toString().padLeft(2, '0');
-      final m = (_elapsedJornada.inMinutes % 60).toString().padLeft(2, '0');
-      final s = (_elapsedJornada.inSeconds % 60).toString().padLeft(2, '0');
-      return '$h:$m:$s';
+      return 'Final de semana / Feriado (100% Extra)';
+    }
+    if (_elapsedJornada < _metaCLT) {
+      final rest = _metaCLT - _elapsedJornada;
+      return 'Faltam ${_formatDuration(rest)} para a meta de 08:48h';
     } else {
-      // Inicia negativo (-08:48:00) e desconta
-      if (_elapsedJornada < _metaCLT) {
-        final restante = _metaCLT - _elapsedJornada;
-        final h = restante.inHours.toString().padLeft(2, '0');
-        final m = (restante.inMinutes % 60).toString().padLeft(2, '0');
-        final s = (restante.inSeconds % 60).toString().padLeft(2, '0');
-        return '-$h:$m:$s';
-      } else {
-        // Horas extras (positivo)
-        final extras = _elapsedJornada - _metaCLT;
-        final h = extras.inHours.toString().padLeft(2, '0');
-        final m = (extras.inMinutes % 60).toString().padLeft(2, '0');
-        final s = (extras.inSeconds % 60).toString().padLeft(2, '0');
-        return '+$h:$m:$s';
-      }
+      final extra = _elapsedJornada - _metaCLT;
+      return 'Meta cumprida! Horas extras: ${_formatDuration(extra)}';
     }
   }
 
   Color _getTimerColor() {
     if (_isWeekendOrHoliday) return Colors.greenAccent;
-    if (_elapsedJornada < _metaCLT) return Colors.redAccent;
+    if (_elapsedJornada < _metaCLT) return Colors.orangeAccent;
     return Colors.greenAccent;
   }
 
@@ -231,9 +229,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _isWeekendOrHoliday
-                          ? 'Final de semana / Feriado (100% Extra)'
-                          : (_elapsedJornada < _metaCLT ? 'Restante para fechar 08:48h' : 'Horas Extras Acumuladas'),
+                      _getSubtitleText(),
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],
