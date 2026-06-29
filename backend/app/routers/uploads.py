@@ -23,7 +23,7 @@ from app.models.user import UserPublic
 
 CONTEXTOS_VALIDOS = {
     "km_inicial", "km_final", "cnh", "clrv", "veiculo",
-    "comprovante", "sinistro", "nota_fiscal", "outros",
+    "comprovante", "sinistro", "nota_fiscal", "outros", "vistoria",
 }
 
 EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".pdf", ".webp"}

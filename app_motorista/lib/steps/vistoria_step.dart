@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:app_motorista/core/api_service.dart';
 
 class VistoriaStep extends StatefulWidget {
   final Map<String, bool> checklist;
-  final Function(Map<String, bool>, String) onCompleted;
+  final Function(Map<String, bool>, String, String?) onCompleted;
   const VistoriaStep({super.key, required this.checklist, required this.onCompleted});
 
   @override
@@ -13,6 +15,8 @@ class _VistoriaStepState extends State<VistoriaStep> {
   late Map<String, bool> _localChecklist;
   final _obsController = TextEditingController();
   String? _fotoAvariaUrl;
+  bool _loading = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -20,8 +24,53 @@ class _VistoriaStepState extends State<VistoriaStep> {
     _localChecklist = Map.from(widget.checklist);
   }
 
+  @override
+  void dispose() {
+    _obsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _takeFoto() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+      );
+      if (photo != null) {
+        setState(() {
+          _loading = true;
+        });
+        
+        final url = await ApiService.uploadFile(photo.path, 'vistoria');
+        
+        setState(() {
+          _loading = false;
+          if (url != null) {
+            _fotoAvariaUrl = url;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Foto de avarias anexada com sucesso!')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Falha ao enviar a foto para o servidor.')),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _loading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao capturar foto: $e')),
+      );
+    }
+  }
+
   void _submitVistoria() {
-    widget.onCompleted(_localChecklist, _obsController.text);
+    widget.onCompleted(_localChecklist, _obsController.text, _fotoAvariaUrl);
   }
 
   Widget _buildCheckItem(String key, String title, IconData icon) {
@@ -79,16 +128,23 @@ class _VistoriaStepState extends State<VistoriaStep> {
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
-            onPressed: () {
-              setState(() {
-                _fotoAvariaUrl = 'http://mock/foto_avaria.png';
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Foto de avarias anexada com sucesso!')),
-              );
-            },
-            icon: const Icon(Icons.camera_alt),
-            label: Text(_fotoAvariaUrl == null ? 'Fotografar Avarias (Opcional)' : 'Foto Anexada (Ver/Alterar)'),
+            onPressed: _loading ? null : _takeFoto,
+            icon: _loading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.indigoAccent),
+                  )
+                : Icon(
+                    _fotoAvariaUrl == null ? Icons.camera_alt : Icons.check_circle,
+                    color: _fotoAvariaUrl == null ? Colors.white : const Color(0xFF10B981),
+                  ),
+            label: Text(
+              _fotoAvariaUrl == null ? 'Fotografar Avarias (Opcional)' : 'Foto Anexada (Alterar)',
+              style: TextStyle(
+                color: _fotoAvariaUrl == null ? Colors.white : const Color(0xFF10B981),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
           SizedBox(

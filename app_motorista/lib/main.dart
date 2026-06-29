@@ -80,6 +80,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
   double _kmInicial = 0;
   double _kmMortaValor = 0;
   String? _fotoHodometroInicialUrl;
+  String? _fotoAvariaUrl;
 
   // Detalhes da jornada atual
   Map<String, dynamic>? _jornadaAberta;
@@ -403,10 +404,11 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       case 'vistoria':
         return VistoriaStep(
           checklist: _checklist,
-          onCompleted: (checklist, obs) {
+          onCompleted: (checklist, obs, fotoAvaria) {
             setState(() {
               _checklist = checklist;
               _observacoesVistoria = obs;
+              _fotoAvariaUrl = fotoAvaria;
               _trilhoStep = 'km_inicial';
             });
           },
@@ -473,6 +475,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             'farois_ok': _checklist['farois'],
             'limpeza_ok': _checklist['limpeza'],
             'observacoes': _observacoesVistoria,
+            'foto_avarias_url': _fotoAvariaUrl,
           },
           'fotos': {
             'km_inicial_url': _fotoHodometroInicialUrl,
