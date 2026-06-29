@@ -19,6 +19,31 @@ class _KmInicialStepState extends State<KmInicialStep> {
   String? _errorMessage;
   final ImagePicker _picker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    final kmAtual = widget.veiculo['km_atual'];
+    if (kmAtual != null) {
+      if (kmAtual % 1 == 0) {
+        _kmController.text = kmAtual.toInt().toString();
+      } else {
+        _kmController.text = kmAtual.toString();
+      }
+    }
+    _kmController.addListener(_onKmChanged);
+  }
+
+  void _onKmChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _kmController.removeListener(_onKmChanged);
+    _kmController.dispose();
+    super.dispose();
+  }
+
   Future<void> _takeFoto() async {
     try {
       final XFile? photo = await _picker.pickImage(
@@ -64,9 +89,13 @@ class _KmInicialStepState extends State<KmInicialStep> {
       });
       return;
     }
-    if (!_fotoHodometro || _fotoHodometroUrl == null) {
+
+    final double kmFinalOntem = widget.veiculo['km_atual'] ?? 50000.0;
+    final bool kmAlterado = (kmDigitado - kmFinalOntem).abs() > 0.001;
+
+    if (kmAlterado && (!_fotoHodometro || _fotoHodometroUrl == null)) {
       setState(() {
-        _errorMessage = 'É obrigatório tirar foto do hodômetro';
+        _errorMessage = 'O KM foi alterado. É obrigatório tirar foto do hodômetro.';
       });
       return;
     }
@@ -79,8 +108,6 @@ class _KmInicialStepState extends State<KmInicialStep> {
     // Simula validação de KM Morta
     await Future.delayed(const Duration(seconds: 1));
 
-    // KM final ontem no BD
-    double kmFinalOntem = widget.veiculo['km_atual'] ?? 50000.0;
     double diferenca = kmDigitado - kmFinalOntem;
     bool kmMortaAlert = diferenca > 2.0;
 
@@ -93,6 +120,10 @@ class _KmInicialStepState extends State<KmInicialStep> {
 
   @override
   Widget build(BuildContext context) {
+    final kmDigitado = double.tryParse(_kmController.text) ?? 0.0;
+    final double kmFinalOntem = (widget.veiculo['km_atual'] as num?)?.toDouble() ?? 50000.0;
+    final bool kmAlterado = (kmDigitado - kmFinalOntem).abs() > 0.001;
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -112,6 +143,17 @@ class _KmInicialStepState extends State<KmInicialStep> {
               labelText: 'Quilometragem Inicial (Hodômetro)',
               prefixIcon: const Icon(Icons.speed),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            kmAlterado
+                ? '⚠️ O KM foi alterado em relação ao de ontem ($kmFinalOntem). Foto do painel é obrigatória.'
+                : 'ℹ️ O KM informado é igual ao de ontem ($kmFinalOntem). Foto do painel é opcional.',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: kmAlterado ? Colors.amber : Colors.greenAccent,
             ),
           ),
           const SizedBox(height: 24),
