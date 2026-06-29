@@ -30,6 +30,13 @@ async def endpoint_me(current_user: UserPublic = Depends(get_current_user)):
 
 @router.get("/setup-needed")
 async def setup_needed(db=Depends(get_db)):
-    """Retorna se o banco ainda não tem nenhum usuário (primeiro acesso)."""
-    count = await db["users"].count_documents({})
+    """Retorna se o banco ainda não tem nenhum usuário com papel de GESTOR ou ADMIN."""
+    count = await db["users"].count_documents({"role": {"$in": ["ADMIN", "GESTOR"]}})
     return {"setup_needed": count == 0}
+
+
+@router.get("/motoristas")
+async def listar_motoristas_publico(db=Depends(get_db)):
+    """Retorna lista pública de motoristas ativos para o login do aplicativo mobile."""
+    docs = await db["users"].find({"role": "MOTORISTA", "situacao": {"$ne": "Inativo"}}, {"_id": 1, "nome": 1, "email": 1}).to_list(100)
+    return [{"id": str(d["_id"]), "nome": d["nome"], "email": d["email"]} for d in docs]

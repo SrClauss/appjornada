@@ -82,6 +82,7 @@ export interface Veiculo {
   km_atual: number;
   vencimento_ipva?: string;
   imagem_clrv_url?: string;
+  foto_veiculo_url?: string;
 }
 
 export interface CreateVeiculoPayload {
@@ -92,6 +93,7 @@ export interface CreateVeiculoPayload {
   situacao?: VehicleStatus;
   km_atual?: number;
   vencimento_ipva?: string;
+  foto_veiculo_url?: string;
 }
 
 export interface UpdateVeiculoPayload {
@@ -101,6 +103,7 @@ export interface UpdateVeiculoPayload {
   situacao?: VehicleStatus;
   km_atual?: number;
   vencimento_ipva?: string;
+  foto_veiculo_url?: string;
 }
 
 // ── Jornada ───────────────────────────────────────────────────────────────────
@@ -250,15 +253,7 @@ export interface PaginatedResponse<T> {
 /** @deprecated Usar User */
 export type DriverRole = Role;
 /** @deprecated Usar Situacao */
-export type DriverStatus = Situacao;
-
 export type DriverStatus = 'ATIVO' | 'INATIVO';
-export type JourneyStatus = 'ABERTA' | 'EM_ANDAMENTO' | 'EM_PAUSA' | 'ENCERRADA';
-export type VehicleStatus = 'RODANDO' | 'MANUTENCAO' | 'INATIVO';
-export type MaintenanceStatus = 'EM_ANDAMENTO' | 'CONCLUIDA';
-export type PauseType = 'ALMOCO' | 'LANCHE' | 'DESCANSO' | 'ABASTECIMENTO' | 'OUTRO';
-export type GoalType = 'FATURAMENTO_DIA' | 'KM_MES' | 'HORAS_MES';
-export type GoalReference = 'GERAL' | 'MOTORISTA';
 
 export interface Driver {
   id: string;

@@ -6,8 +6,11 @@ export function useVeiculos() {
   return useQuery({
     queryKey: ['veiculos'],
     queryFn: async () => {
-      const { data } = await api.get<Veiculo[]>('/veiculos');
-      return data;
+      const { data } = await api.get<any[]>('/veiculos');
+      return data.map((v) => ({
+        ...v,
+        id: v.id || v._id,
+      })) as Veiculo[];
     },
     staleTime: 30_000,
   });

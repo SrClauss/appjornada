@@ -33,6 +33,31 @@ class TestAbrirJornada:
         assert data["jornada_semanal_clt"] == 44.0
         assert data["jornada_mensal_clt"] == 220.0
 
+    async def test_motorista_abre_jornada_com_vistoria(
+        self, client, motorista_user, veiculo, motorista_headers
+    ):
+        payload = _abrir_payload(motorista_user["id"])
+        payload["vistoria"] = {
+            "pneus_ok": True,
+            "oleo_ok": True,
+            "agua_ok": False,
+            "farois_ok": True,
+            "limpeza_ok": True,
+            "observacoes": "Nível de água ligeiramente abaixo do recomendado",
+            "foto_avarias_url": "http://teste/foto_avaria.png"
+        }
+        resp = await client.post(
+            "/jornadas/?pin=1234",
+            json=payload,
+            headers=motorista_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["status"] == "ABERTA"
+        assert data["vistoria"]["agua_ok"] is False
+        assert data["vistoria"]["observacoes"] == "Nível de água ligeiramente abaixo do recomendado"
+        assert data["vistoria"]["foto_avarias_url"] == "http://teste/foto_avaria.png"
+
     async def test_pin_errado_retorna_401(
         self, client, motorista_user, veiculo, motorista_headers
     ):
@@ -231,6 +256,23 @@ class TestFecharJornada:
         data = resp.json()
         assert data["localizacao_final"]["lat"] == -20.22
 
+    async def test_fechar_persiste_comprovantes_e_fotos(
+        self, client, jornada_aberta, motorista_headers
+    ):
+        jid = jornada_aberta["_id"]
+        resp = await client.patch(
+            f"/jornadas/{jid}/fechar?km_final=50100.0"
+            f"&foto_km_final_url=http://minio/final.png"
+            f"&comprovante_uber_url=http://minio/uber.png"
+            f"&comprovante_99_url=http://minio/99.png",
+            headers=motorista_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["fotos"]["km_final_url"] == "http://minio/final.png"
+        assert data["faturamento"]["comprovante_uber_url"] == "http://minio/uber.png"
+        assert data["faturamento"]["comprovante_99_url"] == "http://minio/99.png"
+
     async def test_fechar_jornada_ja_encerrada_retorna_409(
         self, client, jornada_encerrada, motorista_headers
     ):
@@ -370,3 +412,60 @@ class TestResumoCLT:
             headers=motorista_headers,
         )
         assert resp.status_code == 403
+
+
+class TestUploadComprovanteGemini:
+    async def test_upload_comprovante_processa_com_gemini(
+        self, client, jornada_aberta, motorista_headers, monkeypatch
+    ):
+        # Mock do httpx.AsyncClient.post para simular resposta do Gemini
+        class MockResponse:
+            status_code = 200
+            def json(self):
+                return {
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": '{"plataforma": "UBER", "valor": 45.50, "origem": "Rua A", "destino": "Rua B"}'
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+        
+        import httpx
+        original_post = httpx.AsyncClient.post
+        async def mock_post(self_client, url, *args, **kwargs):
+            if "generativelanguage.googleapis.com" in str(url):
+                return MockResponse()
+            return await original_post(self_client, url, *args, **kwargs)
+        
+        monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+        
+        # Mock de _salvar_arquivo para evitar salvar no MinIO/disco real durante o teste
+        async def mock_salvar_arquivo(arquivo, contexto):
+            return "http://mock/print_uber.png"
+
+        import sys
+        uploads_mod = sys.modules["app.routers.uploads"]
+        monkeypatch.setattr(uploads_mod, "_salvar_arquivo", mock_salvar_arquivo)
+
+        # Prepara arquivo fake
+        fake_file = ("comprovante.png", b"fake_png_data", "image/png")
+        
+        resp = await client.post(
+            "/jornadas/aberta/comprovante",
+            headers=motorista_headers,
+            files={"arquivo": fake_file}
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["status"] == "sucesso"
+        assert data["plataforma"] == "UBER"
+        assert data["valor_extraido"] == 45.50
+        assert data["origem"] == "Rua A"
+        assert data["destino"] == "Rua B"
+        assert data["url_comprovante"] == "http://mock/print_uber.png"

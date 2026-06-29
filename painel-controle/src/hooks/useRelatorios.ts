@@ -6,10 +6,10 @@ export function useComparativo(data?: string, motorista_nome?: string) {
   return useQuery({
     queryKey: ['relatorios', 'comparativo', data, motorista_nome],
     queryFn: async () => {
-      const { data: res } = await api.get<ComparativoItem[]>('/relatorios/comparativo', {
+      const { data: res } = await api.get<any>('/relatorios/comparativo', {
         params: { data, motorista_nome },
       });
-      return res;
+      return res?.motoristas || [];
     },
     enabled: !!data,
     staleTime: 60_000,

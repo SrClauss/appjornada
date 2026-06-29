@@ -36,11 +36,9 @@ export function useDashboard() {
   const alertasQuery = useQuery({
     queryKey: ['dashboard', 'alertas'],
     queryFn: async () => {
-      const { data } = await api.get<AlertaInatividade[]>('/gps/alertas-inatividade');
-      return data;
+      return [];
     },
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: Infinity,
   });
 
   // Jornadas recentes (sem filtro de data) para cálculos semanais/mensais

@@ -1,7 +1,8 @@
 import uuid
-from datetime import date, datetime, timezone
+import zoneinfo
+from datetime import date, datetime, timezone, time
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from bson import ObjectId
 
 from app.db.database import get_db
@@ -25,6 +26,59 @@ def _calcular_saldo_horas(segundos: Optional[int]) -> Optional[float]:
         return None
     trabalhadas = segundos / 3600
     return round(trabalhadas - HORAS_DIARIAS_CLT, 2)
+
+
+def _normalizar_jornada(d: dict) -> dict:
+    if not d:
+        return d
+    
+    # Normaliza KM
+    if "km" not in d or d["km"] is None:
+        inicial = d.get("km_inicial")
+        final = d.get("km_final")
+        rodados = None
+        if final is not None and inicial is not None:
+            rodados = round(final - inicial, 1)
+        d["km"] = {
+            "inicial": inicial,
+            "final": final,
+            "rodados": rodados
+        }
+    
+    # Normaliza Horário (inicio / fim)
+    if "horario" not in d or d["horario"] is None:
+        inicio = None
+        fim = None
+        eventos = d.get("eventos", [])
+        if eventos:
+            inicio_ev = next((e for e in eventos if e.get("tipo") == "INICIO_JORNADA"), eventos[0])
+            fim_ev = next((e for e in reversed(eventos) if e.get("tipo") == "FIM_JORNADA"), eventos[-1])
+            
+            ts_inicio = inicio_ev.get("timestamp")
+            ts_fim = fim_ev.get("timestamp")
+            
+            if isinstance(ts_inicio, datetime):
+                inicio = ts_inicio.time().isoformat()
+            elif isinstance(ts_inicio, str):
+                try:
+                    inicio = ts_inicio.split("T")[1][:8]
+                except Exception:
+                    pass
+                    
+            if isinstance(ts_fim, datetime):
+                fim = ts_fim.time().isoformat()
+            elif isinstance(ts_fim, str):
+                try:
+                    fim = ts_fim.split("T")[1][:8]
+                except Exception:
+                    pass
+        d["horario"] = {
+            "inicio": inicio,
+            "fim": fim,
+            "total_horas_segundos": None
+        }
+        
+    return d
 
 
 # ─── CRUD principal ──────────────────────────────────────────────────────────
@@ -56,13 +110,27 @@ async def abrir_jornada(
     hoje = date.today().isoformat()
     aberta = await db["jornadas"].find_one({
         "motorista_id": ObjectId(str(dados.motorista_id)),
-        "data": hoje,
-        "status": {"$in": ["ABERTA", "EM_ANDAMENTO"]},
+        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]},
     })
     if aberta:
+        # Idempotência para cliques duplos: se foi criada há menos de 15 segundos, retorna ela
+        try:
+            inicio_str = aberta.get("horario", {}).get("inicio")
+            if inicio_str:
+                dt_str = f"{aberta['data']}T{inicio_str}"
+                if not dt_str.endswith("Z"):
+                    dt_str += "Z"
+                dt_inicio = datetime.fromisoformat(dt_str)
+                now_utc = datetime.now(timezone.utc)
+                seconds_diff = abs((now_utc - dt_inicio).total_seconds())
+                if seconds_diff <= 15:
+                    return Jornada(**_normalizar_jornada(aberta))
+        except Exception:
+            pass
+
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe uma jornada aberta para hoje",
+            detail="Já existe uma jornada ativa para este motorista.",
         )
 
     doc = dados.model_dump()
@@ -88,7 +156,7 @@ async def abrir_jornada(
 
     await db["jornadas"].insert_one(doc)
     criado = await db["jornadas"].find_one({"_id": doc["_id"]})
-    return Jornada(**criado)
+    return Jornada(**_normalizar_jornada(criado))
 
 
 @router.get("/aberta", response_model=Optional[Jornada])
@@ -102,7 +170,7 @@ async def jornada_aberta(
         "motorista_id": motorista_id,
         "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]},
     })
-    return Jornada(**doc) if doc else None
+    return Jornada(**_normalizar_jornada(doc)) if doc else None
 
 
 @router.get("", response_model=List[Jornada])
@@ -128,7 +196,255 @@ async def listar_jornadas(
 
     limit = min(limit, 200)  # teto de segurança
     docs = await db["jornadas"].find(filtro).sort("data", -1).skip(skip).limit(limit).to_list(limit)
-    return [Jornada(**d) for d in docs]
+    return [Jornada(**_normalizar_jornada(d)) for d in docs]
+
+
+@router.get("/eventos", response_model=List[dict])
+async def listar_todos_eventos(
+    data: Optional[date] = None,
+    data_inicio: Optional[date] = None,
+    data_fim: Optional[date] = None,
+    motorista_id: Optional[str] = None,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    filt_jornada = {}
+    filt_gps = {}
+    if motorista_id:
+        filt_jornada["motorista_id"] = ObjectId(motorista_id)
+        filt_gps["motorista_id"] = ObjectId(motorista_id)
+
+    # Resolve date range
+    d_ini = data_inicio or data
+    d_fim = data_fim or data
+
+    if d_ini and d_fim:
+        filt_jornada["data"] = {"$gte": d_ini.isoformat(), "$lte": d_fim.isoformat()}
+        tz = zoneinfo.ZoneInfo("America/Sao_Paulo")
+        start_local = datetime.combine(d_ini, time.min).replace(tzinfo=tz)
+        end_local = datetime.combine(d_fim, time.max).replace(tzinfo=tz)
+        start_utc = start_local.astimezone(timezone.utc)
+        end_utc = end_local.astimezone(timezone.utc)
+        
+        filt_gps["$or"] = [
+            {"timestamp": {"$gte": start_utc, "$lte": end_utc}},
+            {"timestamp": {"$gte": start_utc.isoformat(), "$lte": end_utc.isoformat()}}
+        ]
+    elif d_ini:
+        filt_jornada["data"] = {"$gte": d_ini.isoformat()}
+        tz = zoneinfo.ZoneInfo("America/Sao_Paulo")
+        start_utc = datetime.combine(d_ini, time.min).replace(tzinfo=tz).astimezone(timezone.utc)
+        filt_gps["timestamp"] = {"$gte": start_utc}
+    elif d_fim:
+        filt_jornada["data"] = {"$lte": d_fim.isoformat()}
+        tz = zoneinfo.ZoneInfo("America/Sao_Paulo")
+        end_utc = datetime.combine(d_fim, time.max).replace(tzinfo=tz).astimezone(timezone.utc)
+        filt_gps["timestamp"] = {"$lte": end_utc}
+
+    jornadas = await db["jornadas"].find(filt_jornada).to_list(None)
+    
+    if motorista_id:
+        motoristas = await db["users"].find({"_id": ObjectId(motorista_id)}).to_list(None)
+    else:
+        motoristas = await db["users"].find({"role": "MOTORISTA"}).to_list(None)
+        
+    mot_map = {str(m["_id"]): m["nome"] for m in motoristas}
+    j_veiculos = {str(j["_id"]): j.get("veiculo_id", "—") for j in jornadas}
+    
+    todos_eventos = []
+    for j in jornadas:
+        motorista_nome = j.get("motorista_nome") or mot_map.get(str(j.get("motorista_id")), "Motorista Desconhecido")
+        veiculo_id = j.get("veiculo_id")
+        jornada_id = j.get("_id")
+        
+        eventos = j.get("eventos", [])
+        if not eventos:
+            eventos = []
+            
+            # 1. INICIO_JORNADA
+            inicio_time = j.get("horario", {}).get("inicio")
+            if inicio_time:
+                inicio_time_str = inicio_time.isoformat() if isinstance(inicio_time, time) else str(inicio_time)
+                try:
+                    dt_str = f"{j['data']}T{inicio_time_str}"
+                    ts = datetime.fromisoformat(dt_str).replace(tzinfo=timezone.utc)
+                except Exception:
+                    ts = j.get("created_at") or datetime.now(timezone.utc)
+                
+                eventos.append({
+                    "tipo": "INICIO_JORNADA",
+                    "timestamp": ts,
+                    "km": j.get("km", {}).get("inicial") if isinstance(j.get("km"), dict) else j.get("km_inicial") or 0.0,
+                    "lat": j.get("localizacao_inicial", {}).get("lat") if j.get("localizacao_inicial") else None,
+                    "lon": j.get("localizacao_inicial", {}).get("lon") if j.get("localizacao_inicial") else None,
+                })
+
+            # 2. Pausas
+            for p in j.get("pausas", []):
+                p_inicio = p.get("inicio")
+                if p_inicio:
+                    p_inicio_str = p_inicio.isoformat() if isinstance(p_inicio, time) else str(p_inicio)
+                    try:
+                        ts_in = datetime.fromisoformat(f"{j['data']}T{p_inicio_str}").replace(tzinfo=timezone.utc)
+                    except Exception:
+                        ts_in = datetime.now(timezone.utc)
+                    eventos.append({
+                        "tipo": "INICIO_INTERVALO",
+                        "timestamp": ts_in,
+                        "km": p.get("km"),
+                        "lat": p.get("localizacao_inicio", {}).get("lat") if p.get("localizacao_inicio") else None,
+                        "lon": p.get("localizacao_inicio", {}).get("lon") if p.get("localizacao_inicio") else None,
+                    })
+                
+                p_fim = p.get("fim")
+                if p_fim:
+                    p_fim_str = p_fim.isoformat() if isinstance(p_fim, time) else str(p_fim)
+                    try:
+                        ts_fi = datetime.fromisoformat(f"{j['data']}T{p_fim_str}").replace(tzinfo=timezone.utc)
+                    except Exception:
+                        ts_fi = datetime.now(timezone.utc)
+                    eventos.append({
+                        "tipo": "FIM_INTERVALO",
+                        "timestamp": ts_fi,
+                        "km": p.get("km"),
+                        "lat": p.get("localizacao_fim", {}).get("lat") if p.get("localizacao_fim") else None,
+                        "lon": p.get("localizacao_fim", {}).get("lon") if p.get("localizacao_fim") else None,
+                    })
+
+            # 3. Abastecimentos
+            for ab in j.get("abastecimentos", []):
+                ab_id = ab.get("id")
+                ts_ab = None
+                if ab_id:
+                    try:
+                        ts_ab = datetime.fromtimestamp(int(ab_id) / 1000, tz=timezone.utc)
+                    except Exception:
+                        pass
+                if not ts_ab:
+                    ab_inicio = ab.get("hora_inicio")
+                    if ab_inicio:
+                        ab_inicio_str = ab_inicio.isoformat() if isinstance(ab_inicio, time) else str(ab_inicio)
+                        try:
+                            ts_ab = datetime.fromisoformat(f"{j['data']}T{ab_inicio_str}").replace(tzinfo=timezone.utc)
+                        except Exception:
+                            pass
+                if not ts_ab:
+                    ts_ab = datetime.now(timezone.utc)
+                
+                eventos.append({
+                    "tipo": "ABASTECIMENTO",
+                    "timestamp": ts_ab,
+                    "km": ab.get("km"),
+                    "lat": ab.get("localizacao", {}).get("lat") if ab.get("localizacao") else None,
+                    "lon": ab.get("localizacao", {}).get("lon") if ab.get("localizacao") else None,
+                })
+
+            # 4. FIM_JORNADA
+            fim_time = j.get("horario", {}).get("fim")
+            if fim_time:
+                fim_time_str = fim_time.isoformat() if isinstance(fim_time, time) else str(fim_time)
+                try:
+                    dt_str = f"{j['data']}T{fim_time_str}"
+                    ts = datetime.fromisoformat(dt_str).replace(tzinfo=timezone.utc)
+                except Exception:
+                    ts = j.get("created_at") or datetime.now(timezone.utc)
+                
+                eventos.append({
+                    "tipo": "FIM_JORNADA",
+                    "timestamp": ts,
+                    "km": j.get("km", {}).get("final") if isinstance(j.get("km"), dict) else j.get("km_final") or 0.0,
+                    "lat": j.get("localizacao_final", {}).get("lat") if j.get("localizacao_final") else None,
+                    "lon": j.get("localizacao_final", {}).get("lon") if j.get("localizacao_final") else None,
+                })
+
+        for ev in eventos:
+            ev_ts = ev.get("timestamp")
+            ev_lat = ev.get("lat")
+            ev_lon = ev.get("lon")
+            ev_rua = ev.get("rua")
+            
+            # Tenta buscar rua/localização do GPS histórico se faltar
+            if not ev_lat or not ev_lon or not ev_rua:
+                from datetime import timedelta
+                pt = await db["historico_gps"].find_one({
+                    "motorista_id": j.get("motorista_id"),
+                    "timestamp": {"$gte": ev_ts - timedelta(minutes=10), "$lte": ev_ts + timedelta(minutes=10)}
+                }, sort=[("timestamp", 1)])
+                if pt:
+                    if not ev_rua:
+                        ev_rua = pt.get("rua")
+                    coords = pt.get("localizacao", {}).get("coordinates", [])
+                    if not ev_lat and len(coords) > 1:
+                        ev_lat = coords[1]
+                    if not ev_lon and len(coords) > 0:
+                        ev_lon = coords[0]
+            
+            rua_str = f" | {ev_rua}" if ev_rua else ""
+            detalhes = f"{ev.get('tipo')}{rua_str}"
+            if ev_lat and ev_lon:
+                detalhes += f" | Lat: {ev_lat}, Lon: {ev_lon}"
+            if ev.get("km"):
+                detalhes += f" | Km: {ev.get('km')}"
+
+            todos_eventos.append({
+                "jornada_id": str(jornada_id),
+                "motorista_id": str(j.get("motorista_id")),
+                "motorista_nome": motorista_nome,
+                "veiculo_id": veiculo_id,
+                "tipo": ev.get("tipo"),
+                "timestamp": ev.get("timestamp"),
+                "km": ev.get("km"),
+                "rua": ev_rua,
+                "lat": ev_lat,
+                "lon": ev_lon,
+                "detalhes": detalhes,
+            })
+            
+    # Carrega pontos de telemetria GPS como eventos
+    gps_points = await db["historico_gps"].find(filt_gps).sort("timestamp", -1).limit(400).to_list(None)
+    for pt in gps_points:
+        m_id = str(pt.get("motorista_id"))
+        j_id = str(pt.get("jornada_id")) if pt.get("jornada_id") else ""
+        motorista_nome = mot_map.get(m_id, "Motorista Desconhecido")
+        veiculo_id = j_veiculos.get(j_id, "—")
+        
+        coords = pt.get("localizacao", {}).get("coordinates", [])
+        lat = coords[1] if len(coords) > 1 else None
+        lon = coords[0] if len(coords) > 0 else None
+        status_gps = pt.get("status", "TELEMETRIA")
+        dist = pt.get("distancia_ultima_m", 0.0)
+        rua = pt.get("rua")
+        rua_str = f" | {rua}" if rua else ""
+        
+        ts = pt.get("timestamp")
+        if isinstance(ts, datetime):
+            ts_str = ts.isoformat()
+        else:
+            ts_str = str(ts)
+            
+        todos_eventos.append({
+            "jornada_id": j_id,
+            "motorista_id": m_id,
+            "motorista_nome": motorista_nome,
+            "veiculo_id": veiculo_id,
+            "tipo": "TELEMETRIA_GPS",
+            "timestamp": ts_str,
+            "km": None,
+            "rua": rua,
+            "lat": lat,
+            "lon": lon,
+            "detalhes": f"{status_gps}{rua_str} | Lat: {lat}, Lon: {lon} | Dist: {dist:.1f}m",
+        })
+            
+    # Ordena decrescente por timestamp
+    def get_timestamp(e):
+        ts = e.get("timestamp")
+        if isinstance(ts, datetime):
+            return ts.isoformat()
+        return str(ts) if ts else ""
+        
+    todos_eventos.sort(key=get_timestamp, reverse=True)
+    return todos_eventos
 
 
 @router.get("/{jornada_id}", response_model=Jornada)
@@ -145,7 +461,7 @@ async def get_jornada(
         and str(doc["motorista_id"]) != str(current_user.id)
     ):
         raise HTTPException(status_code=403, detail="Acesso negado")
-    return Jornada(**doc)
+    return Jornada(**_normalizar_jornada(doc))
 
 
 @router.patch("/{jornada_id}", response_model=Jornada)
@@ -172,9 +488,15 @@ async def fechar_jornada(
     jornada_id: str,
     km_final: float,
     faturamento_uber: float = 0.0,
+    corridas_uber: int = 0,
     faturamento_99: float = 0.0,
+    corridas_99: int = 0,
     faturamento_outros: float = 0.0,
+    corridas_outros: int = 0,
     foto_km_final_url: Optional[str] = None,
+    comprovante_uber_url: Optional[str] = None,
+    comprovante_99_url: Optional[str] = None,
+    comprovante_outros_url: Optional[str] = None,
     localizacao_lat: Optional[float] = None,
     localizacao_lon: Optional[float] = None,
     observacoes: Optional[str] = None,
@@ -184,8 +506,25 @@ async def fechar_jornada(
     doc = await db["jornadas"].find_one({"_id": jornada_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Jornada não encontrada")
-    if doc["status"] not in ("ABERTA", "EM_ANDAMENTO"):
+    if doc["status"] == "ENCERRADA":
+        # Idempotência para cliques duplos: se foi encerrada muito recentemente, retorna ela
+        try:
+            fim_str = doc.get("horario", {}).get("fim")
+            if fim_str:
+                dt_str = f"{doc['data']}T{fim_str}"
+                if not dt_str.endswith("Z"):
+                    dt_str += "Z"
+                dt_fim = datetime.fromisoformat(dt_str)
+                now_utc = datetime.now(timezone.utc)
+                seconds_diff = abs((now_utc - dt_fim).total_seconds())
+                if seconds_diff <= 15:
+                    return Jornada(**_normalizar_jornada(doc))
+        except Exception:
+            pass
+
         raise HTTPException(status_code=409, detail="Jornada já encerrada")
+    if doc["status"] not in ("ABERTA", "EM_ANDAMENTO", "EM_PAUSA"):
+        raise HTTPException(status_code=409, detail="Jornada em estado inválido para encerramento")
 
     fim = datetime.now(timezone.utc)
     inicio_str = doc.get("horario", {}).get("inicio")
@@ -210,6 +549,9 @@ async def fechar_jornada(
         "faturamento.noventa_nove": faturamento_99,
         "faturamento.outros": faturamento_outros,
         "faturamento.total_dia": total_faturamento,
+        "faturamento.corridas_uber": corridas_uber,
+        "faturamento.corridas_99": corridas_99,
+        "faturamento.corridas_outros": corridas_outros,
         "saldo_horas_dia": _calcular_saldo_horas(total_segundos),
     }
     # Registra localização final se fornecida
@@ -217,12 +559,18 @@ async def fechar_jornada(
         update["localizacao_final"] = {"lat": localizacao_lat, "lon": localizacao_lon}
     if foto_km_final_url:
         update["fotos.km_final_url"] = foto_km_final_url
+    if comprovante_uber_url:
+        update["faturamento.comprovante_uber_url"] = comprovante_uber_url
+    if comprovante_99_url:
+        update["faturamento.comprovante_99_url"] = comprovante_99_url
+    if comprovante_outros_url:
+        update["faturamento.comprovante_outros_url"] = comprovante_outros_url
     if observacoes:
         update["observacoes"] = observacoes
 
     await db["jornadas"].update_one({"_id": jornada_id}, {"$set": update})
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
-    return Jornada(**atualizado)
+    return Jornada(**_normalizar_jornada(atualizado))
 
 
 # ─── Pausas ──────────────────────────────────────────────────────────────────
@@ -240,6 +588,12 @@ async def iniciar_pausa(
     if not doc:
         raise HTTPException(status_code=404, detail="Jornada não encontrada")
 
+    # Verifica se já existe alguma pausa ativa (sem "fim")
+    pausas = doc.get("pausas", [])
+    if any(p.get("fim") is None for p in pausas):
+        # Idempotência para cliques duplos: se já está em pausa, retorna
+        return Jornada(**_normalizar_jornada(doc))
+
     pausa = {
         "id": uuid.uuid4().hex[:8],
         "tipo": tipo,
@@ -255,7 +609,7 @@ async def iniciar_pausa(
         {"$push": {"pausas": pausa}, "$set": {"status": "EM_PAUSA"}},
     )
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
-    return Jornada(**atualizado)
+    return Jornada(**_normalizar_jornada(atualizado))
 
 
 @router.patch("/{jornada_id}/pausas/{pausa_id}/fechar", response_model=Jornada)
@@ -275,6 +629,10 @@ async def fechar_pausa(
     pausa = next((p for p in pausas if p["id"] == pausa_id), None)
     if not pausa:
         raise HTTPException(status_code=404, detail="Pausa não encontrada")
+
+    if pausa.get("fim") is not None:
+        # Idempotência para cliques duplos: a pausa já foi fechada
+        return Jornada(**_normalizar_jornada(doc))
 
     fim_time = datetime.now(timezone.utc).time()
     from datetime import time
@@ -297,7 +655,7 @@ async def fechar_pausa(
         },
     )
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
-    return Jornada(**atualizado)
+    return Jornada(**_normalizar_jornada(atualizado))
 
 
 # ─── Abastecimento ───────────────────────────────────────────────────────────
@@ -313,12 +671,17 @@ async def registrar_abastecimento(
     if not doc:
         raise HTTPException(status_code=404, detail="Jornada não encontrada")
 
+    # Verifica duplicidade pelo ID do abastecimento (idempotência para clique duplo)
+    abastecimentos = doc.get("abastecimentos", [])
+    if any(a.get("id") == dados.id for a in abastecimentos):
+        return Jornada(**_normalizar_jornada(doc))
+
     await db["jornadas"].update_one(
         {"_id": jornada_id},
         {"$push": {"abastecimentos": dados.model_dump()}},
     )
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
-    return Jornada(**atualizado)
+    return Jornada(**_normalizar_jornada(atualizado))
 
 
 # ─── Sinistro ────────────────────────────────────────────────────────────────
@@ -334,12 +697,17 @@ async def registrar_sinistro(
     if not doc:
         raise HTTPException(status_code=404, detail="Jornada não encontrada")
 
+    # Verifica duplicidade pelo ID do sinistro (idempotência para clique duplo)
+    sinistros = doc.get("sinistros", [])
+    if any(s.get("id") == dados.id for s in sinistros):
+        return Jornada(**_normalizar_jornada(doc))
+
     await db["jornadas"].update_one(
         {"_id": jornada_id},
         {"$push": {"sinistros": dados.model_dump()}},
     )
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
-    return Jornada(**atualizado)
+    return Jornada(**_normalizar_jornada(atualizado))
 
 
 # ─── Dashboard CLT ───────────────────────────────────────────────────────────
@@ -440,3 +808,389 @@ async def resumo_clt_mensal(
         "status": "OK" if total_horas >= HORAS_MENSAIS_CLT else "ABAIXO_DA_META",
         "detalhe_por_dia": saldo_por_dia,
     }
+
+
+@router.post("/aberta/comprovante", status_code=201)
+async def upload_e_processar_comprovante(
+    arquivo: UploadFile = File(...),
+    plataforma: Optional[str] = Form(None),
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """
+    Recebe um print de faturamento do motorista, faz upload para o MinIO,
+    usa o Gemini para analisar os dados (plataforma, valor, origem e destino)
+    e atualiza a jornada aberta acumulando o valor e anexando o comprovante com localizações.
+    """
+    # Encontra a jornada ativa
+    doc = await db["jornadas"].find_one({
+        "motorista_id": ObjectId(str(current_user.id)),
+        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]}
+    })
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nenhuma jornada ativa encontrada para este motorista."
+        )
+
+    # 1. Lê os bytes do arquivo para enviar ao Gemini
+    conteudo = await arquivo.read()
+    await arquivo.seek(0)
+
+    # 2. Chama o Gemini para ler o print e identificar plataforma, valor e localizações
+    import base64
+    import httpx
+    import json
+    
+    plataforma_final = "OUTROS"
+    valor = 0.0
+    origem = None
+    destino = None
+
+    try:
+        base64_image = base64.b64encode(conteudo).decode('utf-8')
+        import os
+        gemini_key = os.getenv("GEMINI_API_KEY", "")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+        
+        prompt_plataforma = ""
+        if plataforma:
+            prompt_plataforma = f"O usuário informou que a plataforma deste print é: {plataforma.upper()}.\n"
+
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": (
+                                "Você é um assistente especializado em ler prints de faturamento ou de corridas de motoristas "
+                                "(Uber, 99 ou outros). Extraia as seguintes informações do print:\n"
+                                f"{prompt_plataforma}"
+                                "1. Plataforma (UBER, 99 ou OUTROS)\n"
+                                "2. Valor total da corrida ou do faturamento selecionado\n"
+                                "3. Local de Origem / Partida (se visível)\n"
+                                "4. Local de Destino / Chegada (se visível)\n\n"
+                                "Retorne estritamente um JSON no formato:\n"
+                                "{\n"
+                                "  \"plataforma\": \"UBER\" ou \"99\" ou \"OUTROS\",\n"
+                                "  \"valor\": float,\n"
+                                "  \"origem\": string ou null,\n"
+                                "  \"destino\": string ou null\n"
+                                "}\n"
+                                "Não retorne nenhuma marcação markdown, apenas o JSON bruto."
+                            )
+                        },
+                        {
+                            "inlineData": {
+                                "mimeType": arquivo.content_type or "image/png",
+                                "data": base64_image
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as httpx_client:
+            response = await httpx_client.post(url, json=payload)
+            if response.status_code == 200:
+                res_data = response.json()
+                text_response = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                if "```" in text_response:
+                    text_response = text_response.split("```")[-2].replace("json", "").strip()
+                parsed = json.loads(text_response)
+                plataforma_final = plataforma.upper() if plataforma else parsed.get("plataforma", "OUTROS").upper()
+                if plataforma_final not in ["UBER", "99", "OUTROS"]:
+                    plataforma_final = "OUTROS"
+                valor = float(parsed.get("valor", 0.0))
+                origem = parsed.get("origem")
+                destino = parsed.get("destino")
+            else:
+                if plataforma:
+                    plataforma_final = plataforma.upper()
+    except Exception as e:
+        if plataforma:
+            plataforma_final = plataforma.upper()
+
+    # 3. Salva o arquivo no servidor/MinIO usando a lógica existente em uploads.py
+    import sys
+    uploads_mod = sys.modules.get("app.routers.uploads")
+    if not uploads_mod:
+        import app.routers.uploads as uploads_mod
+    url_comprovante = await uploads_mod._salvar_arquivo(arquivo, "comprovante")
+
+    # 4. Atualiza os faturamentos da jornada ativa
+    faturamento = doc.get("faturamento") or {}
+    val_uber = faturamento.get("uber") or 0.0
+    val_99 = faturamento.get("noventa_nove") or 0.0
+    val_outros = faturamento.get("outros") or 0.0
+    
+    comp_uber = faturamento.get("comprovante_uber_url")
+    comp_99 = faturamento.get("comprovante_99_url")
+    comp_outros = faturamento.get("comprovante_outros_url")
+
+    if plataforma_final == "UBER":
+        val_uber = round(val_uber + valor, 2)
+        comp_uber = url_comprovante
+    elif plataforma_final == "99":
+        val_99 = round(val_99 + valor, 2)
+        comp_99 = url_comprovante
+    else:
+        val_outros = round(val_outros + valor, 2)
+        comp_outros = url_comprovante
+
+    total_dia = round(val_uber + val_99 + val_outros, 2)
+
+    novo_comprovante = {
+        "plataforma": plataforma_final,
+        "valor": valor,
+        "origem": origem,
+        "destino": destino,
+        "url_comprovante": url_comprovante,
+        "data_processamento": datetime.now(timezone.utc).isoformat()
+    }
+
+    update = {
+        "faturamento.uber": val_uber,
+        "faturamento.noventa_nove": val_99,
+        "faturamento.outros": val_outros,
+        "faturamento.total_dia": total_dia,
+        "faturamento.comprovante_uber_url": comp_uber,
+        "faturamento.comprovante_99_url": comp_99,
+        "faturamento.comprovante_outros_url": comp_outros,
+    }
+
+    await db["jornadas"].update_one(
+        {"_id": doc["_id"]},
+        {
+            "$set": update,
+            "$push": {"faturamento.comprovantes_processados": novo_comprovante}
+        }
+    )
+    
+    # Retorna o status e os valores extraídos
+    return {
+        "status": "sucesso",
+        "plataforma": plataforma_final,
+        "valor_extraido": valor,
+        "origem": origem,
+        "destino": destino,
+        "novo_total_plataforma": val_uber if plataforma_final == "UBER" else (val_99 if plataforma_final == "99" else val_outros),
+        "url_comprovante": url_comprovante
+    }
+
+
+# ─── Validação de Fechamento & Corrida Particular ───────────────────────────
+
+@router.post("/{jornada_id}/validar-fechamento")
+async def validar_fechamento_jornada(
+    jornada_id: str,
+    faturamento_uber: float = 0.0,
+    corridas_uber: int = 0,
+    faturamento_99: float = 0.0,
+    corridas_99: int = 0,
+    faturamento_outros: float = 0.0,
+    corridas_outros: int = 0,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    doc = await db["jornadas"].find_one({"_id": jornada_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+    
+    # Pegar comprovantes processados
+    faturamento = doc.get("faturamento") or {}
+    comprovantes = faturamento.get("comprovantes_processados") or []
+    
+    # Contar por plataforma
+    detectados_uber = sum(1 for c in comprovantes if c.get("plataforma") == "UBER")
+    detectados_99 = sum(1 for c in comprovantes if c.get("plataforma") == "99")
+    detectados_outros = sum(1 for c in comprovantes if c.get("plataforma") == "OUTROS")
+    
+    status_uber = "OK" if detectados_uber == corridas_uber else "DIVERGENTE"
+    status_99 = "OK" if detectados_99 == corridas_99 else "DIVERGENTE"
+    status_outros = "OK" if detectados_outros == corridas_outros else "DIVERGENTE"
+    
+    pode_fechar = (status_uber == "OK") and (status_99 == "OK") and (status_outros == "OK")
+    
+    return {
+        "comprovantes_processados": comprovantes,
+        "comparativo": {
+            "uber": {
+                "declarado": corridas_uber,
+                "detectado": detectados_uber,
+                "status": status_uber,
+                "diferenca": detectados_uber - corridas_uber
+            },
+            "noventa_nove": {
+                "declarado": corridas_99,
+                "detectado": detectados_99,
+                "status": status_99,
+                "diferenca": detectados_99 - corridas_99
+            },
+            "outros": {
+                "declarado": corridas_outros,
+                "detectado": detectados_outros,
+                "status": status_outros,
+                "diferenca": detectados_outros - corridas_outros
+            }
+        },
+        "pode_fechar": pode_fechar
+    }
+
+
+@router.post("/{jornada_id}/corridas-particulares/iniciar")
+async def iniciar_corrida_particular(
+    jornada_id: str,
+    km_inicio: float,
+    localizacao_lat: Optional[float] = None,
+    localizacao_lon: Optional[float] = None,
+    destino_endereco: Optional[str] = None,
+    destino_lat: Optional[float] = None,
+    destino_lon: Optional[float] = None,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    doc = await db["jornadas"].find_one({"_id": jornada_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+    
+    # Verifica se já existe corrida em andamento
+    corridas = doc.get("corridas_particulares", [])
+    if any(c.get("status") == "EM_ANDAMENTO" for c in corridas):
+        raise HTTPException(status_code=400, detail="Já existe uma corrida particular em andamento.")
+        
+    nova_corrida = {
+        "id": uuid.uuid4().hex[:8],
+        "horario_inicio": datetime.now(timezone.utc).isoformat(),
+        "horario_fim": None,
+        "localizacao_inicio": {"lat": localizacao_lat, "lon": localizacao_lon} if localizacao_lat is not None else None,
+        "localizacao_fim": None,
+        "km_inicio": km_inicio,
+        "km_fim": None,
+        "km_rodados": None,
+        "duracao_segundos": None,
+        "valor_calculado": 0.0,
+        "destino_endereco": destino_endereco,
+        "destino_coordenadas": {"lat": destino_lat, "lon": destino_lon} if destino_lat is not None else None,
+        "status": "EM_ANDAMENTO"
+    }
+    
+    await db["jornadas"].update_one(
+        {"_id": jornada_id},
+        {"$push": {"corridas_particulares": nova_corrida}}
+    )
+    
+    return nova_corrida
+
+
+@router.post("/{jornada_id}/corridas-particulares/{corrida_id}/finalizar")
+async def finalizar_corrida_particular(
+    jornada_id: str,
+    corrida_id: str,
+    km_fim: float,
+    localizacao_lat: Optional[float] = None,
+    localizacao_lon: Optional[float] = None,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    doc = await db["jornadas"].find_one({"_id": jornada_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+        
+    corridas = doc.get("corridas_particulares", [])
+    corrida = next((c for c in corridas if c["id"] == corrida_id), None)
+    if not corrida:
+        raise HTTPException(status_code=404, detail="Corrida particular não encontrada")
+        
+    if corrida.get("status") == "FINALIZADA":
+        return corrida
+        
+    horario_fim = datetime.now(timezone.utc)
+    horario_inicio = datetime.fromisoformat(corrida["horario_inicio"])
+    duracao_segundos = int((horario_fim - horario_inicio).total_seconds())
+    duracao_minutos = duracao_segundos / 60.0
+    
+    km_inicio = corrida["km_inicio"]
+    km_rodados = round(km_fim - km_inicio, 1)
+    if km_rodados < 0:
+        km_rodados = 0.0
+        
+    # Buscar faixas de preços configuradas no banco
+    faixas = await db["precos_particulares"].find().to_list(None)
+    
+    # Lógica de correspondência de horário
+    # Usar hora local (America/Sao_Paulo) para as faixas horárias
+    tz = zoneinfo.ZoneInfo("America/Sao_Paulo")
+    hora_local_inicio = horario_inicio.astimezone(tz).time()
+    hora_local_fim = horario_fim.astimezone(tz).time()
+    
+    def obter_preco_para_horario(horario: time):
+        for f in faixas:
+            try:
+                h_ini = time.fromisoformat(f["hora_inicio"])
+                h_fim = time.fromisoformat(f["hora_fim"])
+            except Exception:
+                continue
+            if h_ini <= h_fim:
+                if h_ini <= horario <= h_fim:
+                    return f["preco_km"], f["preco_minuto"]
+            else:
+                if horario >= h_ini or horario <= h_fim:
+                    return f["preco_km"], f["preco_minuto"]
+        # Fallbacks globais se nenhuma faixa cadastrada
+        return 2.0, 0.5
+        
+    preco_km, _ = obter_preco_para_horario(hora_local_inicio)
+    _, preco_minuto = obter_preco_para_horario(hora_local_fim)
+    
+    valor_calculado = round((km_rodados * preco_km) + (duracao_minutos * preco_minuto), 2)
+    
+    # Atualizar a corrida na jornada
+    await db["jornadas"].update_one(
+        {"_id": jornada_id, "corridas_particulares.id": corrida_id},
+        {
+            "$set": {
+                "corridas_particulares.$.horario_fim": horario_fim.isoformat(),
+                "corridas_particulares.$.localizacao_fim": {"lat": localizacao_lat, "lon": localizacao_lon} if localizacao_lat is not None else None,
+                "corridas_particulares.$.km_fim": km_fim,
+                "corridas_particulares.$.km_rodados": km_rodados,
+                "corridas_particulares.$.duracao_segundos": duracao_segundos,
+                "corridas_particulares.$.valor_calculado": valor_calculado,
+                "corridas_particulares.$.status": "FINALIZADA"
+            }
+        }
+    )
+    
+    # Atualizar faturamento acumulado na jornada
+    faturamento = doc.get("faturamento") or {}
+    val_uber = faturamento.get("uber") or 0.0
+    val_99 = faturamento.get("noventa_nove") or 0.0
+    val_outros = faturamento.get("outros") or 0.0
+    
+    val_outros_novo = round(val_outros + valor_calculado, 2)
+    total_dia_novo = round(val_uber + val_99 + val_outros_novo, 2)
+    
+    await db["jornadas"].update_one(
+        {"_id": jornada_id},
+        {
+            "$set": {
+                "faturamento.outros": val_outros_novo,
+                "faturamento.total_dia": total_dia_novo
+            }
+        }
+    )
+    
+    # Retorna objeto atualizado
+    corrida_atualizada = {
+        **corrida,
+        "horario_fim": horario_fim.isoformat(),
+        "localizacao_fim": {"lat": localizacao_lat, "lon": localizacao_lon} if localizacao_lat is not None else None,
+        "km_fim": km_fim,
+        "km_rodados": km_rodados,
+        "duracao_segundos": duracao_segundos,
+        "valor_calculado": valor_calculado,
+        "status": "FINALIZADA"
+    }
+    
+    return corrida_atualizada

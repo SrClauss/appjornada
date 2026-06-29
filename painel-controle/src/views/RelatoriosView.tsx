@@ -106,7 +106,7 @@ export function RelatoriosView() {
     const file = fileRef.current?.files?.[0];
     if (!file) { toast.error('Selecione um arquivo CSV.'); return; }
     try {
-      const res = await importarMutation.mutateAsync({ plataforma, file });
+      const res = await importarMutation.mutateAsync({ tipo: plataforma, file });
       toast.success(`Importado: ${res.inseridos ?? 0} registros.`);
       if (fileRef.current) fileRef.current.value = '';
     } catch (err: any) {

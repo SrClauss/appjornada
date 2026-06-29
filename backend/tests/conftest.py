@@ -59,7 +59,9 @@ async def client(db):
         mock_sched.return_value.shutdown = lambda **kw: None
 
         async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+            follow_redirects=True,
         ) as ac:
             yield ac
 

@@ -9,18 +9,24 @@ interface JornadasParams {
   status_filtro?: string;
   page?: number;
   size?: number;
+  enabled?: boolean;
 }
 
 export function useJornadas(params: JornadasParams = {}) {
+  const { page = 1, size = 50, enabled = true, ...rest } = params;
+  const skip = (page - 1) * size;
+  const limit = size;
+
   return useQuery({
-    queryKey: ['jornadas', params],
+    queryKey: ['jornadas', { skip, limit, ...rest }],
     queryFn: async () => {
       const { data } = await api.get<Jornada[]>('/jornadas', {
-        params: { size: 50, ...params },
+        params: { skip, limit, ...rest },
       });
       return data;
     },
     staleTime: 15_000,
+    enabled,
   });
 }
 

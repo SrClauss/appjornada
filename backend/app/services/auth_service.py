@@ -30,7 +30,18 @@ async def registrar_usuario(db: AsyncIOMotorDatabase, dados: UserCreate) -> User
 
 async def login(db: AsyncIOMotorDatabase, email: str, senha: str) -> Token:
     doc = await db["users"].find_one({"email": email})
-    if doc is None or not verificar_senha(senha, doc["senha_hash"]):
+    if doc is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="E-mail ou senha inválidos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    valido = verificar_senha(senha, doc.get("senha_hash"))
+    if not valido and doc.get("role") == "MOTORISTA" and doc.get("pin_hash"):
+        valido = verificar_senha(senha, doc["pin_hash"])
+
+    if not valido:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha inválidos",

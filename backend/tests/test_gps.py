@@ -131,3 +131,46 @@ class TestAlertasInatividade:
         data = resp.json()
         assert "alertas" in data
         assert "total_alertas" in data
+
+
+class TestAlertasInatividadeConfiguravel:
+    async def test_alerta_com_limiar_configurado(
+        self, client, admin_headers, motorista_user, jornada_aberta, db
+    ):
+        from datetime import timedelta
+        # 1. Configurar o limiar de inatividade no perfil do motorista para 5 minutos
+        await db["users"].update_one(
+            {"_id": ObjectId(motorista_user["id"])},
+            {"$set": {"perfil_motorista.limiar_inatividade_minutos": 5}}
+        )
+
+        # 2. Inserir pontos de GPS simulando inatividade de 6 minutos atrás
+        m_id = ObjectId(motorista_user["id"])
+        ts_antigo = datetime.now(timezone.utc) - timedelta(minutes=6)
+        await db["historico_gps"].insert_many([
+            {
+                "motorista_id": m_id,
+                "jornada_id": jornada_aberta["_id"],
+                "localizacao": {"type": "Point", "coordinates": [-40.264764, -20.219344]},
+                "distancia_ultima_m": 10.0,
+                "timestamp": ts_antigo,
+            },
+            {
+                "motorista_id": m_id,
+                "jornada_id": jornada_aberta["_id"],
+                "localizacao": {"type": "Point", "coordinates": [-40.264760, -20.219340]},
+                "distancia_ultima_m": 5.0,
+                "timestamp": datetime.now(timezone.utc),
+            }
+        ])
+
+        # 3. Consultar os alertas e verificar se o motorista com o limiar de 5 minutos foi detectado
+        resp = await client.get("/gps/alertas-inatividade", headers=admin_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_alertas"] >= 1
+        alerta = data["alertas"][0]
+        assert alerta["motorista_id"] == motorista_user["id"]
+        assert alerta["minutos_parado"] == 5
+        assert "Lat: -20.2193, Lon: -40.2648" in alerta["ultima_posicao"]
+

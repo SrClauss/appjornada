@@ -22,7 +22,7 @@ from app.core.dependencies import get_current_user
 from app.models.user import UserPublic
 
 CONTEXTOS_VALIDOS = {
-    "km_inicial", "km_final", "cnh", "clrv",
+    "km_inicial", "km_final", "cnh", "clrv", "veiculo",
     "comprovante", "sinistro", "nota_fiscal", "outros",
 }
 
@@ -77,8 +77,7 @@ def _ensure_minio_bucket() -> None:
 
 
 def _build_minio_url(object_name: str) -> str:
-    protocol = "https" if settings.MINIO_SECURE else "http"
-    return f"{protocol}://{settings.MINIO_ENDPOINT}/{MINIO_BUCKET}/{object_name}"
+    return f"/{MINIO_BUCKET}/{object_name}"
 
 
 async def _upload_to_minio(upload: UploadFile, contexto: str, conteudo: bytes) -> str:

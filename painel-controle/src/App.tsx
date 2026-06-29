@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/pages/LoginPage';
 import { SetupPage } from '@/pages/SetupPage';
@@ -11,15 +11,33 @@ import { JornadasView } from '@/views/JornadasView';
 import { AbastecimentosView } from '@/views/AbastecimentosView';
 import { ManutencoesView } from '@/views/ManutencoesView';
 import { MetasView } from '@/views/MetasView';
-import { RelatoriosView } from '@/views/RelatoriosView';
 import { ConfiguracoesView } from '@/views/ConfiguracoesView';
-import { ColetaView } from '@/views/ColetaView';
+import { PrecosParticularesView } from '@/views/PrecosParticularesView';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 
 function App() {
   const { user, isLoading, setupNeeded } = useAuth();
-  const [activeView, setActiveView] = useState('dashboard');
+  
+  const [activeView, setActiveView] = useState(() => {
+    const hash = window.location.hash;
+    return hash.startsWith('#/') ? hash.slice(2) : 'dashboard';
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      const view = hash.startsWith('#/') ? hash.slice(2) : 'dashboard';
+      setActiveView(view);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleNavigate = (view: string) => {
+    window.location.hash = `/${view}`;
+  };
 
   if (isLoading) {
     return (
@@ -60,16 +78,15 @@ function App() {
       case 'abastecimentos': return <AbastecimentosView />;
       case 'manutencoes':    return <ManutencoesView />;
       case 'metas':          return <MetasView />;
-      case 'relatorios':     return <RelatoriosView />;
-      case 'coleta':          return <ColetaView />;
       case 'configuracoes':  return <ConfiguracoesView />;
+      case 'tarifas-particulares': return <PrecosParticularesView />;
       default:               return <DashboardView />;
     }
   };
 
   return (
     <div className="flex h-screen bg-background">
-      <AppSidebar activeView={activeView} onNavigate={setActiveView} />
+      <AppSidebar activeView={activeView} onNavigate={handleNavigate} />
 
       <div className="flex-1 flex flex-col ml-64">
         <AppHeader />

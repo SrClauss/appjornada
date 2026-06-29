@@ -48,3 +48,4 @@ class PerfilMotorista(BaseModel):
     cnh: Optional[CNH] = None
     dados_bancarios: Optional[DadosBancarios] = None
     advertencias: List[Advertencia] = Field(default_factory=list)
+    limiar_inatividade_minutos: Optional[int] = 15

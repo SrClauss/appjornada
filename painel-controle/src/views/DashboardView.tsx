@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Car, CurrencyDollar, Warning } from '@phosphor-icons/react';
+import { Users, Car, CurrencyDollar, ClipboardText } from '@phosphor-icons/react';
 import { useDashboard } from '@/hooks/useDashboard';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -62,10 +62,10 @@ export function DashboardView() {
           status="default"
         />
         <KPICard
-          icon={<Warning size={24} className="text-destructive" />}
-          label="Alertas GPS Ativos"
-          value={kpis.totalAlertas}
-          status={kpis.totalAlertas > 0 ? 'danger' : 'success'}
+          icon={<ClipboardText size={24} className="text-primary" />}
+          label="Total de Jornadas Hoje"
+          value={kpis.jornadasStatus.reduce((sum, j) => sum + j.value, 0)} 
+          status="default"
         />
       </div>
 
@@ -136,8 +136,8 @@ export function DashboardView() {
         </Card>
       </div>
 
-      {/* Status jornadas + Alertas GPS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Status jornadas */}
+      <div className="grid grid-cols-1 gap-6">
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Status das Jornadas Hoje</h3>
           {kpis.jornadasStatus.every((j) => j.value === 0) ? (
@@ -165,42 +165,6 @@ export function DashboardView() {
               </PieChart>
             </ResponsiveContainer>
           )}
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Alertas de Inatividade GPS</h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Motorista</TableHead>
-                <TableHead>Última Localização</TableHead>
-                <TableHead>Parado há</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {kpis.alertas.length > 0 ? (
-                kpis.alertas.map((alert, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">
-                      {alert.motorista_nome ?? alert.motorista_id}
-                    </TableCell>
-                    <TableCell className="text-sm">{alert.ultima_posicao ?? '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant="destructive">
-                        PARADO {alert.minutos_parado} MIN
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                    Nenhum alerta ativo
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
         </Card>
       </div>
     </div>

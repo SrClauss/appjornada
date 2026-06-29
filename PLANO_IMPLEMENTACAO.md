@@ -509,6 +509,8 @@ Solicitar permissão de câmera (`permission_handler`) antes do primeiro uso. Ex
 - **Pausar envio** quando `status == EM_PAUSA` (Fase 7)
 - **Parar serviço** ao encerrar jornada (Fase 8)
 - Solicitar permissão `ACCESS_BACKGROUND_LOCATION` (Android) e modo `Always` (iOS) no momento de abertura da jornada — explicar ao usuário o motivo antes de solicitar
+- **Alerta de Inatividade Configurável:** O backend monitora a imobilidade e emite alertas com base no tempo limiar parametrizado por motorista (`perfil_motorista.limiar_inatividade_minutos`).
+- **Notificação no Painel:** Os alertas gerados são consumidos no dashboard para notificar o gestor em tempo real.
 
 ---
 

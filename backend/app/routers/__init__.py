@@ -8,5 +8,18 @@ from .metas import router as metas
 from .relatorios import router as relatorios
 from .uploads import router as uploads
 from .coleta import router as coleta
+from .precos_particulares import router as precos_particulares
 
-__all__ = ["auth", "users", "veiculos", "jornadas", "gps", "manutencoes", "metas", "relatorios", "uploads", "coleta"]
+__all__ = [
+    "auth",
+    "users",
+    "veiculos",
+    "jornadas",
+    "gps",
+    "manutencoes",
+    "metas",
+    "relatorios",
+    "uploads",
+    "coleta",
+    "precos_particulares",
+]

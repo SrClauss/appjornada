@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     MINIO_SECRET_KEY: str = ""
     MINIO_BUCKET: str = "app-jornada"
     MINIO_SECURE: bool = False
+    OSRM_URL: str = "http://localhost:5000"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

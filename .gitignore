@@ -63,4 +63,7 @@ docker-compose.override.yml
 
 # ─── Mobile Binaries ─────────────────────────────────────────────────────────
 *.apk
-/coletor/*.apk
+
+# ─── Local Run Directories ───────────────────────────────────────────────────
+osrm_data/
+scratch/

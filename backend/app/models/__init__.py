@@ -10,6 +10,7 @@ from .jornada import (
 from .manutencao import Manutencao, ManutencaoCreate, ManutencaoUpdate
 from .historico_gps import HistoricoGPS, HistoricoGPSCreate, GeoPoint
 from .meta_bonus import MetaBonus, MetaBonusCreate, MetaBonusUpdate
+from .preco_particular import PrecoParticular
 
 __all__ = [
     # base
@@ -31,4 +32,6 @@ __all__ = [
     "HistoricoGPS", "HistoricoGPSCreate", "GeoPoint",
     # metas e bônus
     "MetaBonus", "MetaBonusCreate", "MetaBonusUpdate",
+    # preço de corrida particular
+    "PrecoParticular",
 ]

@@ -22,6 +22,7 @@ class HistoricoGPSBase(BaseModel):
     localizacao: GeoPoint
     distancia_ultima_m: Optional[float] = None
     status: Optional[str] = None
+    rua: Optional[str] = None
 
 
 class HistoricoGPSCreate(HistoricoGPSBase):

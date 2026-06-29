@@ -20,8 +20,10 @@ rsync -avz --delete \
   --exclude='painel-controle/.vite' \
   --exclude='backend/.venv' \
   --exclude='backend/venv' \
-  --exclude='coletor_app/' \
-  --exclude='coletor/*.apk' \
+  --exclude='osrm_data' \
+  --exclude='app_motorista/build' \
+  --exclude='app_motorista/.dart_tool' \
+  --exclude='app_motorista/.flutter-plugins*' \
   "$LOCAL_DIR/" \
   "$SERVER:$REMOTE_DIR/"
 

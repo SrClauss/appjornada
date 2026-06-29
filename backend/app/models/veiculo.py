@@ -14,6 +14,7 @@ class VeiculoBase(BaseModel):
     km_atual: Optional[float] = None
     vencimento_ipva: Optional[date] = None
     imagem_clrv_url: Optional[str] = None
+    foto_veiculo_url: Optional[str] = None
 
 
 class VeiculoCreate(VeiculoBase):
@@ -28,6 +29,7 @@ class VeiculoUpdate(BaseModel):
     km_atual: Optional[float] = None
     vencimento_ipva: Optional[date] = None
     imagem_clrv_url: Optional[str] = None
+    foto_veiculo_url: Optional[str] = None
 
 
 class Veiculo(VeiculoBase):

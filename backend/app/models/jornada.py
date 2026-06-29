@@ -28,6 +28,15 @@ class FotosJornada(BaseModel):
     km_final_url: Optional[str] = None
 
 
+class ComprovanteProcessado(BaseModel):
+    plataforma: str
+    valor: float
+    origem: Optional[str] = None
+    destino: Optional[str] = None
+    url_comprovante: str
+    data_processamento: str
+
+
 class Faturamento(BaseModel):
     uber: Optional[float] = 0.0
     noventa_nove: Optional[float] = 0.0
@@ -36,6 +45,24 @@ class Faturamento(BaseModel):
     comprovante_uber_url: Optional[str] = None
     comprovante_99_url: Optional[str] = None
     comprovante_outros_url: Optional[str] = None
+    comprovantes_processados: List[ComprovanteProcessado] = []
+    corridas_uber: Optional[int] = 0
+    corridas_99: Optional[int] = 0
+    corridas_outros: Optional[int] = 0
+
+
+class CorridaParticular(BaseModel):
+    id: str
+    horario_inicio: str  # ISO string ou time
+    horario_fim: Optional[str] = None
+    localizacao_inicio: Optional[Localizacao] = None
+    localizacao_fim: Optional[Localizacao] = None
+    km_inicio: float
+    km_fim: Optional[float] = None
+    km_rodados: Optional[float] = None
+    duracao_segundos: Optional[int] = None
+    valor_calculado: Optional[float] = 0.0
+    status: str = "EM_ANDAMENTO"  # EM_ANDAMENTO, FINALIZADA
 
 
 class Pausa(BaseModel):
@@ -71,17 +98,29 @@ class Sinistro(BaseModel):
     boletim_url: Optional[str] = None
 
 
+class VistoriaVeiculo(BaseModel):
+    pneus_ok: bool = True
+    oleo_ok: bool = True
+    agua_ok: bool = True
+    farois_ok: bool = True
+    limpeza_ok: bool = True
+    observacoes: Optional[str] = None
+    foto_avarias_url: Optional[str] = None
+
+
 class JornadaBase(BaseModel):
     data: Optional[date] = None
-    motorista_id: PyObjectId
+    motorista_id: Optional[PyObjectId] = None
     veiculo_id: str
     status: str = "ABERTA"
     km: Optional[KmJornada] = None
+    vistoria: Optional[VistoriaVeiculo] = None
     localizacao_inicial: Optional[Localizacao] = None
     localizacao_final: Optional[Localizacao] = None
     horario: Optional[HorarioJornada] = None
     fotos: Optional[FotosJornada] = None
     faturamento: Optional[Faturamento] = None
+    corridas_particulares: List[CorridaParticular] = []
     # ─── CLT ────────────────────────────────────────────────────
     jornada_diaria_clt: float = 8.0      # horas de referência diária
     jornada_semanal_clt: float = 44.0   # horas de referência semanal
@@ -115,6 +154,7 @@ class JornadaUpdate(BaseModel):
     pausas: Optional[List[Pausa]] = None
     abastecimentos: Optional[List[Abastecimento]] = None
     sinistros: Optional[List[Sinistro]] = None
+    corridas_particulares: Optional[List[CorridaParticular]] = None
 
 
 class Jornada(JornadaBase):

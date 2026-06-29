@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.db.database import connect_db, close_db
-from app.routers import auth, users, veiculos, jornadas, gps, manutencoes, metas, relatorios, uploads, coleta
+from app.routers import auth, users, veiculos, jornadas, gps, manutencoes, metas, uploads, relatorios, coleta, precos_particulares
 from app.services.scheduler import criar_scheduler
 
 logging.basicConfig(
@@ -37,7 +37,6 @@ app = FastAPI(
     description="Sistema de controle de jornada para motoristas CLT em apps de corrida.",
     version="1.0.0",
     lifespan=lifespan,
-    redirect_slashes=False,  # evita 307 em rotas sem barra final
 )
 
 
@@ -73,9 +72,10 @@ app.include_router(jornadas)
 app.include_router(gps)
 app.include_router(manutencoes)
 app.include_router(metas)
-app.include_router(relatorios)
 app.include_router(uploads)
+app.include_router(relatorios)
 app.include_router(coleta)
+app.include_router(precos_particulares)
 
 # Serve arquivos de upload via /static/uploads/
 app.mount("/static/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")

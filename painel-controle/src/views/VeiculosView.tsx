@@ -11,10 +11,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Pencil, ClockCounterClockwise, Plus } from '@phosphor-icons/react';
+import { Pencil, ClockCounterClockwise, Plus, Image } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useVeiculos, useCreateVeiculo, useUpdateVeiculo } from '@/hooks/useVeiculos';
 import type { Veiculo, VehicleStatus, CreateVeiculoPayload } from '@/lib/types';
+import api from '@/lib/api';
 
 export function VeiculosView() {
   const { data: veiculos = [], isLoading } = useVeiculos();
@@ -23,14 +24,33 @@ export function VeiculosView() {
 
   const [openCreate, setOpenCreate] = useState(false);
   const [editVeiculo, setEditVeiculo] = useState<Veiculo | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const emptyCreate: CreateVeiculoPayload = {
-    id: '', marca_modelo: '', ano_modelo: '', cor: '', situacao: 'RODANDO', km_atual: 0,
+    id: '', marca_modelo: '', ano_modelo: '', cor: '', situacao: 'RODANDO', km_atual: 0, foto_veiculo_url: '',
   };
   const [form, setForm] = useState<CreateVeiculoPayload>(emptyCreate);
   const [editForm, setEditForm] = useState<{
     marca_modelo: string; cor: string; km_atual: number; situacao: VehicleStatus;
-  }>({ marca_modelo: '', cor: '', km_atual: 0, situacao: 'RODANDO' });
+    foto_veiculo_url?: string;
+  }>({ marca_modelo: '', cor: '', km_atual: 0, situacao: 'RODANDO', foto_veiculo_url: '' });
+
+  const handleUploadPhoto = async (file: File) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('arquivo', file);
+      const { data } = await api.post<{ url: string }>('/uploads/veiculo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return data.url;
+    } catch (err) {
+      toast.error('Erro ao fazer upload da imagem.');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const rodando  = veiculos.filter((v) => v.situacao === 'RODANDO').length;
   const manutencao = veiculos.filter((v) => v.situacao === 'MANUTENCAO').length;
@@ -94,15 +114,21 @@ export function VeiculosView() {
           ) : (
             veiculos.map((vehicle) => (
               <Card key={vehicle.id} className="p-4 hover:shadow-md transition-shadow">
-                <div className="aspect-video rounded-lg mb-3 overflow-hidden bg-muted">
-                  {vehicle.imagem_clrv_url ? (
+                <div className="aspect-video rounded-lg mb-3 overflow-hidden bg-muted flex items-center justify-center">
+                  {vehicle.foto_veiculo_url ? (
+                    <img
+                      src={vehicle.foto_veiculo_url}
+                      alt={vehicle.marca_modelo}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : vehicle.imagem_clrv_url ? (
                     <img
                       src={vehicle.imagem_clrv_url}
                       alt={vehicle.marca_modelo}
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-4xl">
+                    <div className="h-full w-full flex items-center justify-center text-4xl bg-slate-100">
                       🚗
                     </div>
                   )}
@@ -137,6 +163,7 @@ export function VeiculosView() {
                           cor: vehicle.cor,
                           km_atual: vehicle.km_atual,
                           situacao: vehicle.situacao,
+                          foto_veiculo_url: vehicle.foto_veiculo_url,
                         });
                       }}
                     >
@@ -219,6 +246,29 @@ export function VeiculosView() {
                 </Select>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Foto do Veículo</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const url = await handleUploadPhoto(file);
+                    if (url) {
+                      setForm({ ...form, foto_veiculo_url: url });
+                      toast.success('Foto enviada com sucesso!');
+                    }
+                  }
+                }}
+              />
+              {form.foto_veiculo_url && (
+                <div className="text-xs text-green-600 flex items-center gap-1 font-semibold">
+                  ✓ Foto anexada com sucesso
+                </div>
+              )}
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpenCreate(false)}>Cancelar</Button>
               <Button type="submit" disabled={createMutation.isPending}>
@@ -273,6 +323,29 @@ export function VeiculosView() {
                   <SelectItem value="INATIVO">INATIVO</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Foto do Veículo</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const url = await handleUploadPhoto(file);
+                    if (url) {
+                      setEditForm({ ...editForm, foto_veiculo_url: url });
+                      toast.success('Foto enviada com sucesso!');
+                    }
+                  }
+                }}
+              />
+              {editForm.foto_veiculo_url && (
+                <div className="text-xs text-green-600 flex items-center gap-1 font-semibold">
+                  ✓ Foto anexada com sucesso
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditVeiculo(null)}>Cancelar</Button>
