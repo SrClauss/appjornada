@@ -49,6 +49,9 @@ async def _criar_indices(db: AsyncIOMotorDatabase) -> None:
     # historico_gps — queries geoespaciais (2dsphere obrigatório)
     await _tentar_criar_indice(db, "historico_gps", [("localizacao", GEOSPHERE)])
 
+    # ruas_customizadas — queries geoespaciais (2dsphere obrigatório)
+    await _tentar_criar_indice(db, "ruas_customizadas", [("coordenada", GEOSPHERE)])
+
     # manutencoes — por veículo e data
     await _tentar_criar_indice(db, "manutencoes", [("veiculo_id", ASCENDING), ("entrada", ASCENDING)])
 

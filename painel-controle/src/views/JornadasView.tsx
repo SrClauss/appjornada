@@ -437,6 +437,20 @@ export function JornadasView() {
     }
   };
 
+  const handleDeleteTelemetry = async (jId: string) => {
+    if (!window.confirm(`Tem certeza que deseja apagar toda a telemetria (GPS) e a própria jornada para a ID: ${jId}?`)) {
+      return;
+    }
+    try {
+      await api.delete(`/gps/jornada/${jId}`);
+      alert("Tudo deletado com sucesso para esta jornada!");
+      setLiveEvents(prev => prev.filter(ev => ev.jornada_id !== jId));
+    } catch (e) {
+      console.error("Erro ao deletar telemetria da jornada:", e);
+      alert("Erro ao deletar telemetria.");
+    }
+  };
+
   // Estados dos eventos em tempo real
   const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [filtroTipoEvento, setFiltroTipoEvento] = useState('');
@@ -1338,12 +1352,13 @@ export function JornadasView() {
                       <TableHead>Veículo</TableHead>
                       <TableHead>Evento</TableHead>
                       <TableHead>KM</TableHead>
+                      <TableHead className="w-[80px] text-right">Ação</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredEvents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                           Nenhum evento registrado recentemente para este motorista.
                         </TableCell>
                       </TableRow>
@@ -1442,6 +1457,19 @@ export function JornadasView() {
                             </div>
                           </TableCell>
                           <TableCell className="font-medium">{ev.km?.toFixed(1) ?? '—'} km</TableCell>
+                          <TableCell className="text-right">
+                            {ev.jornada_id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteTelemetry(ev.jornada_id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
+                                title="Apagar toda a telemetria desta jornada"
+                              >
+                                <Trash size={14} />
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })

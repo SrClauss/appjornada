@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:app_motorista/core/api_service.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class CorridaParticularScreen extends StatefulWidget {
   final Map<String, dynamic> jornada;
@@ -39,6 +42,10 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   double? _estimatedPrice;
   bool _calculatingRoute = false;
   List<dynamic> _precosBands = [];
+  List<LatLng> _routePoints = [];
+  LatLng? _originLatLng;
+  LatLng? _destLatLng;
+  final MapController _mapController = MapController();
 
   // Timer para corrida ativa
   Timer? _timer;
@@ -293,6 +300,9 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     if (_selectedDest == null) return;
     setState(() {
       _calculatingRoute = true;
+      _routePoints.clear();
+      _originLatLng = null;
+      _destLatLng = null;
     });
     
     try {
@@ -315,11 +325,51 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
         final data = json.decode(res.body);
         final dist = (data['distance_km'] as num).toDouble();
         final dur = (data['duration_minutes'] as num).toDouble();
+        
+        final List<LatLng> points = [];
+        if (data['geometry'] != null && data['geometry']['coordinates'] != null) {
+          final coords = data['geometry']['coordinates'] as List;
+          for (var coord in coords) {
+            if (coord is List && coord.length >= 2) {
+              final double lon = (coord[0] as num).toDouble();
+              final double lat = (coord[1] as num).toDouble();
+              points.add(LatLng(lat, lon));
+            }
+          }
+        }
+        
         setState(() {
           _estimatedDistanceKm = dist;
           _estimatedDurationMin = dur;
           _estimatedPrice = _calculatePrice(dist, dur);
+          _routePoints = points;
+          _originLatLng = LatLng(pos.latitude, pos.longitude);
+          _destLatLng = LatLng((_selectedDest!['lat'] as num).toDouble(), (_selectedDest!['lon'] as num).toDouble());
         });
+
+        // Ajusta a câmera do mapa para enquadrar a rota se houver pontos
+        if (points.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            try {
+              // Calcula o centro e zoom aproximado para caber os pontos
+              double minLat = points.first.latitude;
+              double maxLat = points.first.latitude;
+              double minLon = points.first.longitude;
+              double maxLon = points.first.longitude;
+              for (var p in points) {
+                if (p.latitude < minLat) minLat = p.latitude;
+                if (p.latitude > maxLat) maxLat = p.latitude;
+                if (p.longitude < minLon) minLon = p.longitude;
+                if (p.longitude > maxLon) maxLon = p.longitude;
+              }
+              final centerLat = (minLat + maxLat) / 2;
+              final centerLon = (minLon + maxLon) / 2;
+              _mapController.move(LatLng(centerLat, centerLon), 13.5);
+            } catch (e) {
+              print('Erro ao centralizar mapa: $e');
+            }
+          });
+        }
       }
     } catch (e) {
       print('Erro ao calcular rota: $e');
@@ -399,20 +449,40 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     }
   }
 
-  Future<void> _iniciarCorrida() async {
-    if (_kmController.text.isEmpty) {
+  Future<void> _copiarTrajeto() async {
+    if (_selectedDest == null) return;
+    try {
+      final destLat = _selectedDest!['lat'];
+      final destLon = _selectedDest!['lon'];
+      final link = 'https://www.google.com/maps/dir/?api=1&destination=$destLat,$destLon&travelmode=driving';
+      await Clipboard.setData(ClipboardData(text: link));
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe o KM inicial da corrida')),
+        const SnackBar(
+          content: Text('Link do trajeto copiado! Prontinho para compartilhar.'),
+          backgroundColor: Colors.teal,
+        ),
       );
-      return;
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao copiar trajeto: $e'), backgroundColor: Colors.red),
+      );
     }
-    
-    final kmInicio = double.tryParse(_kmController.text);
-    if (kmInicio == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('KM inicial inválido')),
-      );
-      return;
+  }
+
+  Future<void> _iniciarCorrida() async {
+    double kmInicio = (widget.jornada['km_inicial'] as num).toDouble();
+    final list = widget.jornada['corridas_particulares'] as List?;
+    if (list != null && list.isNotEmpty) {
+      for (var c in list) {
+        if (c['status'] == 'FINALIZADA' && c['km_fim'] != null) {
+          final km = (c['km_fim'] as num).toDouble();
+          if (km > kmInicio) {
+            kmInicio = km;
+          }
+        }
+      }
     }
 
     setState(() {
@@ -734,23 +804,7 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                     'Iniciar Nova Corrida Particular',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _kmController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'KM Inicial do Hodômetro',
-                      labelStyle: const TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: const Color(0xFF1E293B),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      prefixIcon: const Icon(Icons.speed, color: Colors.blue),
-                    ),
-                  ),
+                  // KM Inicial do Hodômetro ocultado
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -848,12 +902,85 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                                 'Preço Estimado: R\$ ${_estimatedPrice!.toStringAsFixed(2)}',
                                 style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold),
                               ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
+                            if (_routePoints.isNotEmpty && _originLatLng != null && _destLatLng != null) ...[
+                              Container(
+                                height: 220,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.teal.withOpacity(0.3)),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(11),
+                                  child: FlutterMap(
+                                    mapController: _mapController,
+                                    options: MapOptions(
+                                      initialCenter: _originLatLng!,
+                                      initialZoom: 13,
+                                      interactionOptions: const InteractionOptions(
+                                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                                      ),
+                                    ),
+                                    children: [
+                                      TileLayer(
+                                        urlTemplate: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                                        userAgentPackageName: 'com.example.app_motorista',
+                                      ),
+                                      PolylineLayer(
+                                        polylines: [
+                                          Polyline(
+                                            points: _routePoints,
+                                            strokeWidth: 6,
+                                            color: const Color(0xFF1A73E8), // Google Blue
+                                          ),
+                                        ],
+                                      ),
+                                      MarkerLayer(
+                                        markers: [
+                                          // Marcador de Origem (Círculo Verde com Borda Branca)
+                                          Marker(
+                                            point: _originLatLng!,
+                                            width: 16,
+                                            height: 16,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.green,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(color: Colors.white, width: 2),
+                                                boxShadow: const [
+                                                  BoxShadow(
+                                                    color: Colors.black26,
+                                                    blurRadius: 4,
+                                                    offset: Offset(0, 2),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          // Marcador de Destino (Pin Vermelho estilo Google Maps)
+                                          Marker(
+                                            point: _destLatLng!,
+                                            width: 28,
+                                            height: 28,
+                                            child: const Icon(
+                                              Icons.location_on,
+                                              color: Colors.red,
+                                              size: 28,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                             const Text(
                               '* Explique a estimativa ao passageiro antes de iniciar.',
                               style: TextStyle(color: Colors.amberAccent, fontSize: 12, fontStyle: FontStyle.italic),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
                             Row(
                               children: [
                                 Expanded(
@@ -882,6 +1009,20 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                                   ),
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.share, color: Colors.white, size: 18),
+                                label: const Text('Compartilhar Trajeto (Copiar Link)', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.indigoAccent,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                onPressed: _copiarTrajeto,
+                              ),
                             ),
                           ],
                         ),

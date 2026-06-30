@@ -19,6 +19,126 @@ MINUTOS_INATIVIDADE_ALERTA = 15
 router = APIRouter(prefix="/gps", tags=["gps"])
 
 
+async def obter_rua_por_coordenadas(lat: float, lon: float, db) -> str:
+    # 1. Tenta OSRM nearest para obter a rua e a coordenada "snapped" oficial
+    snapped_lon = lon
+    snapped_lat = lat
+    osrm_name = ""
+    try:
+        url = f"{settings.OSRM_URL}/nearest/v1/driving/{lon},{lat}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=1.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("code") == "Ok" and data.get("waypoints"):
+                    wp = data["waypoints"][0]
+                    osrm_name = (wp.get("name") or "").strip()
+                    loc = wp.get("location")
+                    if loc and len(loc) >= 2:
+                        snapped_lon, snapped_lat = loc[0], loc[1]
+                    if osrm_name:
+                        return osrm_name
+    except Exception as e:
+        print("Erro ao obter rua via OSRM:", e)
+
+    # 2. Se a rua veio vazia ou "Rua não identificada", busca no MongoDB ruas_customizadas próximas (raio de 35 metros)
+    try:
+        ponto_proximo = await db["ruas_customizadas"].find_one({
+            "coordenada": {
+                "$nearSphere": {
+                    "$geometry": {
+                        "type": "Point",
+                        "coordinates": [snapped_lon, snapped_lat]
+                    },
+                    "$maxDistance": 35.0
+                }
+            }
+        })
+        if ponto_proximo and ponto_proximo.get("nome_rua"):
+            return ponto_proximo["nome_rua"]
+    except Exception as e:
+        print("Erro ao buscar no cache do MongoDB ruas_customizadas:", e)
+
+    # 3. Tenta Google Maps Reverse Geocoding se a chave estiver configurada
+    if settings.GOOGLE_API_KEY:
+        try:
+            url = "https://maps.googleapis.com/maps/api/geocode/json"
+            params = {
+                "latlng": f"{lat},{lon}",
+                "key": settings.GOOGLE_API_KEY,
+                "language": "pt-BR"
+            }
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, params=params, timeout=2.0)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("status") == "OK" and data.get("results"):
+                        google_name = ""
+                        # 1. Procura em todos os resultados um que tenha o componente 'route' (rua)
+                        for result in data["results"]:
+                            # Se o próprio tipo do resultado for 'plus_code', ignora
+                            if "plus_code" in result.get("types", []):
+                                continue
+                            
+                            for component in result.get("address_components", []):
+                                if "route" in component.get("types", []):
+                                    google_name = component["long_name"]
+                                    break
+                            if google_name:
+                                break
+                        
+                        # 2. Se não achou 'route', pega o primeiro formatted_address que não seja plus code
+                        if not google_name:
+                            for result in data["results"]:
+                                if "plus_code" in result.get("types", []):
+                                    continue
+                                formatted = result.get("formatted_address")
+                                if formatted and "+" not in formatted:
+                                    google_name = formatted.split(",")[0]
+                                    break
+                                    
+                        if google_name and google_name.strip():
+                            google_name = google_name.strip()
+                            try:
+                                await db["ruas_customizadas"].insert_one({
+                                    "coordenada": {
+                                        "type": "Point",
+                                        "coordinates": [snapped_lon, snapped_lat]
+                                    },
+                                    "nome_rua": google_name,
+                                    "criado_em": datetime.now(timezone.utc)
+                                })
+                            except Exception as db_err:
+                                print("Erro ao cadastrar rua no MongoDB:", db_err)
+                            return google_name
+        except Exception as e:
+            print("Erro ao obter rua via Google Maps:", e)
+
+    # 4. Fallback final Nominatim reverse
+    headers = {"User-Agent": "SuaJornadaApp/1.0 (claus@example.com)"}
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lon, "format": "json"},
+                headers=headers,
+                timeout=2.0
+            )
+            if r.status_code == 200:
+                data = r.json()
+                address = data.get("address", {})
+                road = address.get("road") or address.get("suburb") or address.get("city")
+                if road:
+                    return road
+                display_name = data.get("display_name")
+                if display_name:
+                    return display_name.split(",")[0]
+        except Exception:
+            pass
+
+    return "Rua não identificada"
+
+
 @router.post("", response_model=HistoricoGPS, status_code=201)
 async def registrar_ponto_gps(
     dados: HistoricoGPSCreate,
@@ -30,21 +150,15 @@ async def registrar_ponto_gps(
     doc["motorista_id"] = ObjectId(str(dados.motorista_id))
     doc["timestamp"] = dados.timestamp or datetime.now(timezone.utc)
 
-    # Tenta obter o nome da rua via OSRM nearest
+    # Tenta obter o nome da rua via OSRM nearest com fallback geoespacial para Google Maps e cache no MongoDB
     rua = "Rua não identificada"
     try:
         coords = dados.localizacao.coordinates  # [longitude, latitude]
         if len(coords) >= 2:
             lon, lat = coords[0], coords[1]
-            url = f"{settings.OSRM_URL}/nearest/v1/driving/{lon},{lat}"
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(url, timeout=1.0)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if data.get("code") == "Ok" and data.get("waypoints"):
-                        rua = data["waypoints"][0].get("name") or "Rua não identificada"
+            rua = await obter_rua_por_coordenadas(lat, lon, db)
     except Exception as e:
-        print("Erro ao obter rua via OSRM:", e)
+        print("Erro ao obter rua:", e)
 
     doc["rua"] = rua
 
@@ -349,26 +463,20 @@ async def calcular_rota(origin_lat: float, origin_lon: float, destination_lat: f
 
 
 @router.get("/reverse")
-async def reverse_geocode(lat: float, lon: float):
+async def reverse_geocode(
+    lat: float,
+    lon: float,
+    db=Depends(get_db),
+):
     """
     Obtém o nome da rua ou local a partir de coordenadas lat e lon.
     """
-    # 1. Tenta OSRM nearest
-    try:
-        url = f"{settings.OSRM_URL}/nearest/v1/driving/{lon},{lat}"
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(url, timeout=2.0)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("code") == "Ok" and data.get("waypoints"):
-                    wp = data["waypoints"][0]
-                    nome_rua = wp.get("name")
-                    if nome_rua:
-                        return {"display_name": nome_rua, "lat": lat, "lon": lon}
-    except Exception:
-        pass
+    # 1. Tenta obter a rua com nossa função inteligente de fallback + cache
+    nome_rua = await obter_rua_por_coordenadas(lat, lon, db)
+    if nome_rua and nome_rua != "Rua não identificada":
+        return {"display_name": nome_rua, "lat": lat, "lon": lon}
 
-    # 2. Fallback Nominatim reverse
+    # 2. Fallback Nominatim reverse completo para pegar o display_name se não achar nada
     headers = {"User-Agent": "SuaJornadaApp/1.0 (claus@example.com)"}
     async with httpx.AsyncClient() as client:
         try:
@@ -903,4 +1011,35 @@ async def mapa_particular(
     </html>
     """
     return HTMLResponse(content=html_content, status_code=200)
+
+
+@router.delete("/jornada/{jornada_id}")
+async def deletar_telemetria_jornada(
+    jornada_id: str,
+    db=Depends(get_db),
+):
+    """
+    Remove todos os pontos de telemetria de uma jornada específica (botão temporário).
+    """
+    try:
+        from bson import ObjectId
+        gps_query = {"$or": [{"jornada_id": jornada_id}]}
+        if ObjectId.is_valid(jornada_id):
+            gps_query["$or"].append({"jornada_id": ObjectId(jornada_id)})
+
+        res = await db["historico_gps"].delete_many(gps_query)
+        
+        jornada_query = {"$or": [{"_id": jornada_id}]}
+        if ObjectId.is_valid(jornada_id):
+            jornada_query["$or"].append({"_id": ObjectId(jornada_id)})
+            
+        await db["jornadas"].delete_many(jornada_query)
+
+        return {
+            "status": "ok",
+            "message": f"Removidos {res.deleted_count} pontos de GPS e a jornada {jornada_id}."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
