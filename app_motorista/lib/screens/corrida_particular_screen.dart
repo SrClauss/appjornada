@@ -306,15 +306,48 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     });
     
     try {
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 4),
-      );
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 4),
+        );
+      } catch (e) {
+        print('Erro no high accuracy GPS: $e. Tentando last known...');
+        try {
+          pos = await Geolocator.getLastKnownPosition();
+        } catch (_) {}
+        if (pos == null) {
+          try {
+            pos = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.low,
+              timeLimit: const Duration(seconds: 3),
+            );
+          } catch (_) {}
+        }
+      }
+
+      double lat;
+      double lon;
+      if (pos != null) {
+        lat = pos.latitude;
+        lon = pos.longitude;
+      } else {
+        final list = widget.jornada['historico_gps'] as List?;
+        if (list != null && list.isNotEmpty) {
+          final lastPoint = list.last;
+          lat = (lastPoint['lat'] as num).toDouble();
+          lon = (lastPoint['lon'] as num).toDouble();
+        } else {
+          lat = -18.7144;
+          lon = -39.8280;
+        }
+      }
       
       final uri = Uri.parse('${ApiService.baseUrl}/gps/calcular-rota').replace(
         queryParameters: {
-          'origin_lat': pos.latitude.toString(),
-          'origin_lon': pos.longitude.toString(),
+          'origin_lat': lat.toString(),
+          'origin_lon': lon.toString(),
           'destination_lat': _selectedDest!['lat'].toString(),
           'destination_lon': _selectedDest!['lon'].toString(),
         }
@@ -343,7 +376,7 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
           _estimatedDurationMin = dur;
           _estimatedPrice = _calculatePrice(dist, dur);
           _routePoints = points;
-          _originLatLng = LatLng(pos.latitude, pos.longitude);
+          _originLatLng = LatLng(lat, lon);
           _destLatLng = LatLng((_selectedDest!['lat'] as num).toDouble(), (_selectedDest!['lon'] as num).toDouble());
         });
 
@@ -472,7 +505,10 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   }
 
   Future<void> _iniciarCorrida() async {
-    double kmInicio = (widget.jornada['km_inicial'] as num).toDouble();
+    double kmInicio = 0.0;
+    if (widget.jornada['km_inicial'] != null) {
+      kmInicio = (widget.jornada['km_inicial'] as num).toDouble();
+    }
     final list = widget.jornada['corridas_particulares'] as List?;
     if (list != null && list.isNotEmpty) {
       for (var c in list) {
