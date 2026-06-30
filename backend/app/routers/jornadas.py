@@ -1081,6 +1081,30 @@ async def iniciar_corrida_particular(
         {"$push": {"corridas_particulares": nova_corrida}}
     )
     
+    # Grava na coleção autônoma de corridas_particulares (Entidade própria)
+    motorista_nome = current_user.nome if (current_user and hasattr(current_user, "nome")) else "Desconhecido"
+    corrida_particular_doc = {
+        "_id": nova_corrida["id"],
+        "id_corrida": nova_corrida["id"],
+        "jornada_id": jornada_id,
+        "motorista_id": str(doc.get("motorista_id")) if doc.get("motorista_id") else None,
+        "motorista_nome": motorista_nome,
+        "veiculo_id": doc.get("veiculo_id"),
+        "horario_inicio": nova_corrida["horario_inicio"],
+        "horario_fim": None,
+        "localizacao_inicio": nova_corrida["localizacao_inicio"],
+        "localizacao_fim": None,
+        "km_inicio": nova_corrida["km_inicio"],
+        "km_fim": None,
+        "km_rodados": None,
+        "duracao_segundos": None,
+        "valor_calculado": 0.0,
+        "destino_endereco": destino_endereco,
+        "destino_coordenadas": nova_corrida["destino_coordenadas"],
+        "status": "EM_ANDAMENTO"
+    }
+    await db["corridas_particulares"].insert_one(corrida_particular_doc)
+    
     return nova_corrida
 
 
@@ -1192,6 +1216,23 @@ async def finalizar_corrida_particular(
         "valor_calculado": valor_calculado,
         "status": "FINALIZADA"
     }
+
+    # Atualizar na coleção autônoma de corridas_particulares
+    await db["corridas_particulares"].update_one(
+        {"id_corrida": corrida_id},
+        {
+            "$set": {
+                "horario_fim": corrida_atualizada["horario_fim"],
+                "localizacao_fim": corrida_atualizada["localizacao_fim"],
+                "km_fim": corrida_atualizada["km_fim"],
+                "km_rodados": corrida_atualizada["km_rodados"],
+                "duracao_segundos": corrida_atualizada["duracao_segundos"],
+                "valor_calculado": corrida_atualizada["valor_calculado"],
+                "status": "FINALIZADA"
+            }
+        },
+        upsert=True
+    )
     
     return corrida_atualizada
 

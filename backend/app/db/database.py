@@ -58,6 +58,7 @@ async def _criar_indices(db: AsyncIOMotorDatabase) -> None:
     # corridas uber/99 — upsert sem duplicata
     await _tentar_criar_indice(db, "corridas_uber", "trip_id", unique=True)
     await _tentar_criar_indice(db, "corridas_99", "trip_id", unique=True)
+    await _tentar_criar_indice(db, "corridas_particulares", "id_corrida", unique=True)
 
 
 async def connect_db():

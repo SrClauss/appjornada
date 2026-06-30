@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:app_motorista/core/api_service.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class CorridaParticularScreen extends StatefulWidget {
   final Map<String, dynamic> jornada;
@@ -47,14 +48,37 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   LatLng? _destLatLng;
   final MapController _mapController = MapController();
 
+  // Navegação interna por voz
+  bool _navigatingInternally = false;
+  List<dynamic> _navigationSteps = [];
+  int _currentStepIndex = 0;
+  StreamSubscription<Position>? _gpsStreamSubscription;
+  double _currentHeading = 0.0;
+  LatLng? _currentLatLng;
+  final FlutterTts _flutterTts = FlutterTts();
+  String _lastSpokenText = "";
+  double _distanceToNextStep = 0.0;
+
   // Timer para corrida ativa
   Timer? _timer;
   Duration _elapsed = Duration.zero;
   Timer? _pollingTimer;
 
+  Future<void> _initTts() async {
+    try {
+      await _flutterTts.setLanguage("pt-BR");
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setPitch(1.0);
+    } catch (e) {
+      print("Erro ao inicializar TTS: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _initTts();
     _checkActiveCorrida();
     _loadPrecosBands();
     _startPolling();
@@ -69,6 +93,8 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   void dispose() {
     _timer?.cancel();
     _pollingTimer?.cancel();
+    _gpsStreamSubscription?.cancel();
+    _flutterTts.stop();
     _kmController.dispose();
     _destController.dispose();
     super.dispose();
@@ -371,11 +397,14 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
           }
         }
         
+        final steps = data['steps'] as List? ?? [];
+
         setState(() {
           _estimatedDistanceKm = dist;
           _estimatedDurationMin = dur;
           _estimatedPrice = _calculatePrice(dist, dur);
           _routePoints = points;
+          _navigationSteps = steps;
           _originLatLng = LatLng(lat, lon);
           _destLatLng = LatLng((_selectedDest!['lat'] as num).toDouble(), (_selectedDest!['lon'] as num).toDouble());
         });
@@ -453,6 +482,349 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
         SnackBar(content: Text('Erro ao obter localização: $e')),
       );
     }
+  }
+
+  Future<void> _startInternalNavigation() async {
+    if (_routePoints.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Calculando rota para navegação...')),
+      );
+      await _calculateRoute();
+    }
+    
+    if (_routePoints.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhuma rota encontrada para iniciar a navegação.')),
+      );
+      return;
+    }
+    
+    _currentStepIndex = 0;
+    _lastSpokenText = "";
+    _distanceToNextStep = 0.0;
+    
+    if (_originLatLng != null) {
+      _currentLatLng = _originLatLng;
+    } else if (_routePoints.isNotEmpty) {
+      _currentLatLng = _routePoints.first;
+    }
+    
+    setState(() {
+      _navigatingInternally = true;
+    });
+
+    if (_navigationSteps.isNotEmpty) {
+      final firstInst = _navigationSteps[0]['instruction'] ?? "Iniciando navegação.";
+      _speak(firstInst);
+    } else {
+      _speak("Iniciando navegação por voz. Siga a rota destacada no mapa.");
+    }
+    
+    try {
+      _gpsStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          distanceFilter: 5,
+        ),
+      ).listen((Position position) {
+        if (!mounted) return;
+        
+        final currentLatLng = LatLng(position.latitude, position.longitude);
+        
+        setState(() {
+          _currentLatLng = currentLatLng;
+          _currentHeading = position.heading;
+        });
+        
+        _mapController.move(currentLatLng, 17.5);
+        _mapController.rotate(-position.heading);
+        
+        _processNavigationSteps(position);
+      });
+    } catch (e) {
+      print("Erro ao escutar GPS na navegação: $e");
+    }
+  }
+
+  void _stopInternalNavigation() {
+    _gpsStreamSubscription?.cancel();
+    _flutterTts.stop();
+    setState(() {
+      _navigatingInternally = false;
+    });
+  }
+
+  void _processNavigationSteps(Position position) {
+    if (_navigationSteps.isEmpty) return;
+    
+    if (_currentStepIndex >= _navigationSteps.length) {
+      return;
+    }
+    
+    int nextIndex = _currentStepIndex + 1;
+    if (nextIndex < _navigationSteps.length) {
+      final nextStep = _navigationSteps[nextIndex];
+      final double nextLat = (nextStep['lat'] as num).toDouble();
+      final double nextLon = (nextStep['lon'] as num).toDouble();
+      
+      final distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        nextLat,
+        nextLon,
+      );
+      
+      setState(() {
+        _distanceToNextStep = distance;
+      });
+      
+      if (distance < 30) {
+        _currentStepIndex = nextIndex;
+        final newStep = _navigationSteps[nextIndex];
+        final String instr = newStep['instruction'] ?? "";
+        _speak(instr);
+      } else if (distance <= 150 && distance > 100) {
+        final String instr = nextStep['instruction'] ?? "";
+        final String alertText = "Em cento e trinta metros, $instr";
+        if (_lastSpokenText != alertText) {
+          _speak(alertText);
+        }
+      }
+    } else {
+      final double destLat = _destLatLng?.latitude ?? 0.0;
+      final double destLon = _destLatLng?.longitude ?? 0.0;
+      if (destLat != 0.0) {
+        final distance = Geolocator.distanceBetween(
+          position.latitude,
+          position.longitude,
+          destLat,
+          destLon,
+        );
+        setState(() {
+          _distanceToNextStep = distance;
+        });
+        if (distance < 30) {
+          _speak("Você chegou ao seu destino.");
+          _currentStepIndex = _navigationSteps.length;
+        }
+      }
+    }
+  }
+
+  Future<void> _speak(String text) async {
+    if (text.isEmpty) return;
+    _lastSpokenText = text;
+    try {
+      await _flutterTts.speak(text);
+    } catch (e) {
+      print("Erro no TTS: $e");
+    }
+  }
+
+  Widget _buildNavigationUI() {
+    final nextStepIndex = _currentStepIndex + 1;
+    final hasNextStep = nextStepIndex < _navigationSteps.length;
+    final currentStep = _navigationSteps.isNotEmpty && _currentStepIndex < _navigationSteps.length
+        ? _navigationSteps[_currentStepIndex]
+        : null;
+    final nextStep = hasNextStep ? _navigationSteps[nextStepIndex] : null;
+
+    final String instructionText = nextStep != null
+        ? "Em ${_distanceToNextStep.toStringAsFixed(0)}m, ${nextStep['instruction']}"
+        : (currentStep != null ? currentStep['instruction'] : "Siga a rota no mapa");
+
+    IconData maneuverIcon = Icons.navigation;
+    if (nextStep != null) {
+      final mod = nextStep['modifier'] as String? ?? '';
+      if (mod.contains('left')) {
+        maneuverIcon = Icons.turn_left;
+      } else if (mod.contains('right')) {
+        maneuverIcon = Icons.turn_right;
+      } else if (mod.contains('uturn')) {
+        maneuverIcon = Icons.u_turn_left;
+      }
+    }
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _currentLatLng ?? _originLatLng ?? const LatLng(-18.7144, -39.8280),
+              initialZoom: 17.5,
+              initialRotation: -_currentHeading,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                userAgentPackageName: 'com.srclauss.appjornada.app_motorista',
+              ),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    strokeWidth: 7.0,
+                    color: const Color(0xFF1A73E8),
+                  ),
+                ],
+              ),
+              MarkerLayer(
+                markers: [
+                  if (_destLatLng != null)
+                    Marker(
+                      point: _destLatLng!,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 40,
+                      ),
+                    ),
+                  Marker(
+                    point: _currentLatLng ?? _originLatLng ?? const LatLng(-18.7144, -39.8280),
+                    width: 60,
+                    height: 60,
+                    child: Transform.rotate(
+                      angle: _currentHeading * (3.141592653589793 / 180),
+                      child: const Icon(
+                        Icons.navigation,
+                        color: Colors.tealAccent,
+                        size: 45,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            left: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xE61E293B),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  )
+                ],
+                border: Border.all(color: Colors.teal.withOpacity(0.5), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.teal,
+                    radius: 24,
+                    child: Icon(maneuverIcon, color: Colors.white, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          instructionText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (nextStep != null && nextStep['street'] != null && nextStep['street'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            "Entrar na: ${nextStep['street']}",
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ]
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 24,
+            left: 16,
+            right: 16,
+            child: Row(
+              children: [
+                FloatingActionButton(
+                  heroTag: 'exit_nav',
+                  backgroundColor: Colors.redAccent,
+                  onPressed: _stopInternalNavigation,
+                  child: const Icon(Icons.close, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xE61E293B),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black45,
+                          blurRadius: 10,
+                          offset: Offset(0, -4),
+                        )
+                      ],
+                      border: Border.all(color: Colors.white12, width: 1.0),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              "DISTÂNCIA RESTANTE",
+                              style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              _estimatedDistanceKm != null ? "${_estimatedDistanceKm!.toStringAsFixed(1)} km" : "--",
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        Container(width: 1, height: 30, color: Colors.white12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              "TEMPO RESTANTE",
+                              style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              _estimatedDurationMin != null ? "${_estimatedDurationMin!.toStringAsFixed(0)} min" : "--",
+                              style: const TextStyle(color: Colors.tealAccent, fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _abrirGoogleMaps() async {
@@ -730,6 +1102,9 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_navigatingInternally) {
+      return _buildNavigationUI();
+    }
     final isRunning = _activeCorrida != null;
 
     return Scaffold(
@@ -799,14 +1174,14 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                             children: [
                               Expanded(
                                 child: OutlinedButton.icon(
-                                  icon: const Icon(Icons.map, color: Colors.tealAccent, size: 18),
-                                  label: const Text('Mapa Interno', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                  icon: const Icon(Icons.volume_up, color: Colors.tealAccent, size: 18),
+                                  label: const Text('Navegar (Voz)', style: TextStyle(color: Colors.white, fontSize: 13)),
                                   style: OutlinedButton.styleFrom(
                                     side: const BorderSide(color: Colors.teal),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
-                                  onPressed: _abrirMapa,
+                                  onPressed: _startInternalNavigation,
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -1021,14 +1396,14 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                               children: [
                                 Expanded(
                                   child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.map, color: Colors.tealAccent, size: 18),
-                                    label: const Text('Mapa Interno', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                    icon: const Icon(Icons.volume_up, color: Colors.tealAccent, size: 18),
+                                    label: const Text('Navegar (Voz)', style: TextStyle(color: Colors.white, fontSize: 13)),
                                     style: OutlinedButton.styleFrom(
                                       side: const BorderSide(color: Colors.teal),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
-                                    onPressed: _abrirMapa,
+                                    onPressed: _startInternalNavigation,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
