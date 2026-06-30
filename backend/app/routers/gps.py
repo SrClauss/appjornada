@@ -437,12 +437,13 @@ async def geocoder(query: str):
 async def calcular_rota(origin_lat: float, origin_lon: float, destination_lat: float, destination_lon: float):
     """
     Consulta o OSRM local para calcular a distância, tempo estimado e geometria da rota.
+    Com fallback automático para o OSRM público mundial se o local falhar/der timeout.
     """
     url = f"{settings.OSRM_URL}/route/v1/driving/{origin_lon},{origin_lat};{destination_lon},{destination_lat}?overview=full&geometries=geojson"
     
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.get(url, timeout=5.0)
+            r = await client.get(url, timeout=4.0)
             if r.status_code == 200:
                 data = r.json()
                 if data.get("code") == "Ok" and data.get("routes"):
@@ -457,9 +458,29 @@ async def calcular_rota(origin_lat: float, origin_lon: float, destination_lat: f
                         "geometry": geometry
                     }
         except Exception as e:
-            print("Erro no OSRM calcular_rota:", e)
+            print("Erro no OSRM local, tentando fallback para OSRM público:", e)
+
+        # Fallback para o OSRM público mundial
+        try:
+            public_url = f"http://router.project-osrm.org/route/v1/driving/{origin_lon},{origin_lat};{destination_lon},{destination_lat}?overview=full&geometries=geojson"
+            r = await client.get(public_url, timeout=5.0)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("code") == "Ok" and data.get("routes"):
+                    route = data["routes"][0]
+                    distance_km = route.get("distance", 0.0) / 1000.0
+                    duration_minutes = route.get("duration", 0.0) / 60.0
+                    geometry = route.get("geometry", {})
+                    
+                    return {
+                        "distance_km": distance_km,
+                        "duration_minutes": duration_minutes,
+                        "geometry": geometry
+                    }
+        except Exception as ex:
+            print("Erro no OSRM público calcular_rota:", ex)
             
-    raise HTTPException(status_code=500, detail="Não foi possível calcular a rota com o OSRM.")
+    raise HTTPException(status_code=500, detail="Não foi possível calcular a rota com o OSRM local nem com o público.")
 
 
 @router.get("/reverse")
