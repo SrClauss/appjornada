@@ -433,13 +433,69 @@ async def geocoder(query: str):
     return []
 
 
+def traduzir_passos_osrm(route_data) -> list:
+    steps_res = []
+    try:
+        if "legs" in route_data and route_data["legs"]:
+            leg = route_data["legs"][0]
+            if "steps" in leg and leg["steps"]:
+                for step in leg["steps"]:
+                    maneuver = step.get("maneuver", {})
+                    m_type = maneuver.get("type", "turn")
+                    m_modifier = maneuver.get("modifier", "straight")
+                    location = maneuver.get("location", [0.0, 0.0])
+                    street_name = step.get("name", "").strip()
+                    distance = step.get("distance", 0.0)
+                    
+                    rua = f"na {street_name}" if street_name else "em frente"
+                    
+                    traducoes_modifier = {
+                        "left": "à esquerda",
+                        "right": "à direita",
+                        "sharp left": "acentuada à esquerda",
+                        "sharp right": "acentuada à direita",
+                        "slight left": "levemente à esquerda",
+                        "slight right": "levemente à direita",
+                        "straight": "em frente",
+                        "uturn": "retorne"
+                    }
+                    mod = traducoes_modifier.get(m_modifier, "")
+                    
+                    if m_type == "depart":
+                        instruction = f"Inicie a viagem {rua}"
+                    elif m_type == "arrive":
+                        instruction = "Você chegou ao seu destino"
+                    elif m_type in ("turn", "new name", "fork"):
+                        if mod:
+                            instruction = f"Vire {mod} {rua}"
+                        else:
+                            instruction = f"Siga {rua}"
+                    elif m_type == "roundabout":
+                        instruction = f"Na rotatória, pegue a saída {rua}"
+                    else:
+                        instruction = f"Siga {rua}"
+                        
+                    steps_res.append({
+                        "instruction": instruction,
+                        "street": street_name,
+                        "distance": distance,
+                        "lat": location[1],
+                        "lon": location[0],
+                        "type": m_type,
+                        "modifier": m_modifier
+                    })
+    except Exception as e:
+        print("Erro ao traduzir passos OSRM:", e)
+    return steps_res
+
+
 @router.get("/calcular-rota")
 async def calcular_rota(origin_lat: float, origin_lon: float, destination_lat: float, destination_lon: float):
     """
     Consulta o OSRM local para calcular a distância, tempo estimado e geometria da rota.
     Com fallback automático para o OSRM público mundial se o local falhar/der timeout.
     """
-    url = f"{settings.OSRM_URL}/route/v1/driving/{origin_lon},{origin_lat};{destination_lon},{destination_lat}?overview=full&geometries=geojson"
+    url = f"{settings.OSRM_URL}/route/v1/driving/{origin_lon},{origin_lat};{destination_lon},{destination_lat}?overview=full&geometries=geojson&steps=true"
     
     async with httpx.AsyncClient() as client:
         try:
@@ -451,18 +507,20 @@ async def calcular_rota(origin_lat: float, origin_lon: float, destination_lat: f
                     distance_km = route.get("distance", 0.0) / 1000.0
                     duration_minutes = route.get("duration", 0.0) / 60.0
                     geometry = route.get("geometry", {})
+                    steps = traduzir_passos_osrm(route)
                     
                     return {
                         "distance_km": distance_km,
                         "duration_minutes": duration_minutes,
-                        "geometry": geometry
+                        "geometry": geometry,
+                        "steps": steps
                     }
         except Exception as e:
             print("Erro no OSRM local, tentando fallback para OSRM público:", e)
 
         # Fallback para o OSRM público mundial
         try:
-            public_url = f"http://router.project-osrm.org/route/v1/driving/{origin_lon},{origin_lat};{destination_lon},{destination_lat}?overview=full&geometries=geojson"
+            public_url = f"http://router.project-osrm.org/route/v1/driving/{origin_lon},{origin_lat};{destination_lon},{destination_lat}?overview=full&geometries=geojson&steps=true"
             r = await client.get(public_url, timeout=5.0)
             if r.status_code == 200:
                 data = r.json()
@@ -471,11 +529,13 @@ async def calcular_rota(origin_lat: float, origin_lon: float, destination_lat: f
                     distance_km = route.get("distance", 0.0) / 1000.0
                     duration_minutes = route.get("duration", 0.0) / 60.0
                     geometry = route.get("geometry", {})
+                    steps = traduzir_passos_osrm(route)
                     
                     return {
                         "distance_km": distance_km,
                         "duration_minutes": duration_minutes,
-                        "geometry": geometry
+                        "geometry": geometry,
+                        "steps": steps
                     }
         except Exception as ex:
             print("Erro no OSRM público calcular_rota:", ex)
