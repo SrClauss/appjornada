@@ -815,7 +815,7 @@ export function JornadasView() {
   };
 
   // Alternar seleção de um evento individual
-  const handleToggleEvent = async (ev: any) => {
+  const handleToggleEvent = (ev: any) => {
     const isSelected = selectedEvents.some(
       x => x.timestamp === ev.timestamp && x.jornada_id === ev.jornada_id
     );
@@ -826,7 +826,7 @@ export function JornadasView() {
       );
     } else {
       nextSelected = [...selectedEvents, ev];
-      await fetchGpsForJornada(ev.motorista_id, ev.jornada_id, true);
+      fetchGpsForJornada(ev.motorista_id, ev.jornada_id, true);
     }
     setSelectedEvents(nextSelected);
   };
