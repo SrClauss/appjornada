@@ -6,7 +6,7 @@ from bson import ObjectId
 import httpx
 
 from app.db.database import get_db
-from app.models.historico_gps import GeoPoint, HistoricoGPS, HistoricoGPSCreate
+from app.models.historico_gps import GeoPoint, HistoricoGPS, HistoricoGPSCreate, HistoricoGPSBatch
 from app.models.user import Role, UserPublic
 from app.core.dependencies import get_current_user, require_roles
 from app.core.config import settings
@@ -167,6 +167,121 @@ async def registrar_ponto_gps(
     return HistoricoGPS(**criado)
 
 
+def decode_polyline(polyline_str: str) -> List[List[float]]:
+    """
+    Decodes a Polyline string into a list of [longitude, latitude] coordinates.
+    """
+    index, lat, lng = 0, 0, 0
+    coordinates = []
+    
+    while index < len(polyline_str):
+        shift, result = 0, 0
+        while True:
+            char = ord(polyline_str[index]) - 63
+            index += 1
+            result |= (char & 0x1f) << shift
+            shift += 5
+            if not (char & 0x20):
+                break
+        
+        delta_lat = ~(result >> 1) if (result & 1) else (result >> 1)
+        lat += delta_lat
+        
+        shift, result = 0, 0
+        while True:
+            char = ord(polyline_str[index]) - 63
+            index += 1
+            result |= (char & 0x1f) << shift
+            shift += 5
+            if not (char & 0x20):
+                break
+        
+        delta_lng = ~(result >> 1) if (result & 1) else (result >> 1)
+        lng += delta_lng
+        
+        coordinates.append([lng / 100000.0, lat / 100000.0])
+        
+    return coordinates
+
+
+async def carregar_historico_compactado(url: str) -> list:
+    from app.routers.uploads import MINIO_CLIENT, MINIO_BUCKET, MINIO_ENABLED, UPLOAD_DIR
+    import gzip
+    import io
+    import json
+    
+    content = None
+    if url.startswith("/static/uploads/"):
+        filename = url.split("/")[-1]
+        filepath = UPLOAD_DIR / "telemetria" / filename
+        if filepath.exists():
+            content = filepath.read_bytes()
+        else:
+            raise FileNotFoundError("Arquivo de telemetria não encontrado localmente")
+    else:
+        if MINIO_ENABLED and MINIO_CLIENT:
+            parts = url.strip("/").split("/")
+            if len(parts) >= 3:
+                object_name = "/".join(parts[1:])
+                response = MINIO_CLIENT.get_object(MINIO_BUCKET, object_name)
+                try:
+                    content = response.read()
+                finally:
+                    response.close()
+                    response.release_conn()
+            else:
+                raise ValueError("URL do MinIO inválida")
+        else:
+            raise RuntimeError("MinIO não configurado e URL não é local")
+            
+    if not content:
+        raise ValueError("Conteúdo da telemetria está vazio")
+        
+    with gzip.GzipFile(fileobj=io.BytesIO(content), mode="rb") as f:
+        decompressed_data = f.read()
+        
+    return json.loads(decompressed_data.decode("utf-8"))
+
+
+@router.post("/batch", status_code=201)
+async def registrar_pontos_gps_batch(
+    dados: HistoricoGPSBatch,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Recebido pelo app mobile contendo pontos de GPS em lote."""
+    docs = []
+    for p in dados.pontos:
+        doc = {
+            "motorista_id": ObjectId(str(dados.motorista_id)),
+            "jornada_id": dados.jornada_id,
+            "timestamp": p.timestamp,
+            "localizacao": p.localizacao.model_dump(),
+            "distancia_ultima_m": p.distancia_ultima_m,
+            "status": p.status,
+            "rua": "Processando..."
+        }
+        docs.append(doc)
+        
+    # Para otimizar chamadas de API, resolvemos apenas o último ponto e propagamos a rua
+    if docs:
+        ultimo = docs[-1]
+        rua = "Rua não identificada"
+        try:
+            coords = ultimo["localizacao"]["coordinates"]
+            if len(coords) >= 2:
+                rua = await obter_rua_por_coordenadas(coords[1], coords[0], db)
+        except Exception:
+            pass
+        for d in docs:
+            d["rua"] = rua
+            
+        await db["historico_gps"].insert_many(docs)
+        
+    return {"status": "ok", "pontos_inseridos": len(docs)}
+
+
+
 @router.get("/motorista/{motorista_id}", response_model=List[HistoricoGPS])
 async def historico_motorista(
     motorista_id: str,
@@ -177,6 +292,35 @@ async def historico_motorista(
 ):
     if current_user.role == Role.MOTORISTA and str(current_user.id) != motorista_id:
         raise HTTPException(status_code=403, detail="Acesso negado")
+
+    # 1. Se a jornada_id for fornecida, verifica se ela possui telemetria compactada salva
+    if jornada_id:
+        try:
+            q_j = {"$or": [{"_id": jornada_id}, {"_id": ObjectId(jornada_id)}]}
+        except Exception:
+            q_j = {"_id": jornada_id}
+            
+        jornada = await db["jornadas"].find_one(q_j)
+        if jornada and (jornada.get("telemetria_url") or jornada.get("status") == "ENCERRADA"):
+            url = jornada.get("telemetria_url")
+            if url:
+                try:
+                    pontos = await carregar_historico_compactado(url)
+                    pontos.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
+                    res = []
+                    for p in pontos[:limite]:
+                        res.append(HistoricoGPS(
+                            timestamp=datetime.fromisoformat(p["timestamp"].replace("Z", "+00:00")),
+                            motorista_id=ObjectId(motorista_id),
+                            jornada_id=jornada_id,
+                            localizacao=GeoPoint(type="Point", coordinates=[p["lon"], p["lat"]]),
+                            distancia_ultima_m=p.get("distancia_ultima_m"),
+                            status=p.get("status"),
+                            rua=p.get("rua")
+                        ))
+                    return res
+                except Exception as e:
+                    print("Erro ao carregar telemetria compactada:", e)
 
     filtro: dict = {"motorista_id": ObjectId(motorista_id)}
     if jornada_id:
@@ -194,11 +338,28 @@ async def rota_ajustada_motorista(
     current_user: UserPublic = Depends(get_current_user),
 ):
     """
-    Busca os pontos brutos do MongoDB, envia ao OSRM local
-    e retorna as coordenadas corrigidas (snap-to-road) em formato GeoJSON.
+    Busca os pontos brutos do MongoDB ou da Polyline compactada se estiver encerrada.
     """
     if current_user.role == Role.MOTORISTA and str(current_user.id) != motorista_id:
         raise HTTPException(status_code=403, detail="Acesso negado")
+
+    try:
+        q_j = {"$or": [{"_id": jornada_id}, {"_id": ObjectId(jornada_id)}]}
+    except Exception:
+        q_j = {"_id": jornada_id}
+
+    jornada = await db["jornadas"].find_one(q_j)
+    if jornada and (jornada.get("rota_polyline") or jornada.get("status") == "ENCERRADA"):
+        polyline_str = jornada.get("rota_polyline")
+        if polyline_str:
+            coords = decode_polyline(polyline_str)
+            return {
+                "status": "ok",
+                "snapped": True,
+                "coordinates": coords,
+                "distance_m": jornada.get("km", {}).get("rodados", 0.0) * 1000.0,
+                "duration_s": jornada.get("horario", {}).get("total_horas_segundos", 0.0)
+            }
 
     filtro = {
         "motorista_id": ObjectId(motorista_id),

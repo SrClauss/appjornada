@@ -17,8 +17,9 @@ void onStart(ServiceInstance service) async {
 
   StreamSubscription<Position>? positionSubscription;
   String? currentJornadaId;
-  DateTime? lastSentTime;
   Position? lastPosition;
+  List<Map<String, dynamic>> pendingPoints = [];
+  DateTime? lastBatchSentTime;
 
   // Se o serviço for Android, configura eventos específicos
   if (service is AndroidServiceInstance) {
@@ -63,8 +64,9 @@ void onStart(ServiceInstance service) async {
     // Limpa rastreamento anterior se houver
     positionSubscription?.cancel();
     currentJornadaId = jornadaId;
-    lastSentTime = null;
     lastPosition = null;
+    pendingPoints.clear();
+    lastBatchSentTime = null;
 
     print('[BackgroundService] Iniciando monitoramento GPS para jornada: $jornadaId');
 
@@ -81,7 +83,7 @@ void onStart(ServiceInstance service) async {
       locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 0,
-        intervalDuration: const Duration(seconds: 15),
+        intervalDuration: const Duration(seconds: 1), // Coleta a cada 1 segundo
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationText: "Rastreando localização da jornada em segundo plano.",
           notificationTitle: "Jornada em Andamento",
@@ -101,9 +103,23 @@ void onStart(ServiceInstance service) async {
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 5),
       );
-      await _sendLocationBackground(baseUrl, token, motoristaId, jornadaId, pos, lastPosition);
+      final point = {
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+        'localizacao': {
+          'type': 'Point',
+          'coordinates': [pos.longitude, pos.latitude],
+        },
+        'distancia_ultima_m': 0.0,
+        'status': pos.speed > 0.8 ? 'CONDUZINDO' : 'PARADO',
+      };
+      pendingPoints.add(point);
       lastPosition = pos;
-      lastSentTime = DateTime.now();
+      
+      final success = await _sendBatchBackground(baseUrl, token, motoristaId, jornadaId, [point]);
+      if (success) {
+        pendingPoints.clear();
+      }
+      lastBatchSentTime = DateTime.now();
     } catch (e) {
       print('[BackgroundService] Erro no ponto inicial: $e');
     }
@@ -112,11 +128,39 @@ void onStart(ServiceInstance service) async {
     positionSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position pos) async {
       final agora = DateTime.now();
-      // Limita o envio de pontos (throttle) a no mínimo 12 segundos
-      if (lastSentTime == null || agora.difference(lastSentTime!).inSeconds >= 12) {
-        lastSentTime = agora;
-        await _sendLocationBackground(baseUrl, token, motoristaId, jornadaId, pos, lastPosition);
-        lastPosition = pos;
+      
+      double distance = 0.0;
+      final localLastPos = lastPosition;
+      if (localLastPos != null) {
+        distance = Geolocator.distanceBetween(
+          localLastPos.latitude,
+          localLastPos.longitude,
+          pos.latitude,
+          pos.longitude,
+        );
+      }
+      lastPosition = pos;
+
+      final status = pos.speed > 0.8 ? 'CONDUZINDO' : 'PARADO';
+      final point = {
+        'timestamp': agora.toUtc().toIso8601String(),
+        'localizacao': {
+          'type': 'Point',
+          'coordinates': [pos.longitude, pos.latitude],
+        },
+        'distancia_ultima_m': distance,
+        'status': status,
+      };
+      pendingPoints.add(point);
+
+      // Envia em lote a cada 15 segundos
+      if (lastBatchSentTime == null || agora.difference(lastBatchSentTime!).inSeconds >= 15) {
+        lastBatchSentTime = agora;
+        final pointsToSend = List<Map<String, dynamic>>.from(pendingPoints);
+        final success = await _sendBatchBackground(baseUrl, token, motoristaId, jornadaId, pointsToSend);
+        if (success) {
+          pendingPoints.removeWhere((p) => pointsToSend.contains(p));
+        }
       }
     });
   }
@@ -130,41 +174,24 @@ void onStart(ServiceInstance service) async {
   });
 }
 
-// Envia a localização diretamente em segundo plano usando parâmetros isolados
-Future<void> _sendLocationBackground(
+// Envia batch de localizações para o backend
+Future<bool> _sendBatchBackground(
   String baseUrl,
   String token,
   String motoristaId,
   String jornadaId,
-  Position pos,
-  Position? lastPosition,
+  List<Map<String, dynamic>> points,
 ) async {
+  if (points.isEmpty) return true;
   try {
-    double distance = 0.0;
-    if (lastPosition != null) {
-      distance = Geolocator.distanceBetween(
-        lastPosition.latitude,
-        lastPosition.longitude,
-        pos.latitude,
-        pos.longitude,
-      );
-    }
-
-    final status = pos.speed > 0.8 ? 'CONDUZINDO' : 'PARADO';
-
     final body = {
       'motorista_id': motoristaId,
       'jornada_id': jornadaId,
-      'localizacao': {
-        'type': 'Point',
-        'coordinates': [pos.longitude, pos.latitude],
-      },
-      'distancia_ultima_m': distance,
-      'status': status,
+      'pontos': points,
     };
 
     final response = await http.post(
-      Uri.parse('$baseUrl/gps'),
+      Uri.parse('$baseUrl/gps/batch'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -172,13 +199,16 @@ Future<void> _sendLocationBackground(
       body: json.encode(body),
     );
 
-    if (response.statusCode == 201) {
-      print('[BackgroundService] GPS enviado: [${pos.latitude}, ${pos.longitude}], status: $status, dist: ${distance.toStringAsFixed(1)}m');
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      print('[BackgroundService] Batch de ${points.length} pontos GPS enviado com sucesso.');
+      return true;
     } else {
-      print('[BackgroundService] Erro no envio (${response.statusCode}): ${response.body}');
+      print('[BackgroundService] Erro no envio do batch (${response.statusCode}): ${response.body}');
+      return false;
     }
   } catch (e) {
-    print('[BackgroundService] Exceção ao enviar localização: $e');
+    print('[BackgroundService] Exceção ao enviar batch de localização: $e');
+    return false;
   }
 }
 

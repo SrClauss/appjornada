@@ -14,6 +14,7 @@ import 'package:app_motorista/screens/processar_print_screen.dart';
 import 'package:app_motorista/screens/corrida_particular_screen.dart';
 import 'package:app_motorista/screens/fechamento_wizard_screen.dart';
 import 'package:app_motorista/screens/revisao_comprovante_screen.dart';
+import 'package:app_motorista/screens/comprovantes_history_screen.dart';
 import 'package:app_motorista/core/overlay_service.dart';
 import 'package:app_motorista/widgets/stepper_layout.dart';
 import 'package:app_motorista/steps/auditoria_anterior_step.dart';
@@ -356,6 +357,10 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
               setState(() {
                 _currentScreen = 'corrida_particular';
               });
+            } else if (action == 'historico_prints') {
+              setState(() {
+                _currentScreen = 'historico_prints';
+              });
             }
           },
           onLogout: _onLogout,
@@ -432,6 +437,20 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
               _currentScreen = 'dashboard';
             });
             _checkSession();
+          },
+        );
+      case 'historico_prints':
+        return ComprovantesHistoryScreen(
+          jornada: _jornadaAberta!,
+          onJornadaUpdated: (updated) {
+            setState(() {
+              _jornadaAberta = updated;
+            });
+          },
+          onBack: () {
+            setState(() {
+              _currentScreen = 'dashboard';
+            });
           },
         );
       default:

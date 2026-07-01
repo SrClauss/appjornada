@@ -29,6 +29,81 @@ def _calcular_saldo_horas(segundos: Optional[int]) -> Optional[float]:
     return round(trabalhadas - HORAS_DIARIAS_CLT, 2)
 
 
+def encode_polyline(points: List[tuple]) -> str:
+    """
+    points: list of (lat, lon) tuples
+    """
+    result = []
+    last_lat = 0
+    last_lng = 0
+    for lat, lng in points:
+        lat_val = int(round(lat * 1e5))
+        lng_val = int(round(lng * 1e5))
+        
+        delta_lat = lat_val - last_lat
+        delta_lng = lng_val - last_lng
+        
+        last_lat = lat_val
+        last_lng = lng_val
+        
+        for val in (delta_lat, delta_lng):
+            val = ~(val << 1) if val < 0 else (val << 1)
+            while val >= 0x20:
+                result.append(chr((0x20 | (val & 0x1f)) + 63))
+                val >>= 5
+            result.append(chr(val + 63))
+    return "".join(result)
+
+
+async def salvar_historico_compactado(jornada_id: str, pontos: list) -> str:
+    from app.routers.uploads import MINIO_CLIENT, MINIO_BUCKET, MINIO_ENABLED, UPLOAD_DIR
+    import gzip
+    import io
+    import json
+    
+    dados_pontos = []
+    for p in pontos:
+        loc = p.get("localizacao", {})
+        coords = loc.get("coordinates", [0.0, 0.0])
+        dados_pontos.append({
+            "timestamp": p["timestamp"].isoformat() if isinstance(p["timestamp"], datetime) else str(p["timestamp"]),
+            "lat": coords[1],
+            "lon": coords[0],
+            "distancia_ultima_m": p.get("distancia_ultima_m"),
+            "status": p.get("status"),
+            "rua": p.get("rua")
+        })
+        
+    json_bytes = json.dumps(dados_pontos, ensure_ascii=False).encode("utf-8")
+    
+    out = io.BytesIO()
+    with gzip.GzipFile(fileobj=out, mode="w") as f:
+        f.write(json_bytes)
+    gzip_bytes = out.getvalue()
+    
+    filename = f"{jornada_id}.json.gz"
+    
+    if MINIO_ENABLED and MINIO_CLIENT:
+        object_name = f"telemetria/{filename}"
+        stream = io.BytesIO(gzip_bytes)
+        from app.routers.uploads import _ensure_minio_bucket
+        _ensure_minio_bucket()
+        MINIO_CLIENT.put_object(
+            MINIO_BUCKET,
+            object_name,
+            stream,
+            len(gzip_bytes),
+            content_type="application/gzip"
+        )
+        return f"/{MINIO_BUCKET}/{object_name}"
+    else:
+        local_dir = UPLOAD_DIR / "telemetria"
+        local_dir.mkdir(parents=True, exist_ok=True)
+        filepath = local_dir / filename
+        filepath.write_bytes(gzip_bytes)
+        return f"/static/uploads/telemetria/{filename}"
+
+
 def _normalizar_jornada(d: dict) -> dict:
     if not d:
         return d
@@ -652,6 +727,33 @@ async def fechar_jornada(
         update["faturamento.comprovante_outros_url"] = comprovante_outros_url
     if observacoes:
         update["observacoes"] = observacoes
+
+    # Compactação e limpeza de telemetria GPS histórica
+    pontos = await db["historico_gps"].find({"jornada_id": jornada_id}).sort("timestamp", 1).to_list(100000)
+    if pontos:
+        coords_para_polyline = []
+        for p in pontos:
+            loc = p.get("localizacao", {})
+            coords = loc.get("coordinates", [])
+            if len(coords) >= 2:
+                coords_para_polyline.append((coords[1], coords[0]))  # (lat, lon)
+        
+        if coords_para_polyline:
+            try:
+                update["rota_polyline"] = encode_polyline(coords_para_polyline)
+            except Exception as e:
+                print("Erro ao codificar polyline:", e)
+                
+        try:
+            telemetria_url = await salvar_historico_compactado(jornada_id, pontos)
+            update["telemetria_url"] = telemetria_url
+        except Exception as e:
+            print("Erro ao salvar telemetria compactada:", e)
+            
+        try:
+            await db["historico_gps"].delete_many({"jornada_id": jornada_id})
+        except Exception as e:
+            print("Erro ao limpar historico_gps:", e)
 
     await db["jornadas"].update_one({"_id": jornada_id}, {"$set": update})
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})

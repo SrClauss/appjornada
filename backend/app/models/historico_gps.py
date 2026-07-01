@@ -37,3 +37,17 @@ class HistoricoGPS(HistoricoGPSBase):
         "arbitrary_types_allowed": True,
         "json_encoders": {ObjectId: str},
     }
+
+
+class HistoricoGPSBatchItem(BaseModel):
+    timestamp: datetime
+    localizacao: GeoPoint
+    distancia_ultima_m: Optional[float] = None
+    status: Optional[str] = None
+
+
+class HistoricoGPSBatch(BaseModel):
+    motorista_id: PyObjectId
+    jornada_id: str
+    pontos: list[HistoricoGPSBatchItem]
+

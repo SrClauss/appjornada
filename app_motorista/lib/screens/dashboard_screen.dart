@@ -285,11 +285,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
             _buildActionButton(
-              title: 'ENVIAR PRINT DE FATURAMENTO',
-              subtitle: 'Envie capturas de tela da Uber/99 para processar',
+              title: 'PRINTS DE FATURAMENTO',
+              subtitle: 'Acompanhe e gerencie os comprovantes processados',
               icon: Icons.image,
               color: Colors.teal,
-              onPressed: _enviarPrint,
+              onPressed: () {
+                widget.onAction('historico_prints', null);
+              },
             ),
             const SizedBox(height: 16),
             _buildActionButton(

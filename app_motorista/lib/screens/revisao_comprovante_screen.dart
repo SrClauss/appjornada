@@ -83,7 +83,7 @@ class _RevisaoComprovanteScreenState extends State<RevisaoComprovanteScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'A IA não conseguiu identificar os dados deste comprovante.',
+                'Não foi possível identificar os dados deste comprovante.',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,

@@ -645,21 +645,10 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
             ),
             if (status != 'OK') ...[
               const Divider(color: Colors.white10, height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    diff < 0 ? 'Faltam ${diff.abs()} comprovantes' : 'Sobraram ${diff.abs()} comprovantes',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
-                    onPressed: () => _subirComprovanteDivergente(platformName.toUpperCase() == 'UBER' ? 'UBER' : '99'),
-                    icon: const Icon(Icons.upload_file, size: 16),
-                    label: const Text('Enviar Print', style: TextStyle(fontSize: 12)),
-                  )
-                ],
-              )
+              Text(
+                diff < 0 ? 'Faltam ${diff.abs()} comprovantes' : 'Sobraram ${diff.abs()} comprovantes',
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
             ]
           ],
         ),
