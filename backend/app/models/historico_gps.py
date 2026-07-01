@@ -23,6 +23,7 @@ class HistoricoGPSBase(BaseModel):
     distancia_ultima_m: Optional[float] = None
     status: Optional[str] = None
     rua: Optional[str] = None
+    contador_mesclados: Optional[int] = 1
 
 
 class HistoricoGPSCreate(HistoricoGPSBase):

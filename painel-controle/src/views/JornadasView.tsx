@@ -351,7 +351,30 @@ function SelectedEventsMap({ routes }: SelectedEventsMapProps) {
 
       // Desenhar cada segmento da rota (separados por paradas)
       route.segments.forEach((seg, segIdx) => {
-        if (seg.length < 2) return;
+        if (seg.length === 0) return;
+        if (seg.length === 1) {
+          const marker = L.circleMarker(seg[0], {
+            radius: 8,
+            fillColor: color,
+            color: '#ffffff',
+            weight: 3,
+            fillOpacity: 0.9,
+          }).addTo(layerGroup);
+          marker.bindPopup(`
+            <div class="space-y-1 text-xs">
+              <p><strong>Motorista:</strong> ${route.motoristaNome}</p>
+              <p><strong>Veículo:</strong> ${route.veiculoId}</p>
+              <p class="font-semibold text-blue-600">Ponto isolado</p>
+            </div>
+          `);
+          const latLng = L.latLng(seg[0][0], seg[0][1]);
+          if (!mainBounds) {
+            mainBounds = L.latLngBounds(latLng, latLng);
+          } else {
+            mainBounds.extend(latLng);
+          }
+          return;
+        }
         const poly = L.polyline(seg, {
           color,
           weight: 5,
@@ -775,8 +798,8 @@ export function JornadasView() {
   };
 
   // Função para carregar o GPS bruto de uma jornada
-  const fetchGpsForJornada = async (motoristaId: string, jornadaId: string) => {
-    if (gpsCache[jornadaId]) return gpsCache[jornadaId];
+  const fetchGpsForJornada = async (motoristaId: string, jornadaId: string, force = false) => {
+    if (!force && gpsCache[jornadaId]) return gpsCache[jornadaId];
     try {
       const { data } = await api.get(`/gps/motorista/${motoristaId}`, {
         params: { jornada_id: jornadaId, limite: 10000 }
@@ -803,7 +826,7 @@ export function JornadasView() {
       );
     } else {
       nextSelected = [...selectedEvents, ev];
-      await fetchGpsForJornada(ev.motorista_id, ev.jornada_id);
+      await fetchGpsForJornada(ev.motorista_id, ev.jornada_id, true);
     }
     setSelectedEvents(nextSelected);
   };
@@ -1092,7 +1115,7 @@ export function JornadasView() {
           const eventsInRange = filteredEvents.slice(start, end + 1);
           
           eventsInRange.forEach((ev) => {
-            fetchGpsForJornada(ev.motorista_id, ev.jornada_id);
+            fetchGpsForJornada(ev.motorista_id, ev.jornada_id, true);
           });
           
           // Permite apenas seleção contínua: substitui a seleção anterior completamente
@@ -1855,7 +1878,8 @@ export function JornadasView() {
                         return (
                           <TableRow 
                             key={actualIdx} 
-                            className={`hover:bg-slate-50/50 transition-all duration-150 ${rowBgColor}`}
+                            className={`hover:bg-slate-50/50 transition-all duration-150 cursor-pointer ${rowBgColor}`}
+                            onClick={() => handleToggleEvent(ev)}
                           >
                             <TableCell className="w-[50px] relative select-none text-center p-0">
                               <div className={`absolute top-0 bottom-0 w-0.5 left-1/2 -translate-x-1/2 z-0 ${trackLineColor}`} />
@@ -1909,7 +1933,7 @@ export function JornadasView() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleDeleteTelemetry(ev.jornada_id)}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteTelemetry(ev.jornada_id); }}
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
                                 title="Apagar toda a telemetria desta jornada"
                               >

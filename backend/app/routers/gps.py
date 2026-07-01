@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from bson import ObjectId
 import httpx
+import math
 
 from app.db.database import get_db
 from app.models.historico_gps import GeoPoint, HistoricoGPS, HistoricoGPSCreate, HistoricoGPSBatch
@@ -17,6 +18,51 @@ LIMIAR_PARADO_M = 50
 MINUTOS_INATIVIDADE_ALERTA = 15
 
 router = APIRouter(prefix="/gps", tags=["gps"])
+
+
+def calcular_distancia_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371000.0  # Raio da Terra em metros
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    
+    a = math.sin(delta_phi / 2.0) ** 2 + \
+        math.cos(phi1) * math.cos(phi2) * \
+        math.sin(delta_lambda / 2.0) ** 2
+    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+    return R * c
+
+
+async def tentar_mesclar_ponto_gps(db, motorista_id, jornada_id, timestamp, coords_lon, coords_lat, distancia_ultima_m, status, rua):
+    # Busca o último ponto gravado desta jornada e motorista
+    last_pt = await db["historico_gps"].find_one(
+        {"motorista_id": motorista_id, "jornada_id": jornada_id},
+        sort=[("timestamp", -1)]
+    )
+    if last_pt:
+        last_coords = last_pt.get("localizacao", {}).get("coordinates", [])
+        if len(last_coords) >= 2:
+            last_lon, last_lat = last_coords[0], last_coords[1]
+            dist = calcular_distancia_m(last_lat, last_lon, coords_lat, coords_lon)
+            
+            # Condições para mesclar:
+            # 1. Se ambos estão PARADOS (ou o novo/último ponto indica parado) e a distância é pequena (ex: < 20m)
+            # 2. Se a distância é extremamente pequena (ex: < 10m), indicando essencialmente a mesma posição
+            limiar = 20.0 if (status == "PARADO" or last_pt.get("status") == "PARADO") else 10.0
+            
+            if dist < limiar:
+                contador = last_pt.get("contador_mesclados", 1) + 1
+                await db["historico_gps"].update_one(
+                    {"_id": last_pt["_id"]},
+                    {"$set": {
+                        "contador_mesclados": contador,
+                        "timestamp": timestamp,
+                        "distancia_ultima_m": distancia_ultima_m or last_pt.get("distancia_ultima_m"),
+                    }}
+                )
+                return last_pt["_id"]
+    return None
 
 
 async def obter_rua_por_coordenadas(lat: float, lon: float, db) -> str:
@@ -146,21 +192,43 @@ async def registrar_ponto_gps(
     current_user: UserPublic = Depends(get_current_user),
 ):
     """Recebido pelo app mobile a cada 15 segundos durante a jornada."""
-    doc = dados.model_dump()
-    doc["motorista_id"] = ObjectId(str(dados.motorista_id))
-    doc["timestamp"] = dados.timestamp or datetime.now(timezone.utc)
-
+    mot_id = ObjectId(str(dados.motorista_id))
+    j_id = dados.jornada_id
+    coords = dados.localizacao.coordinates  # [longitude, latitude]
+    
     # Tenta obter o nome da rua via OSRM nearest com fallback geoespacial para Google Maps e cache no MongoDB
     rua = "Rua não identificada"
     try:
-        coords = dados.localizacao.coordinates  # [longitude, latitude]
         if len(coords) >= 2:
             lon, lat = coords[0], coords[1]
             rua = await obter_rua_por_coordenadas(lat, lon, db)
     except Exception as e:
         print("Erro ao obter rua:", e)
 
+    ts = dados.timestamp or datetime.now(timezone.utc)
+    
+    # Tenta mesclar o ponto com o anterior se for muito próximo ou parado
+    if len(coords) >= 2:
+        mesclado_id = await tentar_mesclar_ponto_gps(
+            db=db,
+            motorista_id=mot_id,
+            jornada_id=j_id,
+            timestamp=ts,
+            coords_lon=coords[0],
+            coords_lat=coords[1],
+            distancia_ultima_m=dados.distancia_ultima_m,
+            status=dados.status,
+            rua=rua
+        )
+        if mesclado_id:
+            criado = await db["historico_gps"].find_one({"_id": mesclado_id})
+            return HistoricoGPS(**criado)
+
+    doc = dados.model_dump()
+    doc["motorista_id"] = mot_id
+    doc["timestamp"] = ts
     doc["rua"] = rua
+    doc["contador_mesclados"] = 1
 
     resultado = await db["historico_gps"].insert_one(doc)
     criado = await db["historico_gps"].find_one({"_id": resultado.inserted_id})
@@ -250,35 +318,64 @@ async def registrar_pontos_gps_batch(
     current_user: UserPublic = Depends(get_current_user),
 ):
     """Recebido pelo app mobile contendo pontos de GPS em lote."""
-    docs = []
-    for p in dados.pontos:
-        doc = {
-            "motorista_id": ObjectId(str(dados.motorista_id)),
-            "jornada_id": dados.jornada_id,
-            "timestamp": p.timestamp,
-            "localizacao": p.localizacao.model_dump(),
-            "distancia_ultima_m": p.distancia_ultima_m,
-            "status": p.status,
-            "rua": "Processando..."
-        }
-        docs.append(doc)
-        
+    # Ordena os pontos cronologicamente para garantir processamento correto
+    pontos_ordenados = sorted(dados.pontos, key=lambda x: x.timestamp)
+    
+    mot_id = ObjectId(str(dados.motorista_id))
+    j_id = dados.jornada_id
+    
     # Para otimizar chamadas de API, resolvemos apenas o último ponto e propagamos a rua
-    if docs:
-        ultimo = docs[-1]
-        rua = "Rua não identificada"
+    rua = "Rua não identificada"
+    if pontos_ordenados:
+        ultimo = pontos_ordenados[-1]
         try:
-            coords = ultimo["localizacao"]["coordinates"]
+            coords = ultimo.localizacao.coordinates
             if len(coords) >= 2:
                 rua = await obter_rua_por_coordenadas(coords[1], coords[0], db)
         except Exception:
             pass
-        for d in docs:
-            d["rua"] = rua
+
+    contador_novos = 0
+    contador_mesclados = 0
+    
+    for p in pontos_ordenados:
+        coords = p.localizacao.coordinates
+        if len(coords) < 2:
+            continue
             
-        await db["historico_gps"].insert_many(docs)
+        mesclado_id = await tentar_mesclar_ponto_gps(
+            db=db,
+            motorista_id=mot_id,
+            jornada_id=j_id,
+            timestamp=p.timestamp,
+            coords_lon=coords[0],
+            coords_lat=coords[1],
+            distancia_ultima_m=p.distancia_ultima_m,
+            status=p.status,
+            rua=rua
+        )
         
-    return {"status": "ok", "pontos_inseridos": len(docs)}
+        if mesclado_id:
+            contador_mesclados += 1
+        else:
+            doc = {
+                "motorista_id": mot_id,
+                "jornada_id": j_id,
+                "timestamp": p.timestamp,
+                "localizacao": p.localizacao.model_dump(),
+                "distancia_ultima_m": p.distancia_ultima_m,
+                "status": p.status,
+                "rua": rua,
+                "contador_mesclados": 1
+            }
+            await db["historico_gps"].insert_one(doc)
+            contador_novos += 1
+            
+    return {
+        "status": "ok",
+        "pontos_inseridos": contador_novos,
+        "pontos_mesclados": contador_mesclados
+    }
 
 
 
