@@ -720,19 +720,39 @@ async def fechar_jornada(
     except Exception as e:
         print("Erro ao calcular bonus no fechamento:", e)
 
+    horario_obj = doc.get("horario", {}) or {}
+    if not isinstance(horario_obj, dict):
+        horario_obj = {}
+    horario_obj["fim"] = fim.time().isoformat()
+    horario_obj["total_horas_segundos"] = total_segundos
+
+    km_obj = doc.get("km", {}) or {}
+    if not isinstance(km_obj, dict):
+        km_obj = {}
+    km_obj["final"] = km_final
+    km_obj["rodados"] = km_rodados
+
+    faturamento_obj = {
+        "uber": faturamento_uber,
+        "noventa_nove": faturamento_99,
+        "outros": faturamento_outros,
+        "total_dia": total_faturamento,
+        "corridas_uber": corridas_uber,
+        "corridas_99": corridas_99,
+        "corridas_outros": corridas_outros,
+    }
+    if comprovante_uber_url:
+        faturamento_obj["comprovante_uber_url"] = comprovante_uber_url
+    if comprovante_99_url:
+        faturamento_obj["comprovante_99_url"] = comprovante_99_url
+    if comprovante_outros_url:
+        faturamento_obj["comprovante_outros_url"] = comprovante_outros_url
+
     update = {
         "status": "ENCERRADA",
-        "horario.fim": fim.time().isoformat(),
-        "horario.total_horas_segundos": total_segundos,
-        "km.final": km_final,
-        "km.rodados": km_rodados,
-        "faturamento.uber": faturamento_uber,
-        "faturamento.noventa_nove": faturamento_99,
-        "faturamento.outros": faturamento_outros,
-        "faturamento.total_dia": total_faturamento,
-        "faturamento.corridas_uber": corridas_uber,
-        "faturamento.corridas_99": corridas_99,
-        "faturamento.corridas_outros": corridas_outros,
+        "horario": horario_obj,
+        "km": km_obj,
+        "faturamento": faturamento_obj,
         "saldo_horas_dia": _calcular_saldo_horas(total_segundos),
         "bonus_dia": bonus_dia,
     }
@@ -768,13 +788,11 @@ async def fechar_jornada(
     if localizacao_lat is not None and localizacao_lon is not None:
         update["localizacao_final"] = {"lat": localizacao_lat, "lon": localizacao_lon}
     if foto_km_final_url:
-        update["fotos.km_final_url"] = foto_km_final_url
-    if comprovante_uber_url:
-        update["faturamento.comprovante_uber_url"] = comprovante_uber_url
-    if comprovante_99_url:
-        update["faturamento.comprovante_99_url"] = comprovante_99_url
-    if comprovante_outros_url:
-        update["faturamento.comprovante_outros_url"] = comprovante_outros_url
+        fotos_obj = doc.get("fotos", {}) or {}
+        if not isinstance(fotos_obj, dict):
+            fotos_obj = {}
+        fotos_obj["km_final_url"] = foto_km_final_url
+        update["fotos"] = fotos_obj
     if observacoes:
         update["observacoes"] = observacoes
 
