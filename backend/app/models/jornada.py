@@ -85,6 +85,10 @@ class Abastecimento(BaseModel):
     valor_gnv: Optional[float] = 0.0
     valor_gasolina: Optional[float] = 0.0
     valor_etanol: Optional[float] = 0.0
+    valor_pedagio: Optional[float] = 0.0
+    valor_estacionamento: Optional[float] = 0.0
+    valor_outros: Optional[float] = 0.0
+    descricao: Optional[str] = None
     foto_comprovante_url: Optional[str] = None
 
 
@@ -108,6 +112,13 @@ class VistoriaVeiculo(BaseModel):
     foto_avarias_url: Optional[str] = None
 
 
+class DREJornada(BaseModel):
+    custo_manutencao: Optional[float] = 0.0
+    custo_depreciacao: Optional[float] = 0.0
+    total_despesas_lancadas: Optional[float] = 0.0
+    lucro_liquido: Optional[float] = 0.0
+
+
 class JornadaBase(BaseModel):
     data: Optional[date] = None
     motorista_id: Optional[PyObjectId] = None
@@ -121,6 +132,7 @@ class JornadaBase(BaseModel):
     horario: Optional[HorarioJornada] = None
     fotos: Optional[FotosJornada] = None
     faturamento: Optional[Faturamento] = None
+    dre: Optional[DREJornada] = None
     corridas_particulares: List[CorridaParticular] = []
     # ─── CLT ────────────────────────────────────────────────────
     jornada_diaria_clt: float = 8.0      # horas de referência diária

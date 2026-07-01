@@ -83,6 +83,8 @@ export interface Veiculo {
   vencimento_ipva?: string;
   imagem_clrv_url?: string;
   foto_veiculo_url?: string;
+  custo_manutencao_por_km?: number;
+  custo_depreciacao_por_km?: number;
 }
 
 export interface CreateVeiculoPayload {
@@ -94,6 +96,8 @@ export interface CreateVeiculoPayload {
   km_atual?: number;
   vencimento_ipva?: string;
   foto_veiculo_url?: string;
+  custo_manutencao_por_km?: number;
+  custo_depreciacao_por_km?: number;
 }
 
 export interface UpdateVeiculoPayload {
@@ -104,6 +108,8 @@ export interface UpdateVeiculoPayload {
   km_atual?: number;
   vencimento_ipva?: string;
   foto_veiculo_url?: string;
+  custo_manutencao_por_km?: number;
+  custo_depreciacao_por_km?: number;
 }
 
 // ── Jornada ───────────────────────────────────────────────────────────────────
@@ -124,7 +130,34 @@ export interface AbastecimentoJornada {
   gnv?: number;
   gasolina?: number;
   etanol?: number;
+  valor_pedagio?: number;
+  valor_estacionamento?: number;
+  valor_outros?: number;
+  descricao?: string;
   foto?: string;
+}
+
+export interface DREJornada {
+  custo_manutencao?: number;
+  custo_depreciacao?: number;
+  total_despesas_lancadas?: number;
+  lucro_liquido?: number;
+}
+
+export interface ComprovanteProcessado {
+  plataforma: string;
+  valor: number;
+  origem?: string;
+  destino?: string;
+  data_hora?: string;
+  url_comprovante: string;
+  data_processamento: string;
+  match_produtivo_status?: 'PENDENTE' | 'SUCESSO' | 'FALHA';
+}
+
+export interface SegmentoRota {
+  is_produtivo: boolean;
+  polyline: string;
 }
 
 export interface Jornada {
@@ -150,7 +183,9 @@ export interface Jornada {
     noventa_nove?: number;
     outros?: number;
     total_dia?: number;
+    comprovantes_processados?: ComprovanteProcessado[];
   };
+  dre?: DREJornada;
   saldo_horas_dia?: number;
   bonus_dia?: number;
   pausas: Pausa[];
@@ -158,6 +193,8 @@ export interface Jornada {
   observacoes?: string;
   telemetria_status?: 'CONDUZINDO' | 'PARADO' | null;
   telemetria_ultima_atualizacao?: string | null;
+  rota_polyline?: string;
+  segmentos_rota?: SegmentoRota[];
 }
 
 // ── Manutenção ────────────────────────────────────────────────────────────────

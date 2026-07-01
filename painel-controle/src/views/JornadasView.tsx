@@ -35,20 +35,35 @@ import 'leaflet/dist/leaflet.css';
 
 interface MapViewProps {
   coordinates: [number, number][];
+  routeSegments?: { is_produtivo: boolean, coords: [number, number][] }[];
   corridasParticulares?: any[];
 }
 
-function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
+function JourneyMap({ coordinates, routeSegments, corridasParticulares }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
   const latLngs = coordinates.map((c) => [c[1], c[0]] as [number, number]);
-  const base = latLngs[0];
+  let base: [number, number] | null = null;
+  
+  const finalSegments: { coords: [number, number][]; color: string; label: string }[] = [];
 
-  const segments: { coords: [number, number][]; direction: 'away' | 'towards' }[] = [];
-
-  if (latLngs.length > 0) {
+  if (routeSegments && routeSegments.length > 0) {
+    if (routeSegments[0].coords.length > 0) {
+      base = routeSegments[0].coords[0];
+    }
+    routeSegments.forEach(seg => {
+      if (seg.coords.length > 0) {
+        finalSegments.push({
+          coords: seg.coords,
+          color: seg.is_produtivo ? '#10b981' : '#64748b',
+          label: seg.is_produtivo ? 'Deslocamento Produtivo (Corrida)' : 'Deslocamento Improdutivo (Vazio)'
+        });
+      }
+    });
+  } else if (latLngs.length > 0) {
+    base = latLngs[0];
     let currentSegment: [number, number][] = [latLngs[0]];
     let lastDir: 'away' | 'towards' | null = null;
 
@@ -63,7 +78,11 @@ function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
 
       if (lastDir !== null && dir !== lastDir) {
         currentSegment.push(curr);
-        segments.push({ coords: currentSegment, direction: lastDir });
+        finalSegments.push({ 
+          coords: currentSegment, 
+          color: lastDir === 'away' ? '#3b82f6' : '#8b5cf6',
+          label: lastDir === 'away' ? 'Afastando-se da Base (Outbound)' : 'Aproximando-se da Base (Inbound)'
+        });
         currentSegment = [prev, curr];
       } else {
         currentSegment.push(curr);
@@ -71,7 +90,11 @@ function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
       lastDir = dir;
     }
     if (currentSegment.length > 1) {
-      segments.push({ coords: currentSegment, direction: lastDir || 'away' });
+      finalSegments.push({ 
+        coords: currentSegment, 
+        color: lastDir === 'away' ? '#3b82f6' : '#8b5cf6',
+        label: lastDir === 'away' ? 'Afastando-se da Base (Outbound)' : 'Aproximando-se da Base (Inbound)'
+      });
     }
   }
 
@@ -86,8 +109,8 @@ function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
     });
 
     let centerPoint: [number, number] = [-20.3155, -40.2944];
-    if (latLngs.length > 0) {
-      centerPoint = latLngs[0];
+    if (base) {
+      centerPoint = base;
     } else if (corridasParticulares && corridasParticulares.length > 0) {
       const firstCp = corridasParticulares[0];
       if (firstCp.localizacao_inicio?.lat && firstCp.localizacao_inicio?.lon) {
@@ -122,7 +145,7 @@ function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
 
     let mainBounds: L.LatLngBounds | null = null;
 
-    if (latLngs.length > 0) {
+    if (finalSegments.length > 0) {
       const startIcon = L.divIcon({
         className: 'custom-marker-start',
         html: '<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
@@ -137,18 +160,15 @@ function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
         iconAnchor: [7, 7],
       });
 
-      segments.forEach((seg) => {
-        const color = seg.direction === 'away' ? '#3b82f6' : '#10b981';
-        const name = seg.direction === 'away' ? 'Afastando-se da Base (Outbound)' : 'Aproximando-se da Base (Inbound)';
-        
+      finalSegments.forEach((seg) => {
         const poly = L.polyline(seg.coords, {
-          color,
-          weight: 5,
-          opacity: 0.85,
+          color: seg.color,
+          weight: 6,
+          opacity: 0.9,
           lineJoin: 'round',
         }).addTo(layerGroup);
 
-        poly.bindPopup(`<strong>Trecho: ${name}</strong>`);
+        poly.bindPopup(`<strong>Trecho: ${seg.label}</strong>`);
 
         if (!mainBounds) {
           mainBounds = poly.getBounds();
@@ -157,16 +177,24 @@ function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
         }
       });
 
-      L.marker(latLngs[0], { icon: startIcon }).addTo(layerGroup).bindPopup('Base de Operações (Início)');
-      L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).addTo(layerGroup).bindPopup('Última coordenada registrada');
+      if (base) {
+        L.marker(base, { icon: startIcon }).addTo(layerGroup).bindPopup('Início da Rota / Base');
+      }
+      const lastSegment = finalSegments[finalSegments.length - 1];
+      const lastPoint = lastSegment.coords[lastSegment.coords.length - 1];
+      if (lastPoint) {
+        L.marker(lastPoint, { icon: endIcon }).addTo(layerGroup).bindPopup('Última coordenada registrada');
+      }
 
-      latLngs.forEach((latLng) => {
-        const ll = L.latLng(latLng[0], latLng[1]);
-        if (!mainBounds) {
-          mainBounds = L.latLngBounds(ll, ll);
-        } else {
-          mainBounds.extend(ll);
-        }
+      finalSegments.forEach(seg => {
+        seg.coords.forEach((latLng) => {
+          const ll = L.latLng(latLng[0], latLng[1]);
+          if (!mainBounds) {
+            mainBounds = L.latLngBounds(ll, ll);
+          } else {
+            mainBounds.extend(ll);
+          }
+        });
       });
     }
 
@@ -237,12 +265,16 @@ function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
       <div className="absolute bottom-4 right-4 z-[1000] bg-white/95 backdrop-blur-sm px-3.5 py-2.5 rounded-xl shadow-lg border border-slate-200 flex flex-col gap-2 text-xs font-semibold text-slate-700">
         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Sentido do Deslocamento</div>
         <div className="flex items-center gap-2.5">
-          <div className="w-3.5 h-1.5 bg-[#3b82f6] rounded-full" />
-          <span>Afastando-se da Base (Outbound)</span>
+          <div className="w-3.5 h-1.5 bg-[#10b981] rounded-full" />
+          <span>Deslocamento Produtivo (Verde)</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <div className="w-3.5 h-1.5 bg-[#10b981] rounded-full" />
-          <span>Aproximando-se da Base (Inbound)</span>
+          <div className="w-3.5 h-1.5 bg-[#64748b] rounded-full" />
+          <span>Improdutivo / Vazio (Cinza)</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <div className="w-3.5 h-1.5 bg-[#3b82f6] rounded-full" />
+          <span>Distanciamento da Base (Azul)</span>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="w-2.5 h-2.5 bg-[#3b82f6] rounded-full border border-white" />
@@ -549,6 +581,7 @@ export function JornadasView() {
   });
   const [selectedJornada, setSelectedJornada] = useState<Jornada | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
+  const [routeSegments, setRouteSegments] = useState<{ is_produtivo: boolean, coords: [number, number][] }[]>([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
   const queryClient = useQueryClient();
@@ -917,11 +950,20 @@ export function JornadasView() {
     setSelectedJornada(j);
     setLoadingRoute(true);
     setRouteCoordinates([]);
+    setRouteSegments([]);
     try {
       const jId = j.id || (j as any)._id;
       const { data } = await api.get(`/gps/motorista/${j.motorista_id}/rota-ajustada`, {
         params: { jornada_id: jId }
       });
+      if (data && data.segmentos_rota) {
+        setRouteSegments(data.segmentos_rota.map((s: any) => ({
+          is_produtivo: s.is_produtivo,
+          coords: s.coordinates
+        })));
+      } else {
+        setRouteSegments([]);
+      }
       if (data && data.coordinates) {
         setRouteCoordinates(data.coordinates);
       }
@@ -941,6 +983,12 @@ export function JornadasView() {
       const { data: routeData } = await api.get(`/gps/motorista/${j.motorista_id}/rota-ajustada`, {
         params: { jornada_id: j.id || (j as any)._id }
       });
+      if (routeData && routeData.segmentos_rota) {
+        setRouteSegments(routeData.segmentos_rota.map((s: any) => ({
+          is_produtivo: s.is_produtivo,
+          coords: s.coordinates
+        })));
+      }
       if (routeData && routeData.coordinates) {
         setRouteCoordinates(routeData.coordinates);
       }
@@ -1244,19 +1292,13 @@ export function JornadasView() {
                       <div className="w-full h-full flex items-center justify-center bg-slate-50">
                         <span className="text-sm text-slate-500 animate-pulse">Carregando telemetria...</span>
                       </div>
-                    ) : (routeCoordinates.length > 0 || (selectedJornada.corridas_particulares && selectedJornada.corridas_particulares.length > 0)) ? (
+                    ) : (
                       <div className="w-full h-full relative">
                         <JourneyMap 
                           coordinates={routeCoordinates} 
-                          corridasParticulares={selectedJornada.corridas_particulares}
+                          routeSegments={routeSegments}
+                          corridasParticulares={(selectedJornada as any).corridas_particulares}
                         />
-                      </div>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-center p-6">
-                        <span className="text-sm text-slate-500 font-semibold">Sem dados de telemetria</span>
-                        <span className="text-xs text-slate-400 mt-1.5 max-w-sm">
-                          Não foram encontradas coordenadas geográficas para esta jornada.
-                        </span>
                       </div>
                     )}
                   </Card>

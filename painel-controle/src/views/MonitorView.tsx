@@ -90,10 +90,15 @@ export function MonitorView() {
     0
   );
 
-  let totalCombustivelHoje = 0;
+  let totalDespesasHoje = 0;
+  let lucroLiquidoHoje = 0;
   for (const j of jornadas) {
+    if (j.dre?.lucro_liquido) {
+      lucroLiquidoHoje += j.dre.lucro_liquido;
+    }
     for (const ab of (j.abastecimentos ?? [])) {
-      totalCombustivelHoje += (ab.valor_gasolina ?? 0) + (ab.valor_gnv ?? 0) + (ab.valor_etanol ?? 0);
+      totalDespesasHoje += (ab.valor_gasolina ?? 0) + (ab.valor_gnv ?? 0) + (ab.valor_etanol ?? 0)
+        + (ab.valor_pedagio ?? 0) + (ab.valor_estacionamento ?? 0) + (ab.valor_outros ?? 0);
     }
   }
 
@@ -198,17 +203,33 @@ export function MonitorView() {
                 </div>
               </div>
 
-              {/* Combustível Card */}
+              {/* Despesas Card */}
               <div className="p-3 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-xl shadow-md flex flex-col justify-between h-24">
                 <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase font-bold text-pink-400 tracking-wider">Combustível</span>
+                  <span className="text-[10px] uppercase font-bold text-pink-400 tracking-wider">Despesas</span>
                   <div className="p-1 rounded-lg bg-pink-500/10 text-pink-400">
                     <GasPump size={16} />
                   </div>
                 </div>
                 <div>
-                  <div className="text-lg font-black text-white">{formatCurrency(totalCombustivelHoje)}</div>
-                  <div className="text-[10px] text-slate-400">Despesa de Hoje</div>
+                  <div className="text-lg font-black text-white">{formatCurrency(totalDespesasHoje)}</div>
+                  <div className="text-[10px] text-slate-400">Combustível/Pedágio</div>
+                </div>
+              </div>
+
+              {/* Lucro Líquido Real (DRE) Card */}
+              <div className="p-3 bg-gradient-to-br from-emerald-950/40 to-slate-900 border border-emerald-900/30 rounded-xl shadow-md flex flex-col justify-between h-24 col-span-2">
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Lucro Líquido Real</span>
+                  <div className="p-1 rounded-lg bg-emerald-500/10 text-emerald-400">
+                    <CurrencyDollar size={16} />
+                  </div>
+                </div>
+                <div className="flex justify-between items-end">
+                  <div className="text-2xl font-black text-white">{formatCurrency(lucroLiquidoHoje)}</div>
+                  <div className="text-[10px] text-slate-400">
+                    Após manutenção e depreciação
+                  </div>
                 </div>
               </div>
 

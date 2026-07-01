@@ -6,6 +6,7 @@ from app.db.database import get_db
 from app.models.user import Role, UserPublic, UserUpdate
 from app.core.dependencies import get_current_user, require_roles
 from app.core.security import hash_senha
+from app.db.audit import registrar_auditoria
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -62,6 +63,11 @@ async def atualizar_user(
 
     await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": update})
     doc = await db["users"].find_one({"_id": ObjectId(user_id)})
+    
+    user_dict = current_user.model_dump()
+    user_dict["id"] = str(user_dict["id"])
+    await registrar_auditoria(db, user_dict, "UPDATE_USER", {"target_user_id": user_id, "updated_fields": list(update.keys())})
+    
     return UserPublic(**doc)
 
 
@@ -69,7 +75,7 @@ async def atualizar_user(
 async def deletar_user(
     user_id: str,
     db=Depends(get_db),
-    _=Depends(require_roles(Role.ADMIN)),
+    current_user: UserPublic = Depends(require_roles(Role.ADMIN)),
 ):
     """Inativa o usuário (soft delete) — preserva histórico de jornadas."""
     resultado = await db["users"].update_one(
@@ -78,3 +84,7 @@ async def deletar_user(
     )
     if resultado.matched_count == 0:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        
+    user_dict = current_user.model_dump()
+    user_dict["id"] = str(user_dict["id"])
+    await registrar_auditoria(db, user_dict, "INATIVAR_USER", {"target_user_id": user_id})

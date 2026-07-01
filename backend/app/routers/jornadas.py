@@ -2,7 +2,7 @@ import uuid
 import zoneinfo
 from datetime import date, datetime, timezone, time
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form
 from bson import ObjectId
 
 from app.db.database import get_db
@@ -14,6 +14,7 @@ from app.models.jornada import (
 from app.core.dependencies import get_current_user, require_roles
 from app.core.security import verificar_senha
 from app.core.config import settings
+from app.db.audit import registrar_auditoria
 
 router = APIRouter(prefix="/jornadas", tags=["jornadas"])
 
@@ -728,6 +729,34 @@ async def fechar_jornada(
         "saldo_horas_dia": _calcular_saldo_horas(total_segundos),
         "bonus_dia": bonus_dia,
     }
+    
+    # ── Cálculo do DRE Diário ──
+    veiculo = await db["veiculos"].find_one({"_id": doc.get("veiculo_id")})
+    c_manut = veiculo.get("custo_manutencao_por_km") or 0.0 if veiculo else 0.0
+    c_deprec = veiculo.get("custo_depreciacao_por_km") or 0.0 if veiculo else 0.0
+    
+    custo_manutencao = round(km_rodados * c_manut, 2)
+    custo_depreciacao = round(km_rodados * c_deprec, 2)
+    
+    total_despesas = 0.0
+    for ab in doc.get("abastecimentos", []):
+        total_despesas += (
+            ab.get("valor_gasolina", 0.0) +
+            ab.get("valor_etanol", 0.0) +
+            ab.get("valor_gnv", 0.0) +
+            ab.get("valor_pedagio", 0.0) +
+            ab.get("valor_estacionamento", 0.0) +
+            ab.get("valor_outros", 0.0)
+        )
+    total_despesas = round(total_despesas, 2)
+    lucro_liquido = round(total_faturamento - total_despesas - custo_manutencao - custo_depreciacao, 2)
+    
+    update["dre"] = {
+        "custo_manutencao": custo_manutencao,
+        "custo_depreciacao": custo_depreciacao,
+        "total_despesas_lancadas": total_despesas,
+        "lucro_liquido": lucro_liquido
+    }
     # Registra localização final se fornecida
     if localizacao_lat is not None and localizacao_lon is not None:
         update["localizacao_final"] = {"lat": localizacao_lat, "lon": localizacao_lon}
@@ -745,18 +774,36 @@ async def fechar_jornada(
     # Compactação e limpeza de telemetria GPS histórica
     pontos = await db["historico_gps"].find({"jornada_id": jornada_id}).sort("timestamp", 1).to_list(100000)
     if pontos:
-        coords_para_polyline = []
-        for p in pontos:
-            loc = p.get("localizacao", {})
-            coords = loc.get("coordinates", [])
-            if len(coords) >= 2:
-                coords_para_polyline.append((coords[1], coords[0]))  # (lat, lon)
-        
-        if coords_para_polyline:
-            try:
-                update["rota_polyline"] = encode_polyline(coords_para_polyline)
-            except Exception as e:
-                print("Erro ao codificar polyline:", e)
+        # Gerar polylines segmentadas
+        segmentos_rota = []
+        segmento_atual = []
+        if pontos:
+            flag_atual = pontos[0].get("produtivo", False)
+            for p in pontos:
+                p_flag = p.get("produtivo", False)
+                loc = p.get("localizacao", {})
+                coords = loc.get("coordinates", [])
+                if not coords or len(coords) < 2:
+                    continue
+                lat, lng = coords[1], coords[0]
+                if p_flag != flag_atual and len(segmento_atual) > 0:
+                    segmento_atual.append((lat, lng))
+                    try:
+                        encoded = encode_polyline(segmento_atual)
+                        segmentos_rota.append({"is_produtivo": flag_atual, "polyline": encoded})
+                    except Exception:
+                        pass
+                    segmento_atual = [(lat, lng)]
+                    flag_atual = p_flag
+                else:
+                    segmento_atual.append((lat, lng))
+            if len(segmento_atual) > 1:
+                try:
+                    encoded = encode_polyline(segmento_atual)
+                    segmentos_rota.append({"is_produtivo": flag_atual, "polyline": encoded})
+                except Exception:
+                    pass
+        update["segmentos_rota"] = segmentos_rota
                 
         try:
             telemetria_url = await salvar_historico_compactado(jornada_id, pontos)
@@ -1017,6 +1064,7 @@ async def resumo_clt_mensal(
 async def upload_e_processar_comprovante(
     arquivo: UploadFile = File(...),
     plataforma: Optional[str] = Form(None),
+    background_tasks: BackgroundTasks = None,
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
@@ -1179,7 +1227,8 @@ async def upload_e_processar_comprovante(
         "destino": destino,
         "data_hora": data_hora,
         "url_comprovante": url_comprovante,
-        "data_processamento": datetime.now(timezone.utc).isoformat()
+        "data_processamento": datetime.now(timezone.utc).isoformat(),
+        "match_produtivo_status": "PENDENTE"
     }
 
     comprovantes_processados = faturamento_existente.get("comprovantes_processados") or []
@@ -1208,6 +1257,18 @@ async def upload_e_processar_comprovante(
         }
     )
     
+    # Disparar o match em background para marcar os dados de GPS como produtivos
+    if background_tasks and origem and destino:
+        from app.services.matching import calcular_match_produtivo
+        background_tasks.add_task(
+            calcular_match_produtivo,
+            jornada_id=str(doc["_id"]),
+            comprovante_url=url_comprovante,
+            origem=origem,
+            destino=destino,
+            data_hora=data_hora
+        )
+
     # Retorna o status e os valores extraídos
     return {
         "status": "sucesso",
@@ -1748,6 +1809,10 @@ async def deletar_jornada(
         if res.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Jornada não encontrada")
 
+        user_dict = current_user.model_dump()
+        user_dict["id"] = str(user_dict["id"])
+        await registrar_auditoria(db, user_dict, "DELETE_JORNADA", {"jornada_id": jornada_id})
+
         # Também remove os registros de GPS associados
         gps_query = {"$or": [{"jornada_id": jornada_id}]}
         if ObjectId.is_valid(jornada_id):
@@ -1878,6 +1943,10 @@ async def aprovar_auditoria_sessao(
 
     await db["jornadas"].update_one({"_id": jornada_id}, {"$set": update_data})
     
+    user_dict = current_user.model_dump()
+    user_dict["id"] = str(user_dict["id"])
+    await registrar_auditoria(db, user_dict, "APROVAR_AUDITORIA", {"jornada_id": jornada_id})
+    
     return {"status": "ok", "message": "Auditoria aprovada e mídias removidas com sucesso"}
 
 
@@ -1962,5 +2031,9 @@ async def limpar_dados_antigos(
             "horario.data": {"$lt": data_str_limite}
         })
         relatorio["itens_deletados"]["jornadas"] = res.deleted_count
+        
+    user_dict = current_user.model_dump()
+    user_dict["id"] = str(user_dict["id"])
+    await registrar_auditoria(db, user_dict, "LIMPAR_DADOS_ANTIGOS", relatorio)
         
     return relatorio

@@ -349,7 +349,27 @@ async def rota_ajustada_motorista(
         q_j = {"_id": jornada_id}
 
     jornada = await db["jornadas"].find_one(q_j)
-    if jornada and (jornada.get("rota_polyline") or jornada.get("status") == "ENCERRADA"):
+    if jornada and (jornada.get("rota_polyline") or jornada.get("segmentos_rota") or jornada.get("status") == "ENCERRADA"):
+        segmentos = jornada.get("segmentos_rota")
+        if segmentos:
+            decoded_segments = []
+            for seg in segmentos:
+                try:
+                    decoded_segments.append({
+                        "is_produtivo": seg.get("is_produtivo"),
+                        "coordinates": decode_polyline(seg.get("polyline", ""))
+                    })
+                except Exception:
+                    pass
+            return {
+                "status": "ok",
+                "snapped": True,
+                "segmentos_rota": decoded_segments,
+                "coordinates": [],
+                "distance_m": jornada.get("km", {}).get("rodados", 0.0) * 1000.0,
+                "duration_s": jornada.get("horario", {}).get("total_horas_segundos", 0.0)
+            }
+            
         polyline_str = jornada.get("rota_polyline")
         if polyline_str:
             coords = decode_polyline(polyline_str)

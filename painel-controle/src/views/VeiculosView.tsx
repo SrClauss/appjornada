@@ -27,13 +27,15 @@ export function VeiculosView() {
   const [uploading, setUploading] = useState(false);
 
   const emptyCreate: CreateVeiculoPayload = {
-    id: '', marca_modelo: '', ano_modelo: '', cor: '', situacao: 'RODANDO', km_atual: 0, foto_veiculo_url: '',
+    id: '', marca_modelo: '', ano_modelo: '', cor: '', situacao: 'RODANDO', km_atual: 0, foto_veiculo_url: '', custo_manutencao_por_km: 0, custo_depreciacao_por_km: 0
   };
   const [form, setForm] = useState<CreateVeiculoPayload>(emptyCreate);
   const [editForm, setEditForm] = useState<{
     marca_modelo: string; cor: string; km_atual: number; situacao: VehicleStatus;
     foto_veiculo_url?: string;
-  }>({ marca_modelo: '', cor: '', km_atual: 0, situacao: 'RODANDO', foto_veiculo_url: '' });
+    custo_manutencao_por_km?: number;
+    custo_depreciacao_por_km?: number;
+  }>({ marca_modelo: '', cor: '', km_atual: 0, situacao: 'RODANDO', foto_veiculo_url: '', custo_manutencao_por_km: 0, custo_depreciacao_por_km: 0 });
 
   const handleUploadPhoto = async (file: File) => {
     setUploading(true);
@@ -164,6 +166,8 @@ export function VeiculosView() {
                           km_atual: vehicle.km_atual,
                           situacao: vehicle.situacao,
                           foto_veiculo_url: vehicle.foto_veiculo_url,
+                          custo_manutencao_por_km: vehicle.custo_manutencao_por_km,
+                          custo_depreciacao_por_km: vehicle.custo_depreciacao_por_km,
                         });
                       }}
                     >
@@ -246,6 +250,24 @@ export function VeiculosView() {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Custo Manutenção / Km (R$)</Label>
+                <Input
+                  type="number" step="0.01" min={0}
+                  value={form.custo_manutencao_por_km || 0}
+                  onChange={(e) => setForm({ ...form, custo_manutencao_por_km: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Custo Depreciação / Km (R$)</Label>
+                <Input
+                  type="number" step="0.01" min={0}
+                  value={form.custo_depreciacao_por_km || 0}
+                  onChange={(e) => setForm({ ...form, custo_depreciacao_por_km: Number(e.target.value) })}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Foto do Veículo</Label>
               <Input
@@ -323,6 +345,24 @@ export function VeiculosView() {
                   <SelectItem value="INATIVO">INATIVO</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Custo Manutenção / Km (R$)</Label>
+                <Input
+                  type="number" step="0.01" min={0}
+                  value={editForm.custo_manutencao_por_km || 0}
+                  onChange={(e) => setEditForm({ ...editForm, custo_manutencao_por_km: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Custo Depreciação / Km (R$)</Label>
+                <Input
+                  type="number" step="0.01" min={0}
+                  value={editForm.custo_depreciacao_por_km || 0}
+                  onChange={(e) => setEditForm({ ...editForm, custo_depreciacao_por_km: Number(e.target.value) })}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Foto do Veículo</Label>
