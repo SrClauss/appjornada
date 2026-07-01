@@ -14,7 +14,7 @@ if os.path.exists(env_path):
 
 # Pega o MONGO_URL do env
 mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017/appjornada")
-if "mongodb://mongo:" in mongo_url:
+if "mongodb://mongo:" in mongo_url and not os.path.exists("/.dockerenv"):
     # Se rodar fora do docker, substitui 'mongo' por 'localhost'
     mongo_url = mongo_url.replace("mongodb://mongo:", "mongodb://localhost:")
 
