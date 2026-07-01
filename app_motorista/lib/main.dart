@@ -361,6 +361,10 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
               setState(() {
                 _currentScreen = 'historico_prints';
               });
+            } else if (action == 'close_wizard') {
+              setState(() {
+                _currentScreen = 'fechamento_wizard';
+              });
             }
           },
           onLogout: _onLogout,

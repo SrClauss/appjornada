@@ -30,7 +30,10 @@ export function useCreateMotorista() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateUserPayload) => api.post('/auth/registrar', payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['motoristas'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['motoristas'] });
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
   });
 }
 
@@ -50,6 +53,9 @@ export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/users/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['motoristas'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['motoristas'] });
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
   });
 }

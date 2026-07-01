@@ -3,15 +3,40 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Gear, Shield, User } from '@phosphor-icons/react';
+import { Gear, Shield, User, Pencil, UserMinus, Plus } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUpdateUser } from '@/hooks/useMotoristas';
+import { useUpdateUser, useAllUsers, useCreateMotorista, useDeleteUser } from '@/hooks/useMotoristas';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import type { User as UserType, Role, Situacao } from '@/lib/types';
 import api from '@/lib/api';
 
 export function ConfiguracoesView() {
   const { user } = useAuth();
   const updateMutation = useUpdateUser();
+
+  const { data: allUsers = [], isLoading: isLoadingUsers } = useAllUsers();
+  const createAdminMutation = useCreateMotorista();
+  const deleteAdminMutation = useDeleteUser();
+
+  const [openCreateAdmin, setOpenCreateAdmin] = useState(false);
+  const [editAdmin, setEditAdmin] = useState<UserType | null>(null);
+
+  const [adminForm, setAdminForm] = useState({
+    nome: '',
+    email: '',
+    senha: '',
+    role: 'GESTOR' as Role,
+  });
+
+  const [editAdminForm, setEditAdminForm] = useState({
+    nome: '',
+    role: 'GESTOR' as Role,
+    situacao: 'Ativo' as Situacao,
+  });
 
   const [profileForm, setProfileForm] = useState({
     nome: user?.nome ?? '',
@@ -30,6 +55,40 @@ export function ConfiguracoesView() {
   const [limparArquivosZip, setLimparArquivosZip] = useState(false);
   const [limparJornadasCompletas, setLimparJornadasCompletas] = useState(false);
   const [loadingLimpeza, setLoadingLimpeza] = useState(false);
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createAdminMutation.mutateAsync(adminForm);
+      toast.success('Administrador/Gestor criado com sucesso!');
+      setOpenCreateAdmin(false);
+      setAdminForm({ nome: '', email: '', senha: '', role: 'GESTOR' });
+    } catch {
+      toast.error('Erro ao criar administrador/gestor.');
+    }
+  };
+
+  const handleUpdateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editAdmin) return;
+    try {
+      await updateMutation.mutateAsync({ id: editAdmin.id, payload: editAdminForm });
+      toast.success('Administrador/Gestor atualizado!');
+      setEditAdmin(null);
+    } catch {
+      toast.error('Erro ao atualizar administrador/gestor.');
+    }
+  };
+
+  const handleDeleteAdmin = async (admin: UserType) => {
+    if (!confirm(`Inativar administrador/gestor ${admin.nome}?`)) return;
+    try {
+      await deleteAdminMutation.mutateAsync(admin.id);
+      toast.success('Administrador/Gestor inativado.');
+    } catch {
+      toast.error('Erro ao inativar administrador/gestor.');
+    }
+  };
 
   const handleExecutarLimpeza = async () => {
     if (!window.confirm(`Tem certeza de que deseja excluir dados anteriores a ${diasLimpeza} dias? Esta operação não pode ser desfeita.`)) {
@@ -89,6 +148,8 @@ export function ConfiguracoesView() {
       toast.error('Erro ao alterar senha.');
     }
   };
+
+  const adminsList = allUsers.filter(u => u.role === 'ADMIN' || u.role === 'GESTOR');
 
   return (
     <div className="space-y-6">
@@ -211,6 +272,92 @@ export function ConfiguracoesView() {
         </Card>
       </div>
 
+      {/* Gestão de Administradores/Gestores */}
+      {(user?.role === 'ADMIN' || user?.role === 'GESTOR') && (
+        <Card className="mt-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2">
+              <Shield className="text-primary" size={24} />
+              <CardTitle>Administradores e Gestores</CardTitle>
+            </div>
+            <Button size="sm" onClick={() => setOpenCreateAdmin(true)} className="flex items-center gap-1">
+              <Plus size={16} /> Novo Administrador
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoadingUsers ? (
+              <p className="text-sm text-muted-foreground">Carregando usuários...</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Função</TableHead>
+                    <TableHead>Situação</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {adminsList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        Nenhum administrador ou gestor encontrado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    adminsList.map((admin) => (
+                      <TableRow key={admin.id}>
+                        <TableCell className="font-medium">{admin.nome}</TableCell>
+                        <TableCell>{admin.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{admin.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={admin.situacao === 'Ativo' ? 'default' : 'destructive'}>
+                            {admin.situacao}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Editar"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditAdmin(admin);
+                                setEditAdminForm({
+                                  nome: admin.nome,
+                                  role: admin.role,
+                                  situacao: admin.situacao,
+                                });
+                              }}
+                            >
+                              <Pencil size={16} />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Inativar"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteAdmin(admin)}
+                              disabled={admin.id === user?.id}
+                            >
+                              <UserMinus size={16} />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {user?.role === 'ADMIN' && (
         <Card className="border-red-900/20 bg-red-500/5 mt-6">
           <CardHeader>
@@ -289,6 +436,124 @@ export function ConfiguracoesView() {
           </CardContent>
         </Card>
       )}
+
+      {/* Modal Criar Admin/Gestor */}
+      <Dialog open={openCreateAdmin} onOpenChange={setOpenCreateAdmin}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Administrador / Gestor</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateAdmin} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome Completo</Label>
+              <Input
+                required
+                value={adminForm.nome}
+                onChange={(e) => setAdminForm({ ...adminForm, nome: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input
+                type="email"
+                required
+                value={adminForm.email}
+                onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha Inicial</Label>
+              <Input
+                type="password"
+                required
+                minLength={6}
+                value={adminForm.senha}
+                onChange={(e) => setAdminForm({ ...adminForm, senha: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Função</Label>
+              <Select
+                value={adminForm.role}
+                onValueChange={(v) => setAdminForm({ ...adminForm, role: v as Role })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GESTOR">GESTOR</SelectItem>
+                  <SelectItem value="ADMIN">ADMIN</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpenCreateAdmin(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={createAdminMutation.isPending}>
+                {createAdminMutation.isPending ? 'Criando...' : 'Criar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar Admin/Gestor */}
+      <Dialog open={!!editAdmin} onOpenChange={(o) => !o && setEditAdmin(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Administrador / Gestor</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateAdmin} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome Completo</Label>
+              <Input
+                required
+                value={editAdminForm.nome}
+                onChange={(e) => setEditAdminForm({ ...editAdminForm, nome: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Função</Label>
+              <Select
+                value={editAdminForm.role}
+                onValueChange={(v) => setEditAdminForm({ ...editAdminForm, role: v as Role })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GESTOR">GESTOR</SelectItem>
+                  <SelectItem value="ADMIN">ADMIN</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Situação</Label>
+              <Select
+                value={editAdminForm.situacao}
+                onValueChange={(v) => setEditAdminForm({ ...editAdminForm, situacao: v as Situacao })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Inativo">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditAdmin(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
