@@ -35,9 +35,11 @@ if [ "$BUILD_APK" = true ]; then
   cd "$LOCAL_DIR/app_motorista"
   flutter clean
   flutter build apk --release
+  mkdir -p "$LOCAL_DIR/nginx/html"
+  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/nginx/html/app-release.apk"
   cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/app-release.apk"
   cd "$LOCAL_DIR"
-  echo "==> APK compilado e copiado para a raiz com sucesso!"
+  echo "==> APK compilado e copiado com sucesso!"
 fi
 
 # Se um comentário de commit for fornecido
