@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-const String defaultApiUrl = 'http://2.24.121.189:3000/api';
+const String defaultApiUrl = 'https://rafael.arkana.fun/api';
 
 class ApiService {
   static String baseUrl = defaultApiUrl;
