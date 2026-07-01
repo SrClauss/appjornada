@@ -13,6 +13,7 @@ from app.models.jornada import (
 )
 from app.core.dependencies import get_current_user, require_roles
 from app.core.security import verificar_senha
+from app.core.config import settings
 
 router = APIRouter(prefix="/jornadas", tags=["jornadas"])
 
@@ -1102,6 +1103,48 @@ async def iniciar_corrida_particular(
     if any(c.get("status") == "EM_ANDAMENTO" for c in corridas):
         raise HTTPException(status_code=400, detail="Já existe uma corrida particular em andamento.")
         
+    # Calcula rota usando Google Directions API
+    google_distancia_km = 0.0
+    google_duracao_minutos = 0.0
+    if settings.GOOGLE_API_KEY and localizacao_lat is not None and localizacao_lon is not None and destino_lat is not None and destino_lon is not None:
+        try:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    "https://maps.googleapis.com/maps/api/directions/json",
+                    params={
+                        "origin": f"{localizacao_lat},{localizacao_lon}",
+                        "destination": f"{destino_lat},{destino_lon}",
+                        "key": settings.GOOGLE_API_KEY
+                    },
+                    timeout=5.0
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("status") == "OK" and data.get("routes"):
+                        route = data["routes"][0]
+                        leg = route["legs"][0]
+                        google_distancia_km = leg["distance"]["value"] / 1000.0
+                        google_duracao_minutos = leg["duration"]["value"] / 60.0
+        except Exception as e:
+            print("Erro ao calcular rota via Google Directions API:", e)
+
+    # Fallback para OSRM se Google Maps falhou ou nao esta configurado
+    if google_distancia_km == 0.0 and localizacao_lat is not None and localizacao_lon is not None and destino_lat is not None and destino_lon is not None:
+        try:
+            import httpx
+            url = f"{settings.OSRM_URL}/route/v1/driving/{localizacao_lon},{localizacao_lat};{destino_lon},{destino_lat}?overview=false"
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, timeout=4.0)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("code") == "Ok" and data.get("routes"):
+                        route = data["routes"][0]
+                        google_distancia_km = route.get("distance", 0.0) / 1000.0
+                        google_duracao_minutos = route.get("duration", 0.0) / 60.0
+        except Exception as e:
+            print("Erro no fallback OSRM para iniciar corrida:", e)
+
     nova_corrida = {
         "id": uuid.uuid4().hex[:8],
         "horario_inicio": datetime.now(timezone.utc).isoformat(),
@@ -1115,6 +1158,8 @@ async def iniciar_corrida_particular(
         "valor_calculado": 0.0,
         "destino_endereco": destino_endereco,
         "destino_coordenadas": {"lat": destino_lat, "lon": destino_lon} if destino_lat is not None else None,
+        "google_distancia_km": google_distancia_km,
+        "google_duracao_minutos": google_duracao_minutos,
         "status": "EM_ANDAMENTO"
     }
     
@@ -1143,6 +1188,8 @@ async def iniciar_corrida_particular(
         "valor_calculado": 0.0,
         "destino_endereco": destino_endereco,
         "destino_coordenadas": nova_corrida["destino_coordenadas"],
+        "google_distancia_km": google_distancia_km,
+        "google_duracao_minutos": google_duracao_minutos,
         "status": "EM_ANDAMENTO"
     }
     await db["corridas_particulares"].insert_one(corrida_particular_doc)
@@ -1154,7 +1201,8 @@ async def iniciar_corrida_particular(
 async def finalizar_corrida_particular(
     jornada_id: str,
     corrida_id: str,
-    km_fim: float,
+    km_fim: Optional[float] = None,
+    justificativa: Optional[str] = None,
     localizacao_lat: Optional[float] = None,
     localizacao_lon: Optional[float] = None,
     db=Depends(get_db),
@@ -1178,10 +1226,14 @@ async def finalizar_corrida_particular(
     duracao_minutos = duracao_segundos / 60.0
     
     km_inicio = corrida["km_inicio"]
-    km_rodados = round(km_fim - km_inicio, 1)
-    if km_rodados < 0:
-        km_rodados = 0.0
-        
+    if km_fim is None or km_fim == 0.0:
+        km_rodados = corrida.get("google_distancia_km") or 0.0
+        km_fim = round(km_inicio + km_rodados, 1)
+    else:
+        km_rodados = round(km_fim - km_inicio, 1)
+        if km_rodados < 0:
+            km_rodados = 0.0
+
     # Buscar faixas de preços configuradas no banco
     faixas = await db["precos_particulares"].find().to_list(None)
     
@@ -1223,6 +1275,7 @@ async def finalizar_corrida_particular(
                 "corridas_particulares.$.km_rodados": km_rodados,
                 "corridas_particulares.$.duracao_segundos": duracao_segundos,
                 "corridas_particulares.$.valor_calculado": valor_calculado,
+                "corridas_particulares.$.justificativa": justificativa,
                 "corridas_particulares.$.status": "FINALIZADA"
             }
         }
@@ -1256,6 +1309,7 @@ async def finalizar_corrida_particular(
         "km_rodados": km_rodados,
         "duracao_segundos": duracao_segundos,
         "valor_calculado": valor_calculado,
+        "justificativa": justificativa,
         "status": "FINALIZADA"
     }
 
@@ -1270,6 +1324,7 @@ async def finalizar_corrida_particular(
                 "km_rodados": corrida_atualizada["km_rodados"],
                 "duracao_segundos": corrida_atualizada["duracao_segundos"],
                 "valor_calculado": corrida_atualizada["valor_calculado"],
+                "justificativa": justificativa,
                 "status": "FINALIZADA"
             }
         },

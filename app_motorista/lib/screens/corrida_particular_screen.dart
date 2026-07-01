@@ -64,6 +64,7 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   Duration _elapsed = Duration.zero;
   Timer? _pollingTimer;
 
+
   Future<void> _initTts() async {
     try {
       await _flutterTts.setLanguage("pt-BR");
@@ -125,18 +126,59 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     }
   }
 
+  int _secondsCount = 0;
   void _startTimer() {
     if (_activeCorrida == null) return;
     final startStr = _activeCorrida!['horario_inicio'];
     if (startStr != null) {
       final startDt = DateTime.parse(startStr).toLocal();
       _timer?.cancel();
+      _secondsCount = 0;
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (!mounted) return;
         setState(() {
           _elapsed = DateTime.now().difference(startDt);
         });
+
+        _secondsCount++;
+        if (_secondsCount >= 10) {
+          _secondsCount = 0;
+          _checkArrival();
+        }
       });
+    }
+  }
+
+  Future<void> _checkArrival() async {
+    if (_activeCorrida == null || _loading) return;
+    final destCoords = _activeCorrida!['destino_coordenadas'];
+    if (destCoords == null) return;
+    
+    final double? destLat = destCoords['lat'] != null ? (destCoords['lat'] as num).toDouble() : null;
+    final double? destLon = destCoords['lon'] != null ? (destCoords['lon'] as num).toDouble() : null;
+    if (destLat == null || destLon == null) return;
+
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 3),
+      );
+      
+      final distanceInMeters = Geolocator.distanceBetween(
+        pos.latitude,
+        pos.longitude,
+        destLat,
+        destLon,
+      );
+      
+      print('[AutoArrival] Distancia do destino: $distanceInMeters metros');
+      if (distanceInMeters <= 50) {
+        print('[AutoArrival] Chegou ao destino! Encerrando automaticamente...');
+        _timer?.cancel();
+        _finalizarCorrida();
+      }
+    } catch (e) {
+      print('Erro ao verificar chegada automatica: $e');
     }
   }
 
@@ -445,107 +487,6 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     }
   }
 
-  Future<void> _abrirMapa() async {
-    try {
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 4),
-      );
-      final originLat = pos.latitude;
-      final originLon = pos.longitude;
-      
-      final String jId = widget.jornada['_id'] ?? widget.jornada['id'] ?? '';
-      
-      Uri url;
-      if (_selectedDest != null) {
-        final destLat = _selectedDest!['lat'];
-        final destLon = _selectedDest!['lon'];
-        url = Uri.parse('${ApiService.baseUrl}/gps/mapa-particular'
-            '?origin_lat=$originLat&origin_lon=$originLon'
-            '&destination_lat=$destLat&destination_lon=$destLon'
-            '&jornada_id=$jId');
-      } else {
-        url = Uri.parse('${ApiService.baseUrl}/gps/mapa-particular'
-            '?origin_lat=$originLat&origin_lon=$originLon'
-            '&jornada_id=$jId');
-      }
-          
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível abrir o mapa.')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao obter localização: $e')),
-      );
-    }
-  }
-
-  Future<void> _startInternalNavigation() async {
-    if (_routePoints.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Calculando rota para navegação...')),
-      );
-      await _calculateRoute();
-    }
-    
-    if (_routePoints.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nenhuma rota encontrada para iniciar a navegação.')),
-      );
-      return;
-    }
-    
-    _currentStepIndex = 0;
-    _lastSpokenText = "";
-    _distanceToNextStep = 0.0;
-    
-    if (_originLatLng != null) {
-      _currentLatLng = _originLatLng;
-    } else if (_routePoints.isNotEmpty) {
-      _currentLatLng = _routePoints.first;
-    }
-    
-    setState(() {
-      _navigatingInternally = true;
-    });
-
-    if (_navigationSteps.isNotEmpty) {
-      final firstInst = _navigationSteps[0]['instruction'] ?? "Iniciando navegação.";
-      _speak(firstInst);
-    } else {
-      _speak("Iniciando navegação por voz. Siga a rota destacada no mapa.");
-    }
-    
-    try {
-      _gpsStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 5,
-        ),
-      ).listen((Position position) {
-        if (!mounted) return;
-        
-        final currentLatLng = LatLng(position.latitude, position.longitude);
-        
-        setState(() {
-          _currentLatLng = currentLatLng;
-          _currentHeading = position.heading;
-        });
-        
-        _mapController.move(currentLatLng, 17.5);
-        _mapController.rotate(-position.heading);
-        
-        _processNavigationSteps(position);
-      });
-    } catch (e) {
-      print("Erro ao escutar GPS na navegação: $e");
-    }
-  }
-
   void _stopInternalNavigation() {
     _gpsStreamSubscription?.cancel();
     _flutterTts.stop();
@@ -827,19 +768,15 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     );
   }
 
-  Future<void> _abrirGoogleMaps() async {
-    if (_selectedDest == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, defina um destino primeiro para abrir o Google Maps.')),
-      );
-      return;
-    }
+  Future<void> _abrirGoogleMapsComCorrida(Map activeCorrida) async {
+    final destCoords = activeCorrida['destino_coordenadas'];
+    if (destCoords == null) return;
     try {
-      final destLat = _selectedDest!['lat'];
-      final destLon = _selectedDest!['lon'];
+      final destLat = destCoords['lat'];
+      final destLon = destCoords['lon'];
+      if (destLat == null || destLon == null) return;
       
       final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$destLat,$destLon&travelmode=driving');
-          
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
@@ -949,6 +886,7 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
           _estimatedPrice = null;
         });
         _startTimer();
+        _abrirGoogleMapsComCorrida(body);
       } else {
         final msg = json.decode(res.body)['detail'] ?? 'Erro desconhecido';
         if (!mounted) return;
@@ -970,30 +908,7 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     }
   }
 
-  Future<void> _finalizarCorrida() async {
-    if (_kmController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe o KM final da corrida')),
-      );
-      return;
-    }
-    
-    final kmFim = double.tryParse(_kmController.text);
-    if (kmFim == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('KM final inválido')),
-      );
-      return;
-    }
-
-    final kmInicio = _activeCorrida!['km_inicio'] as num;
-    if (kmFim < kmInicio) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('KM final deve ser maior ou igual ao KM inicial ($kmInicio)')),
-      );
-      return;
-    }
-
+  Future<void> _finalizarCorrida({String? justificativa}) async {
     setState(() {
       _loading = true;
     });
@@ -1013,9 +928,17 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
       final jId = widget.jornada['_id'] ?? widget.jornada['id'];
       final cId = _activeCorrida!['id'];
 
-      String url = '${ApiService.baseUrl}/jornadas/$jId/corridas-particulares/$cId/finalizar?km_fim=$kmFim';
+      String url = '${ApiService.baseUrl}/jornadas/$jId/corridas-particulares/$cId/finalizar';
+      final List<String> params = [];
+      if (justificativa != null && justificativa.isNotEmpty) {
+        params.add('justificativa=${Uri.encodeComponent(justificativa)}');
+      }
       if (lat != null && lon != null) {
-        url += '&localizacao_lat=$lat&localizacao_lon=$lon';
+        params.add('localizacao_lat=$lat');
+        params.add('localizacao_lon=$lon');
+      }
+      if (params.isNotEmpty) {
+        url += '?' + params.join('&');
       }
 
       final res = await http.post(
@@ -1036,6 +959,11 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
 
         _timer?.cancel();
         
+        setState(() {
+          _activeCorrida = null;
+          _kmController.clear();
+        });
+
         if (!mounted) return;
         showDialog(
           context: context,
@@ -1054,6 +982,10 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                   'Valor Calculado: R\$ ${body['valor_calculado'].toStringAsFixed(2)}',
                   style: const TextStyle(color: Colors.greenAccent, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                if (justificativa != null && justificativa.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('Justificativa: $justificativa', style: const TextStyle(color: Colors.amberAccent, fontSize: 13)),
+                ]
               ],
             ),
             actions: [
@@ -1062,16 +994,11 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                   Navigator.pop(ctx);
                   widget.onBack();
                 },
-                child: const Text('OK'),
+                child: const Text('OK', style: TextStyle(color: Colors.tealAccent)),
               )
             ],
           ),
         );
-        
-        setState(() {
-          _activeCorrida = null;
-          _kmController.clear();
-        });
       } else {
         final msg = json.decode(res.body)['detail'] ?? 'Erro desconhecido';
         if (!mounted) return;
@@ -1093,6 +1020,40 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     }
   }
 
+  Future<void> _finalizarComJustificativa() async {
+    final TextEditingController justifController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Justificativa de Término', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: justifController,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'Digite o motivo do término antecipado...',
+            hintStyle: TextStyle(color: Colors.grey),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _finalizarCorrida(justificativa: justifController.text);
+            },
+            child: const Text('Finalizar', style: TextStyle(color: Colors.tealAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatDuration(Duration d) {
     final h = d.inHours.toString().padLeft(2, '0');
     final m = (d.inMinutes % 60).toString().padLeft(2, '0');
@@ -1106,6 +1067,144 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
       return _buildNavigationUI();
     }
     final isRunning = _activeCorrida != null;
+
+    if (isRunning) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: AppBar(
+          title: const Text('Viagem em Andamento', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: const Color(0xFF1E293B),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: widget.onBack,
+          ),
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  color: const Color(0xFF1E293B),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Colors.tealAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'EM VIAGEM (GOOGLE MAPS)',
+                              style: TextStyle(
+                                color: Colors.tealAccent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          _formatDuration(_elapsed),
+                          style: const TextStyle(
+                            fontSize: 52,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(color: Colors.white10),
+                        const SizedBox(height: 16),
+                        if (_activeCorrida!['destino_endereco'] != null) ...[
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.location_on, color: Colors.redAccent, size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'DESTINO',
+                                      style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${_activeCorrida!['destino_endereco']}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Text(
+                          'KM Inicial: ${_activeCorrida!['km_inicio']} km',
+                          style: const TextStyle(color: Colors.white38, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (_loading)
+                  const Center(child: CircularProgressIndicator())
+                else ...[
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                      label: const Text(
+                        'FINALIZAR VIAGEM',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: () => _finalizarCorrida(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
+                      label: const Text(
+                        'ENCERRAR ANTES (JUSTIFICAR)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.redAccent),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: _finalizarComJustificativa,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
@@ -1128,79 +1227,24 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 color: const Color(0xFF1E293B),
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: EdgeInsets.all(24.0),
                   child: Column(
                     children: [
                       Icon(
-                        isRunning ? Icons.play_circle_fill : Icons.stop_circle,
-                        color: isRunning ? Colors.green : Colors.grey,
+                        Icons.stop_circle,
+                        color: Colors.grey,
                         size: 64,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       Text(
-                        isRunning ? 'CORRIDA EM ANDAMENTO' : 'SEM CORRIDA ATIVA',
+                        'SEM CORRIDA ATIVA',
                         style: TextStyle(
-                          color: isRunning ? Colors.green : Colors.grey,
+                          color: Colors.grey,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
                         ),
                       ),
-                      if (isRunning) ...[
-                        const SizedBox(height: 24),
-                        Text(
-                          _formatDuration(_elapsed),
-                          style: const TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'monospace',
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'KM Inicial: ${_activeCorrida!['km_inicio']} km',
-                          style: const TextStyle(color: Colors.white70, fontSize: 16),
-                        ),
-                        if (_activeCorrida!['destino_endereco'] != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'Destino: ${_activeCorrida!['destino_endereco']}',
-                            style: const TextStyle(color: Colors.white70, fontSize: 15),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  icon: const Icon(Icons.volume_up, color: Colors.tealAccent, size: 18),
-                                  label: const Text('Navegar (Voz)', style: TextStyle(color: Colors.white, fontSize: 13)),
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Colors.teal),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  onPressed: _startInternalNavigation,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.navigation, color: Colors.white, size: 18),
-                                  label: const Text('Google Maps', style: TextStyle(color: Colors.white, fontSize: 13)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  onPressed: _abrirGoogleMaps,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ]
-                      ]
                     ],
                   ),
                 ),
@@ -1210,290 +1254,218 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
               if (_loading)
                 const Center(child: CircularProgressIndicator())
               else ...[
-                if (!isRunning) ...[
-                  const Text(
-                    'Iniciar Nova Corrida Particular',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  // KM Inicial do Hodômetro ocultado
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _destController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Endereço de Destino (Opcional)',
-                            labelStyle: const TextStyle(color: Colors.grey),
-                            filled: true,
-                            fillColor: const Color(0xFF1E293B),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon: const Icon(Icons.map_outlined, color: Colors.tealAccent),
+                const Text(
+                  'Iniciar Nova Corrida Particular',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _destController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Endereço de Destino (Opcional)',
+                          labelStyle: const TextStyle(color: Colors.grey),
+                          filled: true,
+                          fillColor: const Color(0xFF1E293B),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
                           ),
+                          prefixIcon: const Icon(Icons.map_outlined, color: Colors.tealAccent),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        icon: _searchingDest
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.search),
-                        style: IconButton.styleFrom(backgroundColor: Colors.teal),
-                        onPressed: () => _searchDestination(_destController.text),
-                      ),
-                    ],
-                  ),
-                  
-                  if (_suggestions.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: _suggestions.length,
-                        itemBuilder: (context, index) {
-                          final sug = _suggestions[index];
-                          return ListTile(
-                            title: Text(
-                              sug['display_name'] ?? '',
-                              style: const TextStyle(color: Colors.white, fontSize: 14),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            onTap: () => _selectDestination(sug),
-                          );
-                        },
-                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      icon: _searchingDest
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.search),
+                      style: IconButton.styleFrom(backgroundColor: Colors.teal),
+                      onPressed: () => _searchDestination(_destController.text),
                     ),
                   ],
-
-                  if (_calculatingRoute)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (_selectedDest != null && _estimatedDistanceKm != null) ...[
-                    const SizedBox(height: 16),
-                    Card(
+                ),
+                
+                if (_suggestions.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
                       color: const Color(0xFF1E293B),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'ESTIMATIVA DA VIAGEM',
-                              style: TextStyle(color: Colors.tealAccent, fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _suggestions.length,
+                      itemBuilder: (context, index) {
+                        final sug = _suggestions[index];
+                        return ListTile(
+                          title: Text(
+                            sug['display_name'] ?? '',
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => _selectDestination(sug),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+
+                if (_calculatingRoute)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_selectedDest != null && _estimatedDistanceKm != null) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    color: const Color(0xFF1E293B),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'ESTIMATIVA DA VIAGEM',
+                            style: TextStyle(color: Colors.tealAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Distância: ${_estimatedDistanceKm!.toStringAsFixed(2)} km',
+                            style: const TextStyle(color: Colors.white, fontSize: 15),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tempo Estimado: ${_estimatedDurationMin!.toStringAsFixed(1)} min',
+                            style: const TextStyle(color: Colors.white, fontSize: 15),
+                          ),
+                          const SizedBox(height: 4),
+                          if (_estimatedPrice != null)
                             Text(
-                              'Distância: ${_estimatedDistanceKm!.toStringAsFixed(2)} km',
-                              style: const TextStyle(color: Colors.white, fontSize: 15),
+                              'Preço Estimado: R\$ ${_estimatedPrice!.toStringAsFixed(2)}',
+                              style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Tempo Estimado: ${_estimatedDurationMin!.toStringAsFixed(1)} min',
-                              style: const TextStyle(color: Colors.white, fontSize: 15),
-                            ),
-                            const SizedBox(height: 4),
-                            if (_estimatedPrice != null)
-                              Text(
-                                'Preço Estimado: R\$ ${_estimatedPrice!.toStringAsFixed(2)}',
-                                style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                          const SizedBox(height: 16),
+                          if (_routePoints.isNotEmpty && _originLatLng != null && _destLatLng != null) ...[
+                            Container(
+                              height: 220,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.teal.withOpacity(0.3)),
                               ),
-                            const SizedBox(height: 16),
-                            if (_routePoints.isNotEmpty && _originLatLng != null && _destLatLng != null) ...[
-                              Container(
-                                height: 220,
-                                margin: const EdgeInsets.only(bottom: 16),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.teal.withOpacity(0.3)),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(11),
-                                  child: FlutterMap(
-                                    mapController: _mapController,
-                                    options: MapOptions(
-                                      initialCenter: _originLatLng!,
-                                      initialZoom: 13,
-                                      interactionOptions: const InteractionOptions(
-                                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                                      ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(11),
+                                child: FlutterMap(
+                                  mapController: _mapController,
+                                  options: MapOptions(
+                                    initialCenter: _originLatLng!,
+                                    initialZoom: 13,
+                                    interactionOptions: const InteractionOptions(
+                                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                                     ),
-                                    children: [
-                                      TileLayer(
-                                        urlTemplate: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-                                        userAgentPackageName: 'com.example.app_motorista',
-                                      ),
-                                      PolylineLayer(
-                                        polylines: [
-                                          Polyline(
-                                            points: _routePoints,
-                                            strokeWidth: 6,
-                                            color: const Color(0xFF1A73E8), // Google Blue
-                                          ),
-                                        ],
-                                      ),
-                                      MarkerLayer(
-                                        markers: [
-                                          // Marcador de Origem (Círculo Verde com Borda Branca)
-                                          Marker(
-                                            point: _originLatLng!,
-                                            width: 16,
-                                            height: 16,
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.green,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(color: Colors.white, width: 2),
-                                                boxShadow: const [
-                                                  BoxShadow(
-                                                    color: Colors.black26,
-                                                    blurRadius: 4,
-                                                    offset: Offset(0, 2),
-                                                  )
-                                                ],
-                                              ),
+                                  ),
+                                  children: [
+                                    TileLayer(
+                                      urlTemplate: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                                      userAgentPackageName: 'com.example.app_motorista',
+                                    ),
+                                    PolylineLayer(
+                                      polylines: [
+                                        Polyline(
+                                          points: _routePoints,
+                                          strokeWidth: 6,
+                                          color: const Color(0xFF1A73E8), // Google Blue
+                                        ),
+                                      ],
+                                    ),
+                                    MarkerLayer(
+                                      markers: [
+                                        Marker(
+                                          point: _originLatLng!,
+                                          width: 16,
+                                          height: 16,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: Colors.white, width: 2),
+                                              boxShadow: const [
+                                                BoxShadow(
+                                                  color: Colors.black26,
+                                                  blurRadius: 4,
+                                                  offset: Offset(0, 2),
+                                                )
+                                              ],
                                             ),
                                           ),
-                                          // Marcador de Destino (Pin Vermelho estilo Google Maps)
-                                          Marker(
-                                            point: _destLatLng!,
-                                            width: 28,
-                                            height: 28,
-                                            child: const Icon(
-                                              Icons.location_on,
-                                              color: Colors.red,
-                                              size: 28,
-                                            ),
+                                        ),
+                                        Marker(
+                                          point: _destLatLng!,
+                                          width: 28,
+                                          height: 28,
+                                          child: const Icon(
+                                            Icons.location_on,
+                                            color: Colors.red,
+                                            size: 28,
                                           ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                            const Text(
-                              '* Explique a estimativa ao passageiro antes de iniciar.',
-                              style: TextStyle(color: Colors.amberAccent, fontSize: 12, fontStyle: FontStyle.italic),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.volume_up, color: Colors.tealAccent, size: 18),
-                                    label: const Text('Navegar (Voz)', style: TextStyle(color: Colors.white, fontSize: 13)),
-                                    style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: Colors.teal),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                        ),
+                                      ],
                                     ),
-                                    onPressed: _startInternalNavigation,
-                                  ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    icon: const Icon(Icons.navigation, color: Colors.white, size: 18),
-                                    label: const Text('Google Maps', style: TextStyle(color: Colors.white, fontSize: 13)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                    ),
-                                    onPressed: _abrirGoogleMaps,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.share, color: Colors.white, size: 18),
-                                label: const Text('Compartilhar Trajeto (Copiar Link)', style: TextStyle(color: Colors.white, fontSize: 13)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.indigoAccent,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                onPressed: _copiarTrajeto,
                               ),
                             ),
                           ],
-                        ),
+                          const Text(
+                            '* Explique a estimativa ao passageiro antes de iniciar.',
+                            style: TextStyle(color: Colors.amberAccent, fontSize: 12, fontStyle: FontStyle.italic),
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.share, color: Colors.white, size: 18),
+                              label: const Text('Compartilhar Trajeto (Copiar Link)', style: TextStyle(color: Colors.white, fontSize: 13)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.indigoAccent,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: _copiarTrajeto,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                ],
 
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: _iniciarCorrida,
-                      child: const Text(
-                        'INICIAR CORRIDA AGORA',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-                      ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: _iniciarCorrida,
+                    child: const Text(
+                      'INICIAR CORRIDA AGORA',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
                     ),
                   ),
-                ] else ...[
-                  const Text(
-                    'Finalizar Corrida Particular',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _kmController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'KM Final do Hodômetro',
-                      labelStyle: const TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: const Color(0xFF1E293B),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      prefixIcon: const Icon(Icons.speed, color: Colors.redAccent),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: _finalizarCorrida,
-                      child: const Text(
-                        'FINALIZAR CORRIDA',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ]
+                ),
               ]
             ],
           ),
