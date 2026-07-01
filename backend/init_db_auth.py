@@ -49,7 +49,7 @@ drivers_data = [
         "_id": ObjectId("6a403ff7734db0687aa06ee1"),
         "nome": "Admin",
         "email": "admin@admin.com",
-        "senha_hash": "$2b$12$mJdkPTweFJfPoVmNPiC56eG90uekBKrq/2ngjQm/hRc7JtaDVBVHS", # senha: admin
+        "senha_hash": "$2b$12$faN/uQhqtbipNLWSEq.XaeMP.y3HWXZd7f6qD2G5KIZie/Xyq99lm", # senha: admin
         "pin_hash": None,
         "role": "ADMIN",
         "situacao": "Ativo",
@@ -59,7 +59,7 @@ drivers_data = [
         "_id": ObjectId("6a40670ec7008f9c4eeb44e2"),
         "nome": "Clausemberg Rodrigues de Olvierira",
         "email": "clausemberg@yahoo.com.br",
-        "senha_hash": "$2b$12$2OWrXjry1kOAOidIHbrkyuqCukhwTuUZv/JHusciFjoJ8V5WapfIO", # senha: admin
+        "senha_hash": "$2b$12$.VPRYhHrz2qfr43yr2lqyeyn8hw.AwpbyBApPTvngtf.mtOUJeTMm", # senha: Clausemberg123!
         "pin_hash": "$2b$12$dgHe73q3RrPBNxYz/NKnuuyFIvu92FyMwGCdIfoY571.WfENo9/Le", # PIN: 1234
         "role": "MOTORISTA",
         "situacao": "Ativo",
