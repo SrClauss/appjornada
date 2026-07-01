@@ -27,6 +27,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
+import android.widget.LinearLayout
 import androidx.core.app.NotificationCompat
 import java.io.File
 import java.io.FileOutputStream
@@ -35,7 +36,8 @@ import java.io.IOException
 class OverlayBubbleService : Service() {
 
     private lateinit var windowManager: WindowManager
-    private var floatingButton: ImageView? = null
+    private var floatingContainer: LinearLayout? = null
+    private var isMinimized = false
     private var mediaProjection: MediaProjection? = null
     private var mediaProjectionManager: MediaProjectionManager? = null
     private var isCapturing = false
@@ -131,7 +133,7 @@ class OverlayBubbleService : Service() {
     }
 
     private fun setupFloatingButton() {
-        if (floatingButton != null) return
+        if (floatingContainer != null) return
 
         val layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -148,22 +150,24 @@ class OverlayBubbleService : Service() {
         layoutParams.x = 100
         layoutParams.y = 500
 
-        val button = ImageView(this)
-        button.setImageResource(android.R.drawable.ic_menu_camera)
-        button.setColorFilter(Color.WHITE)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            val padding = (8 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, padding)
+        }
 
-        val sizePx = (56 * resources.displayMetrics.density).toInt()
-        val paddingPx = (14 * resources.displayMetrics.density).toInt()
-        button.layoutParams = WindowManager.LayoutParams(sizePx, sizePx)
-        button.setPadding(paddingPx, paddingPx, paddingPx, paddingPx)
+        val shape = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 28 * resources.displayMetrics.density
+            setColor(Color.parseColor("#6366F1")) // Indigo
+            setStroke(4, Color.WHITE)
+        }
+        container.background = shape
 
-        val shape = GradientDrawable()
-        shape.shape = GradientDrawable.OVAL
-        shape.setColor(Color.parseColor("#6366F1")) // Indigo
-        shape.setStroke(4, Color.WHITE)
-        button.background = shape
+        updateBarLayout(container)
 
-        button.setOnTouchListener(object : View.OnTouchListener {
+        container.setOnTouchListener(object : View.OnTouchListener {
             private var lastAction: Int = 0
             private var initialX: Int = 0
             private var initialY: Int = 0
@@ -181,9 +185,9 @@ class OverlayBubbleService : Service() {
                         return true
                     }
                     MotionEvent.ACTION_UP -> {
-                        if (lastAction == MotionEvent.ACTION_DOWN) {
-                            // Clicou no botão
-                            takeScreenshot()
+                        if (lastAction == MotionEvent.ACTION_DOWN && isMinimized) {
+                            isMinimized = false
+                            updateBarLayout(container)
                         }
                         lastAction = event.action
                         return true
@@ -191,7 +195,7 @@ class OverlayBubbleService : Service() {
                     MotionEvent.ACTION_MOVE -> {
                         layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
                         layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
-                        windowManager.updateViewLayout(button, layoutParams)
+                        windowManager.updateViewLayout(container, layoutParams)
                         if (Math.abs(event.rawX - initialTouchX) > 10 || Math.abs(event.rawY - initialTouchY) > 10) {
                             lastAction = MotionEvent.ACTION_MOVE
                         }
@@ -202,8 +206,73 @@ class OverlayBubbleService : Service() {
             }
         })
 
-        floatingButton = button
-        windowManager.addView(floatingButton, layoutParams)
+        floatingContainer = container
+        windowManager.addView(container, layoutParams)
+    }
+
+    private fun updateBarLayout(container: LinearLayout) {
+        container.removeAllViews()
+
+        val density = resources.displayMetrics.density
+        val btnSize = (40 * density).toInt()
+        val padding = (8 * density).toInt()
+
+        if (isMinimized) {
+            val expandBtn = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_menu_more)
+                setColorFilter(Color.WHITE)
+                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize)
+                setPadding(padding, padding, padding, padding)
+                setOnClickListener {
+                    isMinimized = false
+                    updateBarLayout(container)
+                }
+            }
+            container.addView(expandBtn)
+        } else {
+            val homeBtn = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_menu_today)
+                setColorFilter(Color.WHITE)
+                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                    rightMargin = (8 * density).toInt()
+                }
+                setPadding(padding, padding, padding, padding)
+                setOnClickListener {
+                    val intent = packageManager.getLaunchIntentForPackage(packageName)
+                    if (intent != null) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    }
+                }
+            }
+
+            val cameraBtn = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_menu_camera)
+                setColorFilter(Color.WHITE)
+                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                    rightMargin = (8 * density).toInt()
+                }
+                setPadding(padding, padding, padding, padding)
+                setOnClickListener {
+                    takeScreenshot()
+                }
+            }
+
+            val minimizeBtn = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+                setColorFilter(Color.WHITE)
+                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize)
+                setPadding(padding, padding, padding, padding)
+                setOnClickListener {
+                    isMinimized = true
+                    updateBarLayout(container)
+                }
+            }
+
+            container.addView(homeBtn)
+            container.addView(cameraBtn)
+            container.addView(minimizeBtn)
+        }
     }
 
     private fun takeScreenshot() {
@@ -211,7 +280,7 @@ class OverlayBubbleService : Service() {
         isCapturing = true
 
         // Animação rápida de clique
-        floatingButton?.alpha = 0.5f
+        floatingContainer?.alpha = 0.5f
 
         val metrics = DisplayMetrics()
         windowManager.defaultDisplay.getRealMetrics(metrics)
@@ -261,7 +330,7 @@ class OverlayBubbleService : Service() {
     private fun cleanupCapture(virtualDisplay: VirtualDisplay?, imageReader: ImageReader) {
         virtualDisplay?.release()
         imageReader.close()
-        floatingButton?.alpha = 1.0f
+        floatingContainer?.alpha = 1.0f
         isCapturing = false
     }
 
@@ -308,9 +377,9 @@ class OverlayBubbleService : Service() {
     }
 
     override fun onDestroy() {
-        if (floatingButton != null) {
-            windowManager.removeView(floatingButton)
-            floatingButton = null
+        if (floatingContainer != null) {
+            windowManager.removeView(floatingContainer)
+            floatingContainer = null
         }
         mediaProjection?.stop()
         mediaProjection = null
