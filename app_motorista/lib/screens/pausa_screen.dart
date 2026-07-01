@@ -34,15 +34,19 @@ class _PausaScreenState extends State<PausaScreen> {
 
     if (ativa != null) {
       final hms = ativa['inicio'].split(':');
-      final today = DateTime.now();
-      final inicioDt = DateTime(
-        today.year,
-        today.month,
-        today.day,
+      final nowUtc = DateTime.now().toUtc();
+      var inicioUtc = DateTime.utc(
+        nowUtc.year,
+        nowUtc.month,
+        nowUtc.day,
         int.parse(hms[0]),
         int.parse(hms[1]),
         int.parse(hms[2].split('.')[0]),
       );
+      if (inicioUtc.isAfter(nowUtc)) {
+        inicioUtc = inicioUtc.subtract(const Duration(days: 1));
+      }
+      final inicioDt = inicioUtc.toLocal();
 
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
