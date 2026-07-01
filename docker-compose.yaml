@@ -8,6 +8,7 @@ services:
       - "3000:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./app-release.apk:/usr/share/nginx/html/app-release.apk:ro
     depends_on:
       - painel
       - backend
