@@ -941,6 +941,17 @@ async def upload_e_processar_comprovante(
         gemini_key = os.getenv("GEMINI_API_KEY", "")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
         
+        # Determina o MIME type correto para o Gemini
+        mime_type = arquivo.content_type or "image/jpeg"
+        if mime_type not in ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]:
+            fn = (arquivo.filename or "").lower()
+            if fn.endswith(".png"):
+                mime_type = "image/png"
+            elif fn.endswith(".webp"):
+                mime_type = "image/webp"
+            else:
+                mime_type = "image/jpeg"
+
         prompt_plataforma = ""
         if plataforma:
             prompt_plataforma = f"O usuário informou que a plataforma deste print é: {plataforma.upper()}.\n"
@@ -972,7 +983,7 @@ async def upload_e_processar_comprovante(
                         },
                         {
                             "inlineData": {
-                                "mimeType": arquivo.content_type or "image/png",
+                                "mimeType": mime_type,
                                 "data": base64_image
                             }
                         }
