@@ -3,9 +3,44 @@ set -euo pipefail
 
 LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Se um comentário de commit for fornecido como primeiro argumento
-if [ $# -gt 0 ] && [ -n "$1" ]; then
+BUILD_APK=false
+COMMIT_MSG=""
+
+# Processa os argumentos com getopts
+while getopts "am:" opt; do
+  case $opt in
+    a)
+      BUILD_APK=true
+      ;;
+    m)
+      COMMIT_MSG="$OPTARG"
+      ;;
+    \?)
+      echo "Opção inválida. Uso: $0 [-a] [-m 'mensagem de commit'] [mensagem de commit legado]"
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+# Mantém compatibilidade com o formato anterior (argumento posicional simples para mensagem)
+if [ -z "$COMMIT_MSG" ] && [ $# -gt 0 ] && [ -n "$1" ]; then
   COMMIT_MSG="$1"
+fi
+
+# Se a flag -a foi passada, compila o APK antes do deploy
+if [ "$BUILD_APK" = true ]; then
+  echo "==> Iniciando compilação do APK de Produção (app_motorista)..."
+  cd "$LOCAL_DIR/app_motorista"
+  flutter build apk --release
+  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/app-release.apk"
+  cd "$LOCAL_DIR"
+  echo "==> APK compilado e copiado para a raiz com sucesso!"
+fi
+
+# Se um comentário de commit for fornecido
+if [ -n "$COMMIT_MSG" ]; then
   echo "==> Atualizando repositório local e enviando para o GitHub..."
   cd "$LOCAL_DIR"
   git add .
