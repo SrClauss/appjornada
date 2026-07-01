@@ -17,6 +17,7 @@ from datetime import datetime
 from minio import Minio
 from minio.error import S3Error
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from pydantic import BaseModel
 from app.core.config import settings
 
 from app.core.dependencies import get_current_user, require_roles
@@ -25,6 +26,10 @@ from app.models.user import UserPublic, Role
 CONTEXTOS_VALIDOS = {
     "km_inicial", "km_final", "cnh", "clrv", "veiculo",
     "comprovante", "sinistro", "nota_fiscal", "outros", "vistoria",
+}
+
+CONTEXTOS_DELETAVEIS = {
+    "km_inicial", "km_final", "vistoria", "sinistro", "comprovante"
 }
 
 EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".pdf", ".webp"}
@@ -128,6 +133,64 @@ async def _salvar_arquivo(upload: UploadFile, contexto: str) -> str:
     return f"/static/uploads/{contexto}/{nome_arquivo}"
 
 
+from typing import List, Literal
+
+
+class MediaItem(BaseModel):
+    contexto: str
+    filename: str
+
+
+class BulkDeleteRequest(BaseModel):
+    items: List[MediaItem]
+
+
+@router.post("/bulk-delete")
+async def deletar_uploads_bulk(
+    dados: BulkDeleteRequest,
+    current_user: UserPublic = Depends(require_roles(Role.ADMIN, Role.GESTOR)),
+):
+    # Validar todos antes de começar a deletar
+    for item in dados.items:
+        if item.contexto not in CONTEXTOS_VALIDOS:
+            raise HTTPException(status_code=400, detail=f"Contexto '{item.contexto}' inválido.")
+        if item.contexto not in CONTEXTOS_DELETAVEIS:
+            raise HTTPException(
+                status_code=403,
+                detail=f"O contexto '{item.contexto}' é protegido e não pode ser excluído."
+            )
+            
+    sucessos = []
+    erros = []
+    
+    for item in dados.items:
+        contexto = item.contexto
+        filename = item.filename
+        deletou = False
+        
+        # 1. MinIO
+        if MINIO_ENABLED and MINIO_CLIENT:
+            try:
+                object_name = f"{contexto}/{filename}"
+                MINIO_CLIENT.remove_object(MINIO_BUCKET, object_name)
+                deletou = True
+            except S3Error:
+                pass
+                
+        # 2. Local
+        filepath = UPLOAD_DIR / contexto / filename
+        if filepath.exists():
+            filepath.unlink()
+            deletou = True
+            
+        if deletou:
+            sucessos.append({"contexto": contexto, "filename": filename})
+        else:
+            erros.append({"contexto": contexto, "filename": filename, "erro": "Arquivo não encontrado"})
+            
+    return {"sucessos": sucessos, "erros": erros}
+
+
 @router.post("/{contexto}", status_code=201)
 async def fazer_upload(
     contexto: str,
@@ -203,6 +266,12 @@ async def deletar_upload(
     if contexto not in CONTEXTOS_VALIDOS:
         raise HTTPException(status_code=400, detail="Contexto inválido")
         
+    if contexto not in CONTEXTOS_DELETAVEIS:
+        raise HTTPException(
+            status_code=403,
+            detail=f"O tipo de mídia '{contexto}' é protegido e não pode ser excluído pelo painel gestor."
+        )
+        
     deletou = False
     
     # 1. MinIO
@@ -224,3 +293,4 @@ async def deletar_upload(
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
         
     return None
+

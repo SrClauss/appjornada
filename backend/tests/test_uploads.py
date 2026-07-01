@@ -195,3 +195,110 @@ class TestUploadArquivo:
             _mod._ensure_minio_bucket()  # não deve lançar exceção
         finally:
             _mod.MINIO_CLIENT = original_client
+
+
+class TestDeleteUploads:
+    async def test_deletar_contexto_deletavel_sucesso(self, client, gestor_headers, tmp_path, monkeypatch):
+        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path))
+        import sys
+        _mod = sys.modules["app.routers.uploads"]
+        monkeypatch.setattr(_mod, "MINIO_ENABLED", False)
+        monkeypatch.setattr(_mod, "UPLOAD_DIR", tmp_path)
+        
+        resp = await client.post(
+            "/uploads/km_inicial",
+            files=_make_file("foto.jpg"),
+            headers=gestor_headers,
+        )
+        assert resp.status_code == 201
+        filename = resp.json()["url"].split("/")[-1]
+        
+        del_resp = await client.delete(
+            f"/uploads/km_inicial/{filename}",
+            headers=gestor_headers,
+        )
+        assert del_resp.status_code == 204
+        
+    async def test_deletar_contexto_protegido_forbidden(self, client, gestor_headers, tmp_path, monkeypatch):
+        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path))
+        import sys
+        _mod = sys.modules["app.routers.uploads"]
+        monkeypatch.setattr(_mod, "MINIO_ENABLED", False)
+        monkeypatch.setattr(_mod, "UPLOAD_DIR", tmp_path)
+        
+        resp = await client.post(
+            "/uploads/cnh",
+            files=_make_file("cnh.png"),
+            headers=gestor_headers,
+        )
+        assert resp.status_code == 201
+        filename = resp.json()["url"].split("/")[-1]
+        
+        del_resp = await client.delete(
+            f"/uploads/cnh/{filename}",
+            headers=gestor_headers,
+        )
+        assert del_resp.status_code == 403
+        
+    async def test_bulk_delete_sucesso(self, client, gestor_headers, tmp_path, monkeypatch):
+        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path))
+        import sys
+        _mod = sys.modules["app.routers.uploads"]
+        monkeypatch.setattr(_mod, "MINIO_ENABLED", False)
+        monkeypatch.setattr(_mod, "UPLOAD_DIR", tmp_path)
+        
+        resp1 = await client.post(
+            "/uploads/km_inicial",
+            files=_make_file("foto1.jpg"),
+            headers=gestor_headers,
+        )
+        resp2 = await client.post(
+            "/uploads/vistoria",
+            files=_make_file("foto2.jpg"),
+            headers=gestor_headers,
+        )
+        
+        filename1 = resp1.json()["url"].split("/")[-1]
+        filename2 = resp2.json()["url"].split("/")[-1]
+        
+        bulk_resp = await client.post(
+            "/uploads/bulk-delete",
+            json={
+                "items": [
+                    {"contexto": "km_inicial", "filename": filename1},
+                    {"contexto": "vistoria", "filename": filename2}
+                ]
+            },
+            headers=gestor_headers,
+        )
+        assert bulk_resp.status_code == 200
+        data = bulk_resp.json()
+        assert len(data["sucessos"]) == 2
+        assert len(data["erros"]) == 0
+
+    async def test_bulk_delete_protegido_forbidden(self, client, gestor_headers, tmp_path, monkeypatch):
+        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path))
+        import sys
+        _mod = sys.modules["app.routers.uploads"]
+        monkeypatch.setattr(_mod, "MINIO_ENABLED", False)
+        monkeypatch.setattr(_mod, "UPLOAD_DIR", tmp_path)
+        
+        resp = await client.post(
+            "/uploads/cnh",
+            files=_make_file("cnh.png"),
+            headers=gestor_headers,
+        )
+        assert resp.status_code == 201
+        filename = resp.json()["url"].split("/")[-1]
+        
+        bulk_resp = await client.post(
+            "/uploads/bulk-delete",
+            json={
+                "items": [
+                    {"contexto": "cnh", "filename": filename}
+                ]
+            },
+            headers=gestor_headers,
+        )
+        assert bulk_resp.status_code == 403
+
