@@ -156,6 +156,8 @@ export interface Jornada {
   pausas: Pausa[];
   abastecimentos: AbastecimentoJornada[];
   observacoes?: string;
+  telemetria_status?: 'CONDUZINDO' | 'PARADO' | null;
+  telemetria_ultima_atualizacao?: string | null;
 }
 
 // ── Manutenção ────────────────────────────────────────────────────────────────

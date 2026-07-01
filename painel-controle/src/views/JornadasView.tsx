@@ -964,7 +964,7 @@ export function JornadasView() {
 
   // Filtragem
   const filteredEvents = (() => {
-    let gpsIndex = 0;
+    let lastGpsTime: number | null = null;
     return liveEvents.filter((ev) => {
       const matchesTipo = filtroTipoEvento ? ev.tipo === filtroTipoEvento : true;
       if (!matchesTipo) return false;
@@ -991,19 +991,30 @@ export function JornadasView() {
       }
 
       if (ev.tipo === 'TELEMETRIA_GPS') {
-        gpsIndex++;
         if (filtroIntervalo === 'events_only') {
           return false;
         }
-        if (filtroIntervalo === '1min' && gpsIndex % 4 !== 0) {
-          return false;
+
+        const evTime = getSafeDate(ev.timestamp).getTime();
+
+        if (lastGpsTime !== null) {
+          // Os eventos estão em ordem decrescente de tempo (do mais recente ao mais antigo)
+          // Então lastGpsTime é o timestamp do evento de GPS anteriormente avaliado e mantido,
+          // que é mais recente que evTime. A diferença em segundos é (lastGpsTime - evTime) / 1000.
+          const diffSeconds = (lastGpsTime - evTime) / 1000;
+          
+          if (filtroIntervalo === 'all') { // Amostragem: Completa (15s)
+            if (diffSeconds < 14.5) return false;
+          } else if (filtroIntervalo === '1min') {
+            if (diffSeconds < 59.5) return false;
+          } else if (filtroIntervalo === '5min') {
+            if (diffSeconds < 299.5) return false;
+          } else if (filtroIntervalo === '10min') {
+            if (diffSeconds < 599.5) return false;
+          }
         }
-        if (filtroIntervalo === '5min' && gpsIndex % 20 !== 0) {
-          return false;
-        }
-        if (filtroIntervalo === '10min' && gpsIndex % 40 !== 0) {
-          return false;
-        }
+        
+        lastGpsTime = evTime;
       }
       return true;
     });
@@ -1684,7 +1695,7 @@ export function JornadasView() {
                 <option value="INICIO_INTERVALO">Início de Intervalo</option>
                 <option value="FIM_INTERVALO">Fim de Intervalo</option>
                 <option value="FIM_JORNADA">Fim de Jornada</option>
-                <option value="TELEMETRIA_GPS">Telemetria GPS (15s)</option>
+                <option value="TELEMETRIA_GPS">Telemetria GPS</option>
               </select>
             )}
 
@@ -1698,6 +1709,7 @@ export function JornadasView() {
                 className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg p-2 focus:outline-none shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               >
                 <option value="all">Amostragem: Completa (15s)</option>
+                <option value="1s">Amostragem: Alta Resolução (1s)</option>
                 <option value="1min">Amostragem: 1 minuto</option>
                 <option value="5min">Amostragem: 5 minutos</option>
                 <option value="10min">Amostragem: 10 minutos</option>

@@ -7,6 +7,7 @@ import { Gear, Shield, User } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUpdateUser } from '@/hooks/useMotoristas';
+import api from '@/lib/api';
 
 export function ConfiguracoesView() {
   const { user } = useAuth();
@@ -23,6 +24,44 @@ export function ConfiguracoesView() {
     horas_semanais: 44,
     horas_diarias: 8,
   });
+
+  const [diasLimpeza, setDiasLimpeza] = useState(30);
+  const [limparRawGps, setLimparRawGps] = useState(true);
+  const [limparArquivosZip, setLimparArquivosZip] = useState(false);
+  const [limparJornadasCompletas, setLimparJornadasCompletas] = useState(false);
+  const [loadingLimpeza, setLoadingLimpeza] = useState(false);
+
+  const handleExecutarLimpeza = async () => {
+    if (!window.confirm(`Tem certeza de que deseja excluir dados anteriores a ${diasLimpeza} dias? Esta operação não pode ser desfeita.`)) {
+      return;
+    }
+    
+    setLoadingLimpeza(true);
+    try {
+      const response = await api.post('/jornadas/admin/limpar-dados-antigos', null, {
+        params: {
+          dias: diasLimpeza,
+          limpar_raw_gps: limparRawGps,
+          limpar_arquivos_zip: limparArquivosZip,
+          limpar_jornadas_completas: limparJornadasCompletas
+        }
+      });
+      const data = response.data;
+      const itens = data.itens_deletados || {};
+      
+      let msg = 'Limpeza concluída com sucesso! ';
+      if (itens.raw_gps !== undefined) msg += `Coordenadas: ${itens.raw_gps}. `;
+      if (itens.arquivos_telemetria !== undefined) msg += `Arquivos de Rota: ${itens.arquivos_telemetria}. `;
+      if (itens.jornadas !== undefined) msg += `Jornadas: ${itens.jornadas}.`;
+      
+      toast.success(msg);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao executar limpeza administrativa.');
+    } finally {
+      setLoadingLimpeza(false);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +210,85 @@ export function ConfiguracoesView() {
           </CardContent>
         </Card>
       </div>
+
+      {user?.role === 'ADMIN' && (
+        <Card className="border-red-900/20 bg-red-500/5 mt-6">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shield className="text-red-500" size={24} />
+              <CardTitle className="text-red-500">Limpeza Administrativa de Dados</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Utilize esta ferramenta para purgar dados antigos do sistema e economizar espaço em disco e banco de dados. 
+              <strong className="text-red-500 ml-1">Esta ação é irreversível.</strong>
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Manter dados dos últimos (dias)</Label>
+                <Input 
+                  type="number" 
+                  value={diasLimpeza}
+                  onChange={(e) => setDiasLimpeza(Number(e.target.value))}
+                  min={1}
+                />
+              </div>
+              
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="rawGps" 
+                    checked={limparRawGps} 
+                    onChange={(e) => setLimparRawGps(e.target.checked)}
+                    className="rounded border-slate-350"
+                  />
+                  <Label htmlFor="rawGps" className="cursor-pointer text-xs">
+                    Excluir coordenadas brutas do GPS do MongoDB (Recomendado)
+                  </Label>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="archivedGps" 
+                    checked={limparArquivosZip} 
+                    onChange={(e) => setLimparArquivosZip(e.target.checked)}
+                    className="rounded border-slate-350"
+                  />
+                  <Label htmlFor="archivedGps" className="cursor-pointer text-xs">
+                    Excluir arquivos comprimidos (.json.gz) de rotas antigas no storage
+                  </Label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="fullJourneys" 
+                    checked={limparJornadasCompletas} 
+                    onChange={(e) => setLimparJornadasCompletas(e.target.checked)}
+                    className="rounded border-slate-350"
+                  />
+                  <Label htmlFor="fullJourneys" className="cursor-pointer text-xs text-red-500 font-semibold">
+                    Excluir jornadas e relatórios completamente do banco de dados
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              variant="destructive"
+              disabled={loadingLimpeza}
+              onClick={handleExecutarLimpeza}
+              className="w-full md:w-auto"
+            >
+              {loadingLimpeza ? 'Processando Limpeza...' : 'Executar Limpeza de Dados'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

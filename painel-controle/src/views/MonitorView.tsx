@@ -260,6 +260,18 @@ export function MonitorView() {
                           >
                             {j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA' ? 'Rodando' : 'Pausa'}
                           </Badge>
+                          {(j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA') && j.telemetria_status && (
+                            <Badge 
+                              variant="outline" 
+                              className={`px-1.5 py-0 text-[9px] uppercase tracking-wider font-semibold ${
+                                j.telemetria_status === 'PARADO'
+                                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/35 animate-pulse'
+                                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/35'
+                              }`}
+                            >
+                              {j.telemetria_status === 'PARADO' ? 'Parado' : 'Em Movimento'}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
                           <Car size={12} className="text-slate-500" />

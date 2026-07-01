@@ -301,6 +301,20 @@ async def listar_jornadas(
     for d in docs:
         d = _normalizar_jornada(d)
         d["motorista_nome"] = mot_map.get(str(d.get("motorista_id")), "Motorista Desconhecido")
+        
+        # Obter último status de telemetria GPS para jornadas ativas
+        if d.get("status") in ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]:
+            try:
+                ponto_recente = await db["historico_gps"].find_one(
+                    {"jornada_id": str(d.get("_id"))},
+                    sort=[("timestamp", -1)]
+                )
+                if ponto_recente:
+                    d["telemetria_status"] = ponto_recente.get("status")
+                    d["telemetria_ultima_atualizacao"] = ponto_recente["timestamp"].isoformat() if isinstance(ponto_recente.get("timestamp"), datetime) else str(ponto_recente.get("timestamp"))
+            except Exception as e:
+                print("Erro ao obter telemetria em tempo real para monitor:", e)
+
         normalized_docs.append(d)
 
     return [Jornada(**d) for d in normalized_docs]
@@ -1865,3 +1879,88 @@ async def aprovar_auditoria_sessao(
     await db["jornadas"].update_one({"_id": jornada_id}, {"$set": update_data})
     
     return {"status": "ok", "message": "Auditoria aprovada e mídias removidas com sucesso"}
+
+
+@router.post("/admin/limpar-dados-antigos")
+async def limpar_dados_antigos(
+    dias: int = 30,
+    limpar_raw_gps: bool = True,
+    limpar_arquivos_zip: bool = False,
+    limpar_jornadas_completas: bool = False,
+    db=Depends(get_db),
+    current_user=Depends(require_roles(Role.ADMIN)),
+):
+    """
+    Rotina administrativa para eliminar dados antigos do sistema.
+    """
+    from datetime import datetime, timedelta, timezone
+    
+    limite_data = datetime.now(timezone.utc) - timedelta(days=dias)
+    relatorio = {
+        "status": "sucesso",
+        "dias_limite": dias,
+        "data_limite": limite_data.isoformat(),
+        "itens_deletados": {}
+    }
+    
+    # 1. Limpar raw gps points
+    if limpar_raw_gps:
+        res = await db["historico_gps"].delete_many({"timestamp": {"$lt": limite_data}})
+        relatorio["itens_deletados"]["raw_gps"] = res.deleted_count
+
+    # 2. Limpar arquivos zip e referências
+    if limpar_arquivos_zip:
+        data_str_limite = limite_data.date().isoformat()
+        
+        jornadas_antigas = await db["jornadas"].find({
+            "status": "ENCERRADA",
+            "horario.data": {"$lt": data_str_limite},
+            "telemetria_url": {"$ne": None}
+        }).to_list(10000)
+        
+        from app.routers.uploads import MINIO_CLIENT, MINIO_BUCKET, MINIO_ENABLED, UPLOAD_DIR
+        
+        arquivos_removidos = 0
+        for j in jornadas_antigas:
+            url = j.get("telemetria_url")
+            if not url:
+                continue
+            
+            # Deletar arquivo físico
+            if MINIO_ENABLED and MINIO_CLIENT:
+                if url.startswith(f"/{MINIO_BUCKET}/"):
+                    obj_path = url[len(f"/{MINIO_BUCKET}/"):]
+                    try:
+                        MINIO_CLIENT.remove_object(MINIO_BUCKET, obj_path)
+                        arquivos_removidos += 1
+                    except Exception as e:
+                        print("Erro ao remover objeto MinIO:", e)
+            else:
+                if url.startswith("/static/uploads/"):
+                    rel_path = url[len("/static/uploads/"):]
+                    local_path = UPLOAD_DIR / rel_path
+                    if local_path.exists():
+                        try:
+                            local_path.unlink()
+                            arquivos_removidos += 1
+                        except Exception as e:
+                            print("Erro ao remover arquivo local:", e)
+                            
+            # Atualizar jornada para remover a referência
+            await db["jornadas"].update_one(
+                {"_id": j["_id"]},
+                {"$set": {"telemetria_url": None, "rota_polyline": None}}
+            )
+            
+        relatorio["itens_deletados"]["arquivos_telemetria"] = arquivos_removidos
+
+    # 3. Limpar jornadas completas
+    if limpar_jornadas_completas:
+        data_str_limite = limite_data.date().isoformat()
+        res = await db["jornadas"].delete_many({
+            "status": "ENCERRADA",
+            "horario.data": {"$lt": data_str_limite}
+        })
+        relatorio["itens_deletados"]["jornadas"] = res.deleted_count
+        
+    return relatorio

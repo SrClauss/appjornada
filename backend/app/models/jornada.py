@@ -139,6 +139,8 @@ class JornadaBase(BaseModel):
     comprovante_uso_pessoal_url: Optional[str] = None
     justificativa_uso_pessoal: Optional[str] = None
     auditoria_status: Optional[str] = "PENDENTE"
+    telemetria_status: Optional[str] = None  # CONDUZINDO, PARADO ou None
+    telemetria_ultima_atualizacao: Optional[str] = None  # timestamp ISO string
 
 
 class JornadaCreate(JornadaBase):

@@ -485,3 +485,31 @@ class TestDeletarJornada:
         jId = str(jornada_aberta["_id"])
         resp = await client.delete(f"/jornadas/{jId}", headers=motorista_headers)
         assert resp.status_code == 403
+
+
+class TestLimparDadosAntigos:
+    async def test_limpar_dados_antigos_sucesso(self, client, db, admin_headers):
+        from datetime import datetime, timezone, timedelta
+        data_antiga = datetime.now(timezone.utc) - timedelta(days=40)
+        
+        await db["historico_gps"].insert_one({
+            "jornada_id": "test_jornada_limpeza",
+            "timestamp": data_antiga,
+            "status": "PARADO"
+        })
+        
+        resp = await client.post(
+            "/jornadas/admin/limpar-dados-antigos?dias=30&limpar_raw_gps=true",
+            headers=admin_headers
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "sucesso"
+        assert data["itens_deletados"]["raw_gps"] >= 1
+
+    async def test_limpar_dados_antigos_sem_permissao(self, client, motorista_headers):
+        resp = await client.post(
+            "/jornadas/admin/limpar-dados-antigos?dias=30",
+            headers=motorista_headers
+        )
+        assert resp.status_code == 403
