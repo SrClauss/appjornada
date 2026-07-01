@@ -440,9 +440,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Odômetro Inicial: $kmInicial km', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                Expanded(
+                  child: Text('Odômetro Inicial: $kmInicial km', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                ),
                 if (checklistItems.isNotEmpty)
-                  Text('Itens OK: ${checklistItems.join(", ")}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                  Expanded(
+                    child: Text(
+                      'Itens OK: ${checklistItems.join(", ")}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 16),

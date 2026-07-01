@@ -38,6 +38,20 @@ class OverlayBubbleService : Service() {
     private lateinit var windowManager: WindowManager
     private var floatingContainer: LinearLayout? = null
     private var isMinimized = false
+    private var isExpanded = false
+    private val collapseHandler = Handler(Looper.getMainLooper())
+    private val collapseRunnable = Runnable {
+        isExpanded = false
+        floatingContainer?.let { updateBarLayout(it) }
+    }
+
+    private fun resetCollapseTimer() {
+        collapseHandler.removeCallbacks(collapseRunnable)
+        if (isExpanded) {
+            collapseHandler.postDelayed(collapseRunnable, 5000)
+        }
+    }
+
     private var warningActive = false
     private var warningFilePath: String? = null
     private var warningPlataforma: String? = null
@@ -173,56 +187,18 @@ class OverlayBubbleService : Service() {
             gravity = Gravity.CENTER_HORIZONTAL
             val padding = (8 * resources.displayMetrics.density).toInt()
             setPadding(padding, padding, padding, padding)
+            alpha = 0.6f
         }
 
         val shape = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = 28 * resources.displayMetrics.density
-            setColor(Color.parseColor("#6366F1")) // Indigo
+            setColor(Color.parseColor("#1E293B")) // Slate 800
             setStroke(4, Color.WHITE)
         }
         container.background = shape
 
         updateBarLayout(container)
-
-        container.setOnTouchListener(object : View.OnTouchListener {
-            private var lastAction: Int = 0
-            private var initialX: Int = 0
-            private var initialY: Int = 0
-            private var initialTouchX: Float = 0f
-            private var initialTouchY: Float = 0f
-
-            override fun onTouch(v: View, event: MotionEvent): Boolean {
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        initialX = layoutParams.x
-                        initialY = layoutParams.y
-                        initialTouchX = event.rawX
-                        initialTouchY = event.rawY
-                        lastAction = event.action
-                        return true
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        if (lastAction == MotionEvent.ACTION_DOWN && isMinimized) {
-                            isMinimized = false
-                            updateBarLayout(container)
-                        }
-                        lastAction = event.action
-                        return true
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
-                        layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
-                        windowManager.updateViewLayout(container, layoutParams)
-                        if (Math.abs(event.rawX - initialTouchX) > 10 || Math.abs(event.rawY - initialTouchY) > 10) {
-                            lastAction = MotionEvent.ACTION_MOVE
-                        }
-                        return true
-                    }
-                }
-                return false
-            }
-        })
 
         floatingContainer = container
         windowManager.addView(container, layoutParams)
@@ -235,19 +211,79 @@ class OverlayBubbleService : Service() {
         val btnSize = (40 * density).toInt()
         val padding = (8 * density).toInt()
 
-        if (isMinimized) {
-            val expandBtn = ImageView(this).apply {
-                setImageResource(android.R.drawable.ic_menu_more)
-                setColorFilter(Color.WHITE)
-                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize)
-                setPadding(padding, padding, padding, padding)
-                setOnClickListener {
-                    isMinimized = false
-                    updateBarLayout(container)
-                }
+        val windowParams = container.layoutParams as? WindowManager.LayoutParams
+
+        // A Alça (Handle)
+        val handle = ImageView(this).apply {
+            setImageResource(android.R.drawable.ic_menu_sort_by_size)
+            if (warningActive) {
+                setColorFilter(Color.parseColor("#EF4444")) // Vermelho se houver aviso
+            } else {
+                setColorFilter(Color.parseColor("#94A3B8")) // Slate Gray
             }
-            container.addView(expandBtn)
-        } else {
+            layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (24 * density).toInt()).apply {
+                topMargin = (4 * density).toInt()
+                bottomMargin = if (isExpanded) (8 * density).toInt() else (4 * density).toInt()
+            }
+            setPadding(0, (4 * density).toInt(), 0, (4 * density).toInt())
+            setOnClickListener {
+                isExpanded = !isExpanded
+                updateBarLayout(container)
+                resetCollapseTimer()
+            }
+
+            setOnTouchListener(object : View.OnTouchListener {
+                private var lastAction: Int = 0
+                private var initialX: Int = 0
+                private var initialY: Int = 0
+                private var initialTouchX: Float = 0f
+                private var initialTouchY: Float = 0f
+
+                override fun onTouch(v: View, event: MotionEvent): Boolean {
+                    resetCollapseTimer()
+                    if (windowParams == null) return false
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            container.alpha = 1.0f
+                            initialX = windowParams.x
+                            initialY = windowParams.y
+                            initialTouchX = event.rawX
+                            initialTouchY = event.rawY
+                            lastAction = event.action
+                            return true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            container.alpha = if (isExpanded) 1.0f else 0.6f
+                            if (lastAction == MotionEvent.ACTION_DOWN) {
+                                performClick()
+                            }
+                            lastAction = event.action
+                            return true
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            windowParams.x = initialX + (event.rawX - initialTouchX).toInt()
+                            windowParams.y = initialY + (event.rawY - initialTouchY).toInt()
+                            windowManager.updateViewLayout(container, windowParams)
+                            if (Math.abs(event.rawX - initialTouchX) > 10 || Math.abs(event.rawY - initialTouchY) > 10) {
+                                lastAction = MotionEvent.ACTION_MOVE
+                            }
+                            return true
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            container.alpha = if (isExpanded) 1.0f else 0.6f
+                            return true
+                        }
+                    }
+                    return false
+                }
+            })
+        }
+
+        container.addView(handle)
+
+        if (isExpanded) {
+            container.alpha = 1.0f
+            
             val homeBtn = ImageView(this).apply {
                 setImageResource(android.R.drawable.ic_menu_today)
                 setColorFilter(Color.WHITE)
@@ -256,6 +292,7 @@ class OverlayBubbleService : Service() {
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
+                    resetCollapseTimer()
                     val intent = packageManager.getLaunchIntentForPackage(packageName)
                     if (intent != null) {
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -272,6 +309,7 @@ class OverlayBubbleService : Service() {
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
+                    resetCollapseTimer()
                     takeScreenshot()
                 }
             }
@@ -288,6 +326,7 @@ class OverlayBubbleService : Service() {
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
+                    resetCollapseTimer()
                     if (warningActive) {
                         val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -309,21 +348,11 @@ class OverlayBubbleService : Service() {
                 }
             }
 
-            val minimizeBtn = ImageView(this).apply {
-                setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-                setColorFilter(Color.WHITE)
-                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize)
-                setPadding(padding, padding, padding, padding)
-                setOnClickListener {
-                    isMinimized = true
-                    updateBarLayout(container)
-                }
-            }
-
             container.addView(homeBtn)
             container.addView(cameraBtn)
             container.addView(warningBtn)
-            container.addView(minimizeBtn)
+        } else {
+            container.alpha = 0.6f
         }
     }
 
@@ -382,7 +411,7 @@ class OverlayBubbleService : Service() {
     private fun cleanupCapture(virtualDisplay: VirtualDisplay?, imageReader: ImageReader) {
         virtualDisplay?.release()
         imageReader.close()
-        floatingContainer?.alpha = 1.0f
+        floatingContainer?.alpha = if (isExpanded) 1.0f else 0.6f
         isCapturing = false
     }
 

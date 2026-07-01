@@ -889,6 +889,7 @@ async def upload_e_processar_comprovante(
     valor = 0.0
     origem = None
     destino = None
+    data_hora = None
 
     try:
         base64_image = base64.b64encode(conteudo).decode('utf-8')
@@ -906,21 +907,23 @@ async def upload_e_processar_comprovante(
                     "parts": [
                         {
                             "text": (
-                                "Você é um assistente especializado em ler prints de faturamento ou de corridas de motoristas "
-                                "(Uber, 99 ou outros). Extraia as seguintes informações do print:\n"
+                                "Você é um assistente especializado em ler prints de faturamento ou de corridas de motoristas (Uber, 99 ou outros).\n"
+                                "Extraia as seguintes informações do print de forma extremamente precisa:\n"
                                 f"{prompt_plataforma}"
                                 "1. Plataforma (UBER, 99 ou OUTROS)\n"
-                                "2. Valor total da corrida ou do faturamento selecionado\n"
+                                "2. Valor total da corrida ou do faturamento selecionado (represente como float, ex: 15.50)\n"
                                 "3. Local de Origem / Partida (se visível)\n"
-                                "4. Local de Destino / Chegada (se visível)\n\n"
+                                "4. Local de Destino / Chegada (se visível)\n"
+                                "5. Data e hora da corrida (se visível)\n\n"
                                 "Retorne estritamente um JSON no formato:\n"
                                 "{\n"
                                 "  \"plataforma\": \"UBER\" ou \"99\" ou \"OUTROS\",\n"
                                 "  \"valor\": float,\n"
                                 "  \"origem\": string ou null,\n"
-                                "  \"destino\": string ou null\n"
+                                "  \"destino\": string ou null,\n"
+                                "  \"data_hora\": string ou null\n"
                                 "}\n"
-                                "Não retorne nenhuma marcação markdown, apenas o JSON bruto."
+                                "Não retorne nenhuma marcação markdown ou texto explicativo, retorne apenas o JSON puro."
                             )
                         },
                         {
@@ -948,6 +951,7 @@ async def upload_e_processar_comprovante(
                 valor = float(parsed.get("valor", 0.0))
                 origem = parsed.get("origem")
                 destino = parsed.get("destino")
+                data_hora = parsed.get("data_hora")
             else:
                 if plataforma:
                     plataforma_final = plataforma.upper()
@@ -992,6 +996,7 @@ async def upload_e_processar_comprovante(
         "valor": valor,
         "origem": origem,
         "destino": destino,
+        "data_hora": data_hora,
         "url_comprovante": url_comprovante,
         "data_processamento": datetime.now(timezone.utc).isoformat()
     }
@@ -1029,6 +1034,7 @@ async def upload_e_processar_comprovante(
         "valor_extraido": valor,
         "origem": origem,
         "destino": destino,
+        "data_hora": data_hora,
         "novo_total_plataforma": val_uber if plataforma_final == "UBER" else (val_99 if plataforma_final == "99" else val_outros),
         "url_comprovante": url_comprovante
     }
@@ -1041,6 +1047,7 @@ async def revisar_comprovante(
     valor: float = Form(...),
     origem: Optional[str] = Form(None),
     destino: Optional[str] = Form(None),
+    data_hora: Optional[str] = Form(None),
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
@@ -1088,6 +1095,7 @@ async def revisar_comprovante(
         "valor": valor,
         "origem": origem,
         "destino": destino,
+        "data_hora": data_hora,
         "url_comprovante": url_comprovante,
         "data_processamento": datetime.now(timezone.utc).isoformat()
     }
