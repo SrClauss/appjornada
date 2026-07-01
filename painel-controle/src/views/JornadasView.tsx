@@ -430,6 +430,29 @@ export function JornadasView() {
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
 
+  useEffect(() => {
+    if (!selectedJornada) return;
+    const status = selectedJornada.status;
+    if (status !== 'ABERTA' && status !== 'EM_ANDAMENTO') return;
+
+    const pollRoute = async () => {
+      try {
+        const jId = selectedJornada.id || (selectedJornada as any)._id;
+        const { data } = await api.get(`/gps/motorista/${selectedJornada.motorista_id}/rota-ajustada`, {
+          params: { jornada_id: jId }
+        });
+        if (data && data.coordinates) {
+          setRouteCoordinates(data.coordinates);
+        }
+      } catch (e) {
+        console.error('Erro no polling da rota:', e);
+      }
+    };
+
+    const interval = setInterval(pollRoute, 5000);
+    return () => clearInterval(interval);
+  }, [selectedJornada]);
+
   const handleDeleteJornada = async (jId: string) => {
     if (!window.confirm("Tem certeza que deseja apagar esta jornada? Esta ação é irreversível e removerá também todo o histórico de GPS correspondente.")) {
       return;
