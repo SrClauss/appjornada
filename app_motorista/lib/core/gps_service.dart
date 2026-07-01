@@ -1,15 +1,217 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_motorista/core/api_service.dart';
 
+// Callback executado em um isolate Dart separado (Background Process)
+@pragma('vm:entry-point')
+void onStart(ServiceInstance service) async {
+  DartPluginRegistrant.ensureInitialized();
+
+  StreamSubscription<Position>? positionSubscription;
+  String? currentJornadaId;
+  DateTime? lastSentTime;
+  Position? lastPosition;
+
+  // Se o serviço for Android, configura eventos específicos
+  if (service is AndroidServiceInstance) {
+    service.on('setAsForeground').listen((event) {
+      service.setAsForegroundService();
+    });
+
+    service.on('setAsBackground').listen((event) {
+      service.setAsBackgroundService();
+    });
+  }
+
+  service.on('stopService').listen((event) {
+    positionSubscription?.cancel();
+    service.stopSelf();
+  });
+
+  // Função para ler o estado do SharedPreferences e iniciar ou parar o GPS
+  Future<void> syncTrackingState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jornadaId = prefs.getString('jornada_id');
+    final token = prefs.getString('token');
+    final baseUrl = prefs.getString('api_url') ?? defaultApiUrl;
+    final motoristaId = prefs.getString('motorista_id');
+
+    if (jornadaId != null && token != null && motoristaId != null) {
+      // Se já estiver rodando para a mesma jornada, não faz nada
+      if (positionSubscription != null && currentJornadaId == jornadaId) {
+        return;
+      }
+
+      // Limpa rastreamento anterior se houver
+      positionSubscription?.cancel();
+      currentJornadaId = jornadaId;
+      lastSentTime = null;
+      lastPosition = null;
+
+      print('[BackgroundService] Iniciando monitoramento GPS para jornada: $jornadaId');
+
+      if (service is AndroidServiceInstance) {
+        service.setForegroundNotificationInfo(
+          title: "Jornada em Andamento",
+          content: "Enviando telemetria em segundo plano.",
+        );
+      }
+
+      // Configuração de localização em segundo plano
+      LocationSettings locationSettings;
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        locationSettings = AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 0,
+          intervalDuration: const Duration(seconds: 15),
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+            notificationText: "Rastreando localização da jornada em segundo plano.",
+            notificationTitle: "Jornada em Andamento",
+            enableWakeLock: true,
+          ),
+        );
+      } else {
+        locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 0,
+        );
+      }
+
+      // Envia ponto de localização inicial imediatamente
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 5),
+        );
+        await _sendLocationBackground(baseUrl, token, motoristaId, jornadaId, pos, lastPosition);
+        lastPosition = pos;
+        lastSentTime = DateTime.now();
+      } catch (e) {
+        print('[BackgroundService] Erro no ponto inicial: $e');
+      }
+
+      // Escuta o fluxo de GPS continuamente
+      positionSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
+          .listen((Position pos) async {
+        final agora = DateTime.now();
+        // Limita o envio de pontos (throttle) a no mínimo 12 segundos
+        if (lastSentTime == null || agora.difference(lastSentTime!).inSeconds >= 12) {
+          lastSentTime = agora;
+          await _sendLocationBackground(baseUrl, token, motoristaId, jornadaId, pos, lastPosition);
+          lastPosition = pos;
+        }
+      });
+    } else {
+      // Se não há jornada ativa ou credenciais, para o rastreamento e o serviço
+      if (positionSubscription != null) {
+        positionSubscription?.cancel();
+        positionSubscription = null;
+        currentJornadaId = null;
+        print('[BackgroundService] Rastreamento cancelado: sem jornada ativa.');
+      }
+      service.stopSelf();
+    }
+  }
+
+  // Sincroniza o estado ao iniciar o serviço
+  await syncTrackingState();
+
+  // Escuta sinais da UI principal para ressincronizar
+  service.on('syncState').listen((event) async {
+    await syncTrackingState();
+  });
+}
+
+// Envia a localização diretamente em segundo plano usando parâmetros isolados
+Future<void> _sendLocationBackground(
+  String baseUrl,
+  String token,
+  String motoristaId,
+  String jornadaId,
+  Position pos,
+  Position? lastPosition,
+) async {
+  try {
+    double distance = 0.0;
+    if (lastPosition != null) {
+      distance = Geolocator.distanceBetween(
+        lastPosition.latitude,
+        lastPosition.longitude,
+        pos.latitude,
+        pos.longitude,
+      );
+    }
+
+    final status = pos.speed > 0.8 ? 'CONDUZINDO' : 'PARADO';
+
+    final body = {
+      'motorista_id': motoristaId,
+      'jornada_id': jornadaId,
+      'localizacao': {
+        'type': 'Point',
+        'coordinates': [pos.longitude, pos.latitude],
+      },
+      'distancia_ultima_m': distance,
+      'status': status,
+    };
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/gps'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 201) {
+      print('[BackgroundService] GPS enviado: [${pos.latitude}, ${pos.longitude}], status: $status, dist: ${distance.toStringAsFixed(1)}m');
+    } else {
+      print('[BackgroundService] Erro no envio (${response.statusCode}): ${response.body}');
+    }
+  } catch (e) {
+    print('[BackgroundService] Exceção ao enviar localização: $e');
+  }
+}
+
+// Ponto de entrada executado no iOS em segundo plano
+@pragma('vm:entry-point')
+Future<bool> onIosBackground(ServiceInstance service) async {
+  return true;
+}
+
 class GpsService {
-  static StreamSubscription<Position>? _positionSubscription;
-  static Position? _lastPosition;
-  static DateTime? _lastSentTime;
   static bool isRunning = false;
+
+  // Configura e inicializa o serviço de plano de fundo
+  static Future<void> initializeService() async {
+    final service = FlutterBackgroundService();
+
+    await service.configure(
+      androidConfiguration: AndroidConfiguration(
+        onStart: onStart,
+        autoStart: false, // Só iniciamos quando a jornada for aberta
+        autoStartOnBoot: false,
+        isForegroundMode: true,
+        notificationChannelId: 'gps_telemetria_channel',
+        initialNotificationTitle: 'Rastreamento de Jornada',
+        initialNotificationContent: 'Aguardando telemetria...',
+        foregroundServiceNotificationId: 8888,
+      ),
+      iosConfiguration: IosConfiguration(
+        autoStart: false,
+        onForeground: onStart,
+        onBackground: onIosBackground,
+      ),
+    );
+  }
 
   // Solicita as permissões necessárias para o GPS
   static Future<bool> requestPermissions() async {
@@ -36,121 +238,53 @@ class GpsService {
     return true;
   }
 
-  // Inicia o rastreamento periódico em segundo plano se a jornada estiver ativa
+  // Inicia o rastreamento em segundo plano persistente
   static Future<void> startTracking(String jornadaId) async {
-    if (isRunning) return;
-
     final hasPerm = await requestPermissions();
     if (!hasPerm) {
       print('[GpsService] Permissão de GPS negada.');
       return;
     }
 
+    // Salva o estado atual no SharedPreferences para o isolate ler
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('jornada_id', jornadaId);
+    if (ApiService.token != null) {
+      await prefs.setString('token', ApiService.token!);
+    }
+    if (ApiService.motoristaId != null) {
+      await prefs.setString('motorista_id', ApiService.motoristaId!);
+    }
+    await prefs.setString('api_url', ApiService.baseUrl);
+
     isRunning = true;
-    _lastPosition = null;
-    _lastSentTime = null;
 
-    // Enviar ponto inicial imediatamente
-    await _sendCurrentLocation(jornadaId);
-
-    // Configurações do geolocator para segundo plano
-    LocationSettings locationSettings;
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-        intervalDuration: const Duration(seconds: 15),
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: "Rastreando localização da jornada em segundo plano.",
-          notificationTitle: "Jornada em Andamento",
-          enableWakeLock: true,
-        ),
-      );
+    // Inicializa/Inicia o serviço nativo
+    final service = FlutterBackgroundService();
+    final serviceRunning = await service.isRunning();
+    if (!serviceRunning) {
+      await service.startService();
     } else {
-      locationSettings = const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-      );
+      service.invoke('syncState');
     }
 
-    _positionSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
-        .listen((Position pos) async {
-      final agora = DateTime.now();
-      // Throttle de envio: evita sobrecarga, limitando a 12 segundos mínimos entre envios
-      if (_lastSentTime == null || agora.difference(_lastSentTime!).inSeconds >= 12) {
-        _lastSentTime = agora;
-        await _sendLocation(jornadaId, pos);
-      }
-    });
-
-    print('[GpsService] Rastreamento em segundo plano iniciado para a jornada $jornadaId.');
+    print('[GpsService] Rastreamento em segundo plano iniciado para jornada $jornadaId.');
   }
 
-  // Envia a localização atual para a API
-  static Future<void> _sendLocation(String jornadaId, Position pos) async {
-    try {
-      double distance = 0.0;
-      if (_lastPosition != null) {
-        distance = Geolocator.distanceBetween(
-          _lastPosition!.latitude,
-          _lastPosition!.longitude,
-          pos.latitude,
-          pos.longitude,
-        );
-      }
+  // Para o rastreamento periódico e o serviço de background
+  static Future<void> stopTracking() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jornada_id');
 
-      _lastPosition = pos;
-
-      // Status do motorista baseado na velocidade (m/s)
-      // Se velocidade > 0.8 m/s (~3 km/h) -> CONDUZINDO, senão PARADO
-      final status = pos.speed > 0.8 ? 'CONDUZINDO' : 'PARADO';
-
-      final body = {
-        'motorista_id': ApiService.motoristaId,
-        'jornada_id': jornadaId,
-        'localizacao': {
-          'type': 'Point',
-          'coordinates': [pos.longitude, pos.latitude], // [longitude, latitude]
-        },
-        'distancia_ultima_m': distance,
-        'status': status,
-      };
-
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/gps'),
-        headers: ApiService.headers,
-        body: json.encode(body),
-      );
-
-      if (response.statusCode == 201) {
-        print('[GpsService] Ponto GPS enviado com sucesso: [${pos.latitude}, ${pos.longitude}], status: $status, dist: ${distance.toStringAsFixed(1)}m');
-      } else {
-        print('[GpsService] Erro ao enviar ponto GPS (${response.statusCode}): ${response.body}');
-      }
-    } catch (e) {
-      print('[GpsService] Erro ao obter/enviar localização: $e');
-    }
-  }
-
-  static Future<void> _sendCurrentLocation(String jornadaId) async {
-    try {
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 5),
-      );
-      await _sendLocation(jornadaId, pos);
-    } catch (e) {
-      print('[GpsService] Erro no ponto inicial: $e');
-    }
-  }
-
-  // Para o rastreamento periódico
-  static void stopTracking() {
-    _positionSubscription?.cancel();
-    _positionSubscription = null;
     isRunning = false;
-    _lastPosition = null;
-    _lastSentTime = null;
+
+    // Envia sinal para o serviço parar
+    final service = FlutterBackgroundService();
+    final serviceRunning = await service.isRunning();
+    if (serviceRunning) {
+      service.invoke('stopService');
+    }
+
     print('[GpsService] Rastreamento parado.');
   }
 }

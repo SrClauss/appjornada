@@ -34,9 +34,10 @@ import 'leaflet/dist/leaflet.css';
 
 interface MapViewProps {
   coordinates: [number, number][];
+  corridasParticulares?: any[];
 }
 
-function JourneyMap({ coordinates }: MapViewProps) {
+function JourneyMap({ coordinates, corridasParticulares }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -83,9 +84,15 @@ function JourneyMap({ coordinates }: MapViewProps) {
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
     });
 
-    const centerPoint: [number, number] = latLngs.length > 0
-      ? latLngs[0]
-      : [-20.3155, -40.2944];
+    let centerPoint: [number, number] = [-20.3155, -40.2944];
+    if (latLngs.length > 0) {
+      centerPoint = latLngs[0];
+    } else if (corridasParticulares && corridasParticulares.length > 0) {
+      const firstCp = corridasParticulares[0];
+      if (firstCp.localizacao_inicio?.lat && firstCp.localizacao_inicio?.lon) {
+        centerPoint = [firstCp.localizacao_inicio.lat, firstCp.localizacao_inicio.lon];
+      }
+    }
 
     const map = L.map(mapContainerRef.current).setView(centerPoint, 13);
     mapRef.current = map;
@@ -103,68 +110,124 @@ function JourneyMap({ coordinates }: MapViewProps) {
         mapRef.current = null;
       }
     };
-  }, [coordinates.length === 0]);
+  }, [coordinates.length === 0, !corridasParticulares || corridasParticulares.length === 0]);
 
   useEffect(() => {
     const map = mapRef.current;
     const layerGroup = layerGroupRef.current;
-    if (!map || !layerGroup || latLngs.length === 0) return;
+    if (!map || !layerGroup) return;
 
     layerGroup.clearLayers();
 
-    const startIcon = L.divIcon({
-      className: 'custom-marker-start',
-      html: '<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
-    });
-
-    const endIcon = L.divIcon({
-      className: 'custom-marker-end',
-      html: '<div style="background-color: #ef4444; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
-    });
-
     let mainBounds: L.LatLngBounds | null = null;
 
-    segments.forEach((seg) => {
-      const color = seg.direction === 'away' ? '#3b82f6' : '#10b981';
-      const name = seg.direction === 'away' ? 'Afastando-se da Base (Outbound)' : 'Aproximando-se da Base (Inbound)';
-      
-      const poly = L.polyline(seg.coords, {
-        color,
-        weight: 5,
-        opacity: 0.85,
-        lineJoin: 'round',
-      }).addTo(layerGroup);
+    if (latLngs.length > 0) {
+      const startIcon = L.divIcon({
+        className: 'custom-marker-start',
+        html: '<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
 
-      poly.bindPopup(`<strong>Trecho: ${name}</strong>`);
+      const endIcon = L.divIcon({
+        className: 'custom-marker-end',
+        html: '<div style="background-color: #ef4444; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
 
-      if (!mainBounds) {
-        mainBounds = poly.getBounds();
-      } else {
-        mainBounds.extend(poly.getBounds());
-      }
-    });
+      segments.forEach((seg) => {
+        const color = seg.direction === 'away' ? '#3b82f6' : '#10b981';
+        const name = seg.direction === 'away' ? 'Afastando-se da Base (Outbound)' : 'Aproximando-se da Base (Inbound)';
+        
+        const poly = L.polyline(seg.coords, {
+          color,
+          weight: 5,
+          opacity: 0.85,
+          lineJoin: 'round',
+        }).addTo(layerGroup);
 
-    L.marker(latLngs[0], { icon: startIcon }).addTo(layerGroup).bindPopup('Base de Operações (Início)');
-    L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).addTo(layerGroup).bindPopup('Última coordenada registrada');
+        poly.bindPopup(`<strong>Trecho: ${name}</strong>`);
 
-    // Estende os limites para incluir o início e o fim da jornada
-    latLngs.forEach((latLng) => {
-      const ll = L.latLng(latLng[0], latLng[1]);
-      if (!mainBounds) {
-        mainBounds = L.latLngBounds(ll, ll);
-      } else {
-        mainBounds.extend(ll);
-      }
-    });
+        if (!mainBounds) {
+          mainBounds = poly.getBounds();
+        } else {
+          mainBounds.extend(poly.getBounds());
+        }
+      });
+
+      L.marker(latLngs[0], { icon: startIcon }).addTo(layerGroup).bindPopup('Base de Operações (Início)');
+      L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).addTo(layerGroup).bindPopup('Última coordenada registrada');
+
+      latLngs.forEach((latLng) => {
+        const ll = L.latLng(latLng[0], latLng[1]);
+        if (!mainBounds) {
+          mainBounds = L.latLngBounds(ll, ll);
+        } else {
+          mainBounds.extend(ll);
+        }
+      });
+    }
+
+    // Marcadores de corridas particulares
+    if (corridasParticulares && corridasParticulares.length > 0) {
+      corridasParticulares.forEach((cp) => {
+        if (cp.localizacao_inicio?.lat && cp.localizacao_inicio?.lon) {
+          const startIconCP = L.divIcon({
+            className: 'custom-marker-cp-start',
+            html: '<div style="background-color: #6366F1; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+          });
+          const startLatLng = L.latLng(cp.localizacao_inicio.lat, cp.localizacao_inicio.lon);
+          L.marker(startLatLng, { icon: startIconCP })
+            .addTo(layerGroup)
+            .bindPopup(`<strong>Corrida Particular (Início)</strong><br/>ID: ${cp.id}<br/>Km Inicial: ${cp.km_inicio} km`);
+
+          if (!mainBounds) {
+            mainBounds = L.latLngBounds(startLatLng, startLatLng);
+          } else {
+            mainBounds.extend(startLatLng);
+          }
+        }
+
+        if (cp.destino_coordenadas?.lat && cp.destino_coordenadas?.lon) {
+          const destIconCP = L.divIcon({
+            className: 'custom-marker-cp-dest',
+            html: '<div style="background-color: #EC4899; width: 16px; height: 16px; border-radius: 4px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+          });
+          const destLatLng = L.latLng(cp.destino_coordenadas.lat, cp.destino_coordenadas.lon);
+          L.marker(destLatLng, { icon: destIconCP })
+            .addTo(layerGroup)
+            .bindPopup(`<strong>Corrida Particular (Destino)</strong><br/>Endereço: ${cp.destino_endereco || 'Não especificado'}<br/>Distância Estimada: ${cp.google_distancia_km?.toFixed(2) ?? '0.00'} km`);
+
+          if (!mainBounds) {
+            mainBounds = L.latLngBounds(destLatLng, destLatLng);
+          } else {
+            mainBounds.extend(destLatLng);
+          }
+
+          if (cp.localizacao_inicio?.lat && cp.localizacao_inicio?.lon) {
+            L.polyline([
+              [cp.localizacao_inicio.lat, cp.localizacao_inicio.lon],
+              [cp.destino_coordenadas.lat, cp.destino_coordenadas.lon]
+            ], {
+              color: '#8B5CF6',
+              weight: 3,
+              dashArray: '5, 8',
+              opacity: 0.8
+            }).addTo(layerGroup);
+          }
+        }
+      });
+    }
 
     if (mainBounds) {
       map.fitBounds(mainBounds, { padding: [30, 30], maxZoom: 16 });
     }
-  }, [coordinates]);
+  }, [coordinates, corridasParticulares]);
 
   return (
     <div className="relative w-full h-full">
@@ -187,6 +250,14 @@ function JourneyMap({ coordinates }: MapViewProps) {
         <div className="flex items-center gap-2.5">
           <div className="w-2.5 h-2.5 bg-[#ef4444] rounded-full border border-white" />
           <span>Último Ponto Registrado</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 bg-[#6366F1] rounded-full border border-white" />
+          <span>Partida Corrida Particular</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <div className="w-3.5 h-3.5 bg-[#EC4899] rounded-sm border border-white" />
+          <span>Destino Corrida Particular</span>
         </div>
       </div>
     </div>
@@ -334,6 +405,38 @@ interface TimelineEvent {
 
 const getTimelineEvents = (j: Jornada): TimelineEvent[] => {
   const events: TimelineEvent[] = [];
+
+  if ((j as any).corridas_particulares) {
+    (j as any).corridas_particulares.forEach((cp: any) => {
+      let timeStrIni = '';
+      if (cp.horario_inicio) {
+        const parts = cp.horario_inicio.split('T');
+        timeStrIni = parts.length > 1 ? parts[1].substring(0, 8) : cp.horario_inicio;
+      }
+      events.push({
+        time: timeStrIni || '00:00:00',
+        type: 'inicio' as any,
+        title: `Corrida Particular Iniciada (ID: ${cp.id})`,
+        description: `Destino: ${cp.destino_endereco || 'Não definido'} | Km inicial: ${cp.km_inicio} km`,
+        icon: <Compass size={12} weight="fill" />,
+        colorClass: 'bg-indigo-500 text-white',
+      });
+
+      if (cp.horario_fim) {
+        let timeStrFim = '';
+        const parts = cp.horario_fim.split('T');
+        timeStrFim = parts.length > 1 ? parts[1].substring(0, 8) : cp.horario_fim;
+        events.push({
+          time: timeStrFim || '00:00:00',
+          type: 'fim' as any,
+          title: `Corrida Particular Finalizada (ID: ${cp.id})`,
+          description: `Valor: R$ ${cp.valor_calculado?.toFixed(2) ?? '0.00'} | Km final: ${cp.km_fim} km (${cp.km_rodados ?? 0} km rodados)`,
+          icon: <Flag size={12} weight="fill" />,
+          colorClass: 'bg-violet-500 text-white',
+        });
+      }
+    });
+  }
 
   if (j.horario?.inicio) {
     events.push({
@@ -584,6 +687,39 @@ export function JornadasView() {
     return new Date(ts).getTime();
   };
 
+  const getSafeDate = (ts: any): Date => {
+    if (!ts) return new Date();
+    if (typeof ts === 'string') {
+      let cleaned = ts.trim().replace(' ', 'T');
+      if (!cleaned.endsWith('Z') && !cleaned.includes('+') && !cleaned.includes('-')) {
+        cleaned += 'Z';
+      }
+      const d = new Date(cleaned);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date(ts);
+  };
+
+  const formatDateTime = (ts: any): string => {
+    const d = getSafeDate(ts);
+    if (isNaN(d.getTime())) return String(ts);
+    try {
+      return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    } catch (e) {
+      return d.toLocaleString('pt-BR');
+    }
+  };
+
+  const formatTimeOnly = (ts: any): string => {
+    const d = getSafeDate(ts);
+    if (isNaN(d.getTime())) return String(ts);
+    try {
+      return d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    } catch (e) {
+      return d.toLocaleTimeString('pt-BR');
+    }
+  };
+
   // Função para carregar o GPS bruto de uma jornada
   const fetchGpsForJornada = async (motoristaId: string, jornadaId: string) => {
     if (gpsCache[jornadaId]) return gpsCache[jornadaId];
@@ -672,7 +808,7 @@ export function JornadasView() {
           }
           stops.push({
             coords,
-            label: `Parada às ${new Date(pt.timestamp).toLocaleTimeString('pt-BR')}`,
+            label: `Parada às ${formatTimeOnly(pt.timestamp)}`,
           });
         } else {
           // Verificar hifens temporais superiores a 5 minutos
@@ -814,10 +950,20 @@ export function JornadasView() {
 
       // Filtro por intervalo de horário (HH:MM)
       if (horaInicio || horaFim) {
-        const evDate = new Date(ev.timestamp);
-        const evHours = evDate.getHours();
-        const evMinutes = evDate.getMinutes();
-        const evTimeStr = `${String(evHours).padStart(2, '0')}:${String(evMinutes).padStart(2, '0')}`;
+        const evDate = getSafeDate(ev.timestamp);
+        let evTimeStr = '';
+        try {
+          evTimeStr = new Intl.DateTimeFormat('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }).format(evDate);
+        } catch (e) {
+          const evHours = evDate.getHours();
+          const evMinutes = evDate.getMinutes();
+          evTimeStr = `${String(evHours).padStart(2, '0')}:${String(evMinutes).padStart(2, '0')}`;
+        }
         
         if (horaInicio && evTimeStr < horaInicio) return false;
         if (horaFim && evTimeStr > horaFim) return false;
@@ -1042,9 +1188,12 @@ export function JornadasView() {
                       <div className="w-full h-full flex items-center justify-center bg-slate-50">
                         <span className="text-sm text-slate-500 animate-pulse">Carregando telemetria...</span>
                       </div>
-                    ) : routeCoordinates.length > 0 ? (
+                    ) : (routeCoordinates.length > 0 || (selectedJornada.corridas_particulares && selectedJornada.corridas_particulares.length > 0)) ? (
                       <div className="w-full h-full relative">
-                        <JourneyMap coordinates={routeCoordinates} />
+                        <JourneyMap 
+                          coordinates={routeCoordinates} 
+                          corridasParticulares={selectedJornada.corridas_particulares}
+                        />
                       </div>
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-center p-6">
@@ -1545,7 +1694,7 @@ export function JornadasView() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[50px] text-center">Faixa</TableHead>
-                      <TableHead>Horário (UTC)</TableHead>
+                      <TableHead>Horário (São Paulo)</TableHead>
                       <TableHead>Motorista</TableHead>
                       <TableHead>Veículo</TableHead>
                       <TableHead>Evento</TableHead>
@@ -1624,7 +1773,7 @@ export function JornadasView() {
                             </TableCell>
                           <TableCell className="font-mono text-xs">
                             <div className="font-semibold text-slate-700">
-                              {new Date(ev.timestamp).toLocaleString('pt-BR')}
+                              {formatDateTime(ev.timestamp)}
                             </div>
                             {ev.rua ? (
                               <div className="text-[10px] text-slate-500 font-sans mt-0.5 max-w-[180px] truncate" title={ev.rua}>

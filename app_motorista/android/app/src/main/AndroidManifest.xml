@@ -60,6 +60,10 @@
             android:exported="false"
             android:foregroundServiceType="location"
             android:stopWithTask="false" />
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="location"
+            android:exported="true" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

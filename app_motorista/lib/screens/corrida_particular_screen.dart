@@ -76,10 +76,101 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
     }
   }
 
+  Future<void> _initCurrentLocation() async {
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 4),
+      );
+      if (mounted) {
+        setState(() {
+          _originLatLng = LatLng(pos.latitude, pos.longitude);
+        });
+        _mapController.move(_originLatLng!, 14.0);
+      }
+    } catch (e) {
+      print('Erro ao obter localizacao inicial: $e');
+      final list = widget.jornada['historico_gps'] as List?;
+      if (list != null && list.isNotEmpty) {
+        final lastPoint = list.last;
+        final lat = (lastPoint['lat'] as num).toDouble();
+        final lon = (lastPoint['lon'] as num).toDouble();
+        if (mounted) {
+          setState(() {
+            _originLatLng = LatLng(lat, lon);
+          });
+          _mapController.move(_originLatLng!, 14.0);
+        }
+      }
+    }
+  }
+
+  Future<void> _onMapTap(LatLng position) async {
+    if (_activeCorrida != null || _loading || _calculatingRoute) return;
+
+    setState(() {
+      _searchingDest = true;
+      _suggestions.clear();
+      _selectedDest = null;
+      _estimatedDistanceKm = null;
+      _estimatedDurationMin = null;
+      _estimatedPrice = null;
+      _destLatLng = position;
+    });
+
+    try {
+      final uri = Uri.parse('${ApiService.baseUrl}/gps/reverse').replace(
+        queryParameters: {
+          'lat': position.latitude.toString(),
+          'lon': position.longitude.toString(),
+        }
+      );
+      final res = await http.get(uri, headers: ApiService.headers);
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        setState(() {
+          _selectedDest = {
+            'display_name': data['display_name'] ?? 'Ponto no Mapa',
+            'lat': position.latitude,
+            'lon': position.longitude,
+          };
+          _destController.text = data['display_name'] ?? 'Ponto no Mapa';
+        });
+        await _calculateRoute();
+      } else {
+        setState(() {
+          _selectedDest = {
+            'display_name': 'Ponto selecionado (${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})',
+            'lat': position.latitude,
+            'lon': position.longitude,
+          };
+          _destController.text = _selectedDest!['display_name'];
+        });
+        await _calculateRoute();
+      }
+    } catch (e) {
+      print('Erro ao reverter coordenadas: $e');
+      setState(() {
+        _selectedDest = {
+          'display_name': 'Ponto selecionado (${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})',
+          'lat': position.latitude,
+          'lon': position.longitude,
+        };
+        _destController.text = _selectedDest!['display_name'];
+      });
+      await _calculateRoute();
+    } finally {
+      setState(() {
+        _searchingDest = false;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _initTts();
+    _initCurrentLocation();
     _checkActiveCorrida();
     _loadPrecosBands();
     _startPolling();
@@ -1222,34 +1313,113 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                color: const Color(0xFF1E293B),
-                child: Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Column(
+              Container(
+                height: 320,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.teal.withOpacity(0.3), width: 1.5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Stack(
                     children: [
-                      Icon(
-                        Icons.stop_circle,
-                        color: Colors.grey,
-                        size: 64,
+                      FlutterMap(
+                        mapController: _mapController,
+                        options: MapOptions(
+                          initialCenter: _originLatLng ?? const LatLng(-18.7144, -39.8280),
+                          initialZoom: 14,
+                          onTap: (tapPosition, point) => _onMapTap(point),
+                          interactionOptions: const InteractionOptions(
+                            flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                          ),
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                            userAgentPackageName: 'com.srclauss.appjornada.app_motorista',
+                          ),
+                          if (_routePoints.isNotEmpty)
+                            PolylineLayer(
+                              polylines: [
+                                Polyline(
+                                  points: _routePoints,
+                                  strokeWidth: 6,
+                                  color: const Color(0xFF1A73E8), // Google Blue
+                                ),
+                              ],
+                            ),
+                          MarkerLayer(
+                            markers: [
+                              if (_originLatLng != null)
+                                Marker(
+                                  point: _originLatLng!,
+                                  width: 16,
+                                  height: 16,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 4,
+                                          offset: Offset(0, 2),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              if (_destLatLng != null)
+                                Marker(
+                                  point: _destLatLng!,
+                                  width: 32,
+                                  height: 32,
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    color: Colors.red,
+                                    size: 32,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 16),
-                      Text(
-                        'SEM CORRIDA ATIVA',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xCC0F172A),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.tealAccent.withOpacity(0.5)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.touch_app, color: Colors.tealAccent, size: 14),
+                              SizedBox(width: 6),
+                              Text(
+                                'Toque no mapa para definir o destino',
+                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               
               if (_loading)
                 const Center(child: CircularProgressIndicator())
@@ -1356,77 +1526,7 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                               style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           const SizedBox(height: 16),
-                          if (_routePoints.isNotEmpty && _originLatLng != null && _destLatLng != null) ...[
-                            Container(
-                              height: 220,
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.teal.withOpacity(0.3)),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(11),
-                                child: FlutterMap(
-                                  mapController: _mapController,
-                                  options: MapOptions(
-                                    initialCenter: _originLatLng!,
-                                    initialZoom: 13,
-                                    interactionOptions: const InteractionOptions(
-                                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                                    ),
-                                  ),
-                                  children: [
-                                    TileLayer(
-                                      urlTemplate: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-                                      userAgentPackageName: 'com.example.app_motorista',
-                                    ),
-                                    PolylineLayer(
-                                      polylines: [
-                                        Polyline(
-                                          points: _routePoints,
-                                          strokeWidth: 6,
-                                          color: const Color(0xFF1A73E8), // Google Blue
-                                        ),
-                                      ],
-                                    ),
-                                    MarkerLayer(
-                                      markers: [
-                                        Marker(
-                                          point: _originLatLng!,
-                                          width: 16,
-                                          height: 16,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.green,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(color: Colors.white, width: 2),
-                                              boxShadow: const [
-                                                BoxShadow(
-                                                  color: Colors.black26,
-                                                  blurRadius: 4,
-                                                  offset: Offset(0, 2),
-                                                )
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        Marker(
-                                          point: _destLatLng!,
-                                          width: 28,
-                                          height: 28,
-                                          child: const Icon(
-                                            Icons.location_on,
-                                            color: Colors.red,
-                                            size: 28,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+
                           const Text(
                             '* Explique a estimativa ao passageiro antes de iniciar.',
                             style: TextStyle(color: Colors.amberAccent, fontSize: 12, fontStyle: FontStyle.italic),

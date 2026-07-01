@@ -22,7 +22,9 @@ import 'package:app_motorista/steps/km_morta_step.dart';
 import 'package:app_motorista/core/gps_service.dart';
 import 'package:geolocator/geolocator.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await GpsService.initializeService();
   runApp(const AppJornadaMotorista());
 }
 

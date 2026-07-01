@@ -66,5 +66,15 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Este aplicativo precisa da sua localização enquanto está em uso para rastrear a jornada de trabalho.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Este aplicativo precisa da sua localização em segundo plano para rastrear a jornada de trabalho de forma contínua.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Este aplicativo precisa da sua localização em segundo plano para rastrear a jornada de trabalho de forma contínua.</string>
 </dict>
 </plist>
