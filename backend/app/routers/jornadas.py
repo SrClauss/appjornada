@@ -963,14 +963,17 @@ async def upload_e_processar_comprovante(
     url_comprovante = await uploads_mod._salvar_arquivo(arquivo, "comprovante")
 
     # 4. Atualiza os faturamentos da jornada ativa
-    faturamento = doc.get("faturamento") or {}
-    val_uber = faturamento.get("uber") or 0.0
-    val_99 = faturamento.get("noventa_nove") or 0.0
-    val_outros = faturamento.get("outros") or 0.0
+    faturamento_existente = doc.get("faturamento") or {}
+    if not isinstance(faturamento_existente, dict):
+        faturamento_existente = {}
+
+    val_uber = faturamento_existente.get("uber") or 0.0
+    val_99 = faturamento_existente.get("noventa_nove") or 0.0
+    val_outros = faturamento_existente.get("outros") or 0.0
     
-    comp_uber = faturamento.get("comprovante_uber_url")
-    comp_99 = faturamento.get("comprovante_99_url")
-    comp_outros = faturamento.get("comprovante_outros_url")
+    comp_uber = faturamento_existente.get("comprovante_uber_url")
+    comp_99 = faturamento_existente.get("comprovante_99_url")
+    comp_outros = faturamento_existente.get("comprovante_outros_url")
 
     if plataforma_final == "UBER":
         val_uber = round(val_uber + valor, 2)
@@ -993,21 +996,29 @@ async def upload_e_processar_comprovante(
         "data_processamento": datetime.now(timezone.utc).isoformat()
     }
 
-    update = {
-        "faturamento.uber": val_uber,
-        "faturamento.noventa_nove": val_99,
-        "faturamento.outros": val_outros,
-        "faturamento.total_dia": total_dia,
-        "faturamento.comprovante_uber_url": comp_uber,
-        "faturamento.comprovante_99_url": comp_99,
-        "faturamento.comprovante_outros_url": comp_outros,
+    comprovantes_processados = faturamento_existente.get("comprovantes_processados") or []
+    if not isinstance(comprovantes_processados, list):
+        comprovantes_processados = []
+    comprovantes_processados.append(novo_comprovante)
+
+    faturamento_atualizado = {
+        "uber": val_uber,
+        "noventa_nove": val_99,
+        "outros": val_outros,
+        "total_dia": total_dia,
+        "comprovante_uber_url": comp_uber,
+        "comprovante_99_url": comp_99,
+        "comprovante_outros_url": comp_outros,
+        "comprovantes_processados": comprovantes_processados,
+        "corridas_uber": faturamento_existente.get("corridas_uber") or 0,
+        "corridas_99": faturamento_existente.get("corridas_99") or 0,
+        "corridas_outros": faturamento_existente.get("corridas_outros") or 0
     }
 
     await db["jornadas"].update_one(
         {"_id": doc["_id"]},
         {
-            "$set": update,
-            "$push": {"faturamento.comprovantes_processados": novo_comprovante}
+            "$set": {"faturamento": faturamento_atualizado}
         }
     )
     

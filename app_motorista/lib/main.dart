@@ -198,6 +198,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             }
           } else {
             // Se a jornada não está mais ativa ou se o app está iniciando, envia o motorista para o trilho
+            GpsService.stopTracking();
             if (_currentScreen == 'dashboard' || _currentScreen == 'pausa' || _currentScreen == 'manutencao' || _currentScreen == 'splash') {
               _currentScreen = 'trilho';
               _trilhoStep = 'auditoria';
@@ -213,7 +214,10 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         await prefs2.remove('motorista_nome');
         await prefs2.remove('motorista_pin');
         ApiService.token = null;
+        GpsService.stopTracking();
       }
+    } else {
+      GpsService.stopTracking();
     }
     setState(() {
       _currentScreen = 'login';
