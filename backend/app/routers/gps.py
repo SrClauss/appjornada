@@ -46,10 +46,8 @@ async def tentar_mesclar_ponto_gps(db, motorista_id, jornada_id, timestamp, coor
             last_lon, last_lat = last_coords[0], last_coords[1]
             dist = calcular_distancia_m(last_lat, last_lon, coords_lat, coords_lon)
             
-            # Condições para mesclar:
-            # 1. Se ambos estão PARADOS (ou o novo/último ponto indica parado) e a distância é pequena (ex: < 20m)
-            # 2. Se a distância é extremamente pequena (ex: < 10m), indicando essencialmente a mesma posição
-            limiar = 20.0 if (status == "PARADO" or last_pt.get("status") == "PARADO") else 10.0
+            # Mesclar pontos com distância inferior a 2.0 metros (mesma posição essencial)
+            limiar = 2.0
             
             if dist < limiar:
                 contador = last_pt.get("contador_mesclados", 1) + 1
