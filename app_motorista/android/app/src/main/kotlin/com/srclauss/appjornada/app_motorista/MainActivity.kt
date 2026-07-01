@@ -263,6 +263,28 @@ class MainActivity : FlutterActivity() {
         notificationManager.notify(2003, notification)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (OverlayBubbleService.isServiceRunning) {
+            val serviceIntent = Intent(this, OverlayBubbleService::class.java).apply {
+                action = "ACTION_SET_VISIBLE"
+                putExtra("visible", false)
+            }
+            startService(serviceIntent)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (OverlayBubbleService.isServiceRunning) {
+            val serviceIntent = Intent(this, OverlayBubbleService::class.java).apply {
+                action = "ACTION_SET_VISIBLE"
+                putExtra("visible", true)
+            }
+            startService(serviceIntent)
+        }
+    }
+
     companion object {
         var pendingRevision: Map<String, Any?>? = null
     }

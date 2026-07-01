@@ -580,6 +580,49 @@ async def fechar_jornada(
     km_rodados = round(km_final - km_inicial, 1)
     total_faturamento = faturamento_uber + faturamento_99 + faturamento_outros
 
+    # Calcular bonus baseado no faturamento total e horario de inicio
+    bonus_dia = 0.0
+    try:
+        from datetime import time as dt_time
+        metas = await db["metas_bonus"].find().to_list(100)
+        j_inicio_str = doc.get("horario", {}).get("inicio")
+        j_time = None
+        if j_inicio_str:
+            parts = j_inicio_str.split(":")
+            if len(parts) >= 2:
+                h = int(parts[0])
+                m = int(parts[1])
+                s = int(parts[2].split(".")[0]) if len(parts) > 2 else 0
+                j_time = dt_time(h, m, s)
+            
+        for meta in metas:
+            fmin = meta.get("faixa_minima") or 0.0
+            fmax = meta.get("faixa_maxima")
+            if total_faturamento >= fmin and (fmax is None or total_faturamento <= fmax):
+                h_ini_str = meta.get("hora_inicio")
+                h_fim_str = meta.get("hora_fim")
+                if h_ini_str and h_fim_str and j_time:
+                    try:
+                        ini_parts = h_ini_str.split(":")
+                        h_ini = dt_time(int(ini_parts[0]), int(ini_parts[1]), int(ini_parts[2]) if len(ini_parts) > 2 else 0)
+                        
+                        fim_parts = h_fim_str.split(":")
+                        h_fim = dt_time(int(fim_parts[0]), int(fim_parts[1]), int(fim_parts[2]) if len(fim_parts) > 2 else 0)
+                        
+                        if h_ini <= h_fim:
+                            if not (h_ini <= j_time <= h_fim):
+                                continue
+                        else:
+                            if not (j_time >= h_ini or j_time <= h_fim):
+                                continue
+                    except Exception as e_time:
+                        print("Erro ao verificar faixa horaria:", e_time)
+                        continue
+                
+                bonus_dia = max(bonus_dia, meta.get("bonus") or 0.0)
+    except Exception as e:
+        print("Erro ao calcular bonus no fechamento:", e)
+
     update = {
         "status": "ENCERRADA",
         "horario.fim": fim.time().isoformat(),
@@ -594,6 +637,7 @@ async def fechar_jornada(
         "faturamento.corridas_99": corridas_99,
         "faturamento.corridas_outros": corridas_outros,
         "saldo_horas_dia": _calcular_saldo_horas(total_segundos),
+        "bonus_dia": bonus_dia,
     }
     # Registra localização final se fornecida
     if localizacao_lat is not None and localizacao_lon is not None:
@@ -1475,3 +1519,119 @@ async def deletar_jornada(
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao deletar jornada: {str(e)}")
+
+
+def _deletar_arquivo_por_url(url: str):
+    if not url:
+        return
+    parts = url.split("/static/uploads/")
+    if len(parts) < 2:
+        url_parts = [p for p in url.split("/") if p]
+        if len(url_parts) >= 2:
+            contexto = url_parts[-2]
+            filename = url_parts[-1]
+        else:
+            return
+    else:
+        path_parts = parts[1].split("/")
+        if len(path_parts) >= 2:
+            contexto = path_parts[0]
+            filename = path_parts[1]
+        else:
+            return
+
+    try:
+        from app.routers.uploads import UPLOAD_DIR, MINIO_ENABLED, MINIO_CLIENT, MINIO_BUCKET
+        if MINIO_ENABLED and MINIO_CLIENT:
+            try:
+                object_name = f"{contexto}/{filename}"
+                MINIO_CLIENT.remove_object(MINIO_BUCKET, object_name)
+            except Exception:
+                pass
+        filepath = UPLOAD_DIR / contexto / filename
+        if filepath.exists():
+            try:
+                filepath.unlink()
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"Erro ao deletar arquivo por URL {url}: {e}")
+
+
+@router.get("/{jornada_id}/auditoria")
+async def obter_auditoria_sessao(
+    jornada_id: str,
+    db=Depends(get_db),
+    current_user=Depends(require_roles(Role.ADMIN, Role.GESTOR))
+):
+    doc = await db["jornadas"].find_one({"_id": jornada_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+        
+    return {
+        "jornada_id": jornada_id,
+        "motorista_nome": doc.get("motorista_nome"),
+        "veiculo_id": doc.get("veiculo_id"),
+        "auditoria_status": doc.get("auditoria_status", "PENDENTE"),
+        "fotos": {
+            "km_inicial_url": doc.get("fotos", {}).get("km_inicial_url"),
+            "km_final_url": doc.get("fotos", {}).get("km_final_url"),
+            "foto_avarias_url": doc.get("vistoria", {}).get("foto_avarias_url")
+        },
+        "comprovantes": [
+            {
+                "plataforma": c.get("plataforma"),
+                "valor": c.get("valor"),
+                "url_comprovante": c.get("url_comprovante")
+            } for c in (doc.get("faturamento", {}).get("comprovantes_processados") or [])
+        ]
+    }
+
+
+@router.post("/{jornada_id}/auditoria/aprovar")
+async def aprovar_auditoria_sessao(
+    jornada_id: str,
+    db=Depends(get_db),
+    current_user=Depends(require_roles(Role.ADMIN, Role.GESTOR))
+):
+    doc = await db["jornadas"].find_one({"_id": jornada_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+
+    urls_to_delete = []
+    
+    km_ini = doc.get("fotos", {}).get("km_inicial_url")
+    if km_ini:
+        urls_to_delete.append(km_ini)
+    km_fim = doc.get("fotos", {}).get("km_final_url")
+    if km_fim:
+        urls_to_delete.append(km_fim)
+        
+    avarias = doc.get("vistoria", {}).get("foto_avarias_url")
+    if avarias:
+        urls_to_delete.append(avarias)
+        
+    for c in (doc.get("faturamento", {}).get("comprovantes_processados") or []):
+        url_c = c.get("url_comprovante")
+        if url_c:
+            urls_to_delete.append(url_c)
+
+    for url in urls_to_delete:
+        _deletar_arquivo_por_url(url)
+
+    update_data = {
+        "auditoria_status": "APROVADA",
+        "fotos.km_inicial_url": None,
+        "fotos.km_final_url": None,
+        "vistoria.foto_avarias_url": None,
+    }
+
+    if "faturamento" in doc:
+        update_data["faturamento.comprovantes_processados"] = []
+        update_data["faturamento.comprovante_uber_url"] = None
+        update_data["faturamento.comprovante_99_url"] = None
+        update_data["faturamento.comprovante_outros_url"] = None
+
+    await db["jornadas"].update_one({"_id": jornada_id}, {"$set": update_data})
+    
+    return {"status": "ok", "message": "Auditoria aprovada e mídias removidas com sucesso"}

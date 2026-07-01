@@ -14,6 +14,7 @@ import { MetasView } from '@/views/MetasView';
 import { ConfiguracoesView } from '@/views/ConfiguracoesView';
 import { PrecosParticularesView } from '@/views/PrecosParticularesView';
 import { MediaManagementView } from '@/views/MediaManagementView';
+import { MonitorView } from '@/views/MonitorView';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -67,6 +68,17 @@ function App() {
         <LoginPage />
         <Toaster />
       </>
+    );
+  }
+
+  if (activeView === 'monitor') {
+    return (
+      <div className="flex h-screen w-screen bg-slate-950 overflow-y-auto">
+        <div className="flex-1">
+          <MonitorView />
+        </div>
+        <Toaster />
+      </div>
     );
   }
 

@@ -97,6 +97,12 @@ class OverlayBubbleService : Service() {
             return START_NOT_STICKY
         }
 
+        if (action == "ACTION_SET_VISIBLE") {
+            val visible = intent.getBooleanExtra("visible", true)
+            floatingContainer?.visibility = if (visible) View.VISIBLE else View.GONE
+            return START_NOT_STICKY
+        }
+
         if (action == "ACTION_SET_WARNING") {
             warningActive = intent.getBooleanExtra("warning_active", false)
             warningFilePath = intent.getStringExtra("filePath")
@@ -328,6 +334,13 @@ class OverlayBubbleService : Service() {
                 setOnClickListener {
                     resetCollapseTimer()
                     if (warningActive) {
+                        warningActive = false
+                        setColorFilter(Color.parseColor("#A5B4FC"))
+                        floatingContainer?.let { updateBarLayout(it) }
+
+                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        notificationManager.cancel(2003)
+
                         val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                             putExtra("action", "revisar_comprovante")

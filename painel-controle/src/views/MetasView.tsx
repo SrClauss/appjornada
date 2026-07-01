@@ -63,6 +63,8 @@ export function MetasView() {
     faixa_minima: 0,
     faixa_maxima: 0,
     bonus: 0,
+    hora_inicio: undefined,
+    hora_fim: undefined,
   };
   const [form, setForm] = useState<CreateMetaPayload>(emptyForm);
 
@@ -220,6 +222,12 @@ export function MetasView() {
                             {formatCurrency(goal.bonus)}
                           </span>
                         </div>
+                        {goal.hora_inicio && goal.hora_fim && (
+                          <div className="flex justify-between text-sm pt-1.5 text-amber-500 font-medium">
+                            <span>Horário Válido:</span>
+                            <span>{goal.hora_inicio} às {goal.hora_fim}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-2 mt-4">
@@ -308,6 +316,24 @@ export function MetasView() {
                 value={form.bonus}
                 onChange={(e) => setForm({ ...form, bonus: Number(e.target.value) })}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Hora Início (Opcional)</Label>
+                <Input
+                  type="time"
+                  value={form.hora_inicio || ''}
+                  onChange={(e) => setForm({ ...form, hora_inicio: e.target.value || undefined })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Hora Fim (Opcional)</Label>
+                <Input
+                  type="time"
+                  value={form.hora_fim || ''}
+                  onChange={(e) => setForm({ ...form, hora_fim: e.target.value || undefined })}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpenCreate(false)}>

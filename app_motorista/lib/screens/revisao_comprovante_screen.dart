@@ -254,24 +254,60 @@ class _RevisaoComprovanteScreenState extends State<RevisaoComprovanteScreen> {
                           },
                         ),
                         const SizedBox(height: 24),
-                        SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6366F1),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: _loading ? null : _salvar,
-                            child: _loading
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text(
-                                    'Salvar e Registrar Faturamento',
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 50,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.redAccent,
+                                    side: const BorderSide(color: Colors.redAccent),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: _loading ? null : () async {
+                                    await OverlayService.clearWarning();
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Comprovante descartado/excluído.'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                    widget.onCompleted();
+                                  },
+                                  child: const Text(
+                                    'Excluir',
                                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                   ),
-                          ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SizedBox(
+                                height: 50,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6366F1),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: _loading ? null : _salvar,
+                                  child: _loading
+                                      ? const CircularProgressIndicator(color: Colors.white)
+                                      : const Text(
+                                          'Salvar',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

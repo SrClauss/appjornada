@@ -10,6 +10,8 @@ class MetaBonusBase(BaseModel):
     faixa_minima: Optional[float] = None
     faixa_maxima: Optional[float] = None
     bonus: Optional[float] = None
+    hora_inicio: Optional[str] = None
+    hora_fim: Optional[str] = None
 
 
 class MetaBonusCreate(MetaBonusBase):
@@ -21,6 +23,8 @@ class MetaBonusUpdate(BaseModel):
     faixa_maxima: Optional[float] = None
     bonus: Optional[float] = None
     referencia: Optional[str] = None
+    hora_inicio: Optional[str] = None
+    hora_fim: Optional[str] = None
 
 
 class MetaBonus(MetaBonusBase):

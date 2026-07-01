@@ -26,6 +26,7 @@ import {
   Camera
 } from '@phosphor-icons/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useQueryClient } from '@tanstack/react-query';
 import { useJornadas } from '@/hooks/useJornadas';
 import type { Jornada, JourneyStatus } from '@/lib/types';
 import api from '@/lib/api';
@@ -549,6 +550,26 @@ export function JornadasView() {
   const [selectedJornada, setSelectedJornada] = useState<Jornada | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const handleAprovarAuditoria = async () => {
+    if (!selectedJornada) return;
+    const jId = selectedJornada.id || (selectedJornada as any)._id;
+    if (!confirm('Aprovar auditoria da sessão? Isso excluirá fisicamente todas as mídias associadas (fotos de odômetro, avarias e comprovantes de faturamento) e limpará as referências de URL no banco de dados.')) {
+      return;
+    }
+    
+    try {
+      await api.post(`/jornadas/${jId}/auditoria/aprovar`);
+      alert('Auditoria aprovada e mídias removidas com sucesso.');
+      setSelectedJornada(null);
+      queryClient.invalidateQueries({ queryKey: ['jornadas'] });
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao aprovar auditoria.');
+    }
+  };
 
   useEffect(() => {
     if (!selectedJornada) return;
@@ -1122,9 +1143,33 @@ export function JornadasView() {
                     </p>
                   </div>
                 </div>
-                <Badge variant={statusBadgeVariant(selectedJornada.status)} className="px-3 py-1 text-sm font-semibold uppercase tracking-wider">
-                  {selectedJornada.status}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={statusBadgeVariant(selectedJornada.status)} className="px-3 py-1 text-sm font-semibold uppercase tracking-wider">
+                    {selectedJornada.status}
+                  </Badge>
+                  <Badge 
+                    variant={selectedJornada.auditoria_status === 'APROVADA' ? 'outline' : 'secondary'} 
+                    className={`px-3 py-1 text-sm font-semibold uppercase tracking-wider ${
+                      selectedJornada.auditoria_status === 'APROVADA' 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    }`}
+                  >
+                    Auditoria: {selectedJornada.auditoria_status || 'PENDENTE'}
+                  </Badge>
+
+                  {selectedJornada.status === 'ENCERRADA' && selectedJornada.auditoria_status !== 'APROVADA' && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={handleAprovarAuditoria}
+                      className="border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white font-semibold"
+                    >
+                      <ShieldCheck size={18} className="mr-1.5" />
+                      Aprovar Auditoria
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Stats Grid */}

@@ -202,6 +202,8 @@ export interface MetaBonus {
   faixa_minima: number;
   faixa_maxima: number;
   bonus: number;
+  hora_inicio?: string;
+  hora_fim?: string;
 }
 
 export interface CreateMetaPayload {
@@ -210,6 +212,8 @@ export interface CreateMetaPayload {
   faixa_minima: number;
   faixa_maxima: number;
   bonus: number;
+  hora_inicio?: string;
+  hora_fim?: string;
 }
 
 // ── GPS Alerta ────────────────────────────────────────────────────────────────

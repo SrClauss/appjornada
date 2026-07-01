@@ -138,6 +138,7 @@ class JornadaBase(BaseModel):
     uso_pessoal: Optional[bool] = False
     comprovante_uso_pessoal_url: Optional[str] = None
     justificativa_uso_pessoal: Optional[str] = None
+    auditoria_status: Optional[str] = "PENDENTE"
 
 
 class JornadaCreate(JornadaBase):
@@ -156,6 +157,7 @@ class JornadaUpdate(BaseModel):
     abastecimentos: Optional[List[Abastecimento]] = None
     sinistros: Optional[List[Sinistro]] = None
     corridas_particulares: Optional[List[CorridaParticular]] = None
+    auditoria_status: Optional[str] = None
 
 
 class Jornada(JornadaBase):
