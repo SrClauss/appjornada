@@ -8,7 +8,8 @@ import {
   Target, 
   Gear,
   SignOut,
-  CurrencyDollar
+  CurrencyDollar,
+  Image
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +29,7 @@ export const navItems: NavItem[] = [
   { icon: Wrench, label: 'Manutenções', id: 'manutencoes' },
   { icon: Target, label: 'Metas & Bônus', id: 'metas' },
   { icon: CurrencyDollar, label: 'Tarifas Particulares', id: 'tarifas-particulares' },
+  { icon: Image, label: 'Gestão de Mídias', id: 'gestao-midias' },
   { icon: Gear, label: 'Configurações', id: 'configuracoes' },
 ];
 
@@ -49,7 +51,7 @@ export function AppSidebar({ activeView, onNavigate }: AppSidebarProps) {
       
       <nav className="flex-1 overflow-y-auto py-4">
         {navItems
-          .filter((item) => item.id !== 'tarifas-particulares' || showTarifas)
+          .filter((item) => (item.id !== 'tarifas-particulares' && item.id !== 'gestao-midias') || showTarifas)
           .map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;

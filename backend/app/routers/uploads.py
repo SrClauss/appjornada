@@ -13,13 +13,14 @@ import uuid
 from pathlib import Path
 from typing import Literal
 
+from datetime import datetime
 from minio import Minio
 from minio.error import S3Error
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from app.core.config import settings
 
-from app.core.dependencies import get_current_user
-from app.models.user import UserPublic
+from app.core.dependencies import get_current_user, require_roles
+from app.models.user import UserPublic, Role
 
 CONTEXTOS_VALIDOS = {
     "km_inicial", "km_final", "cnh", "clrv", "veiculo",
@@ -141,3 +142,85 @@ async def fazer_upload(
 
     url = await _salvar_arquivo(arquivo, contexto)
     return {"url": url, "contexto": contexto}
+
+
+@router.get("", response_model=list)
+async def listar_uploads(
+    current_user: UserPublic = Depends(get_current_user),
+):
+    if current_user.role not in (Role.ADMIN, Role.GESTOR):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
+
+    midias = []
+    
+    # 1. MinIO
+    if MINIO_ENABLED and MINIO_CLIENT:
+        try:
+            objects = MINIO_CLIENT.list_objects(MINIO_BUCKET, recursive=True)
+            for obj in objects:
+                parts = obj.object_name.split("/", 1)
+                if len(parts) == 2:
+                    contexto, file = parts
+                    if contexto in CONTEXTOS_VALIDOS:
+                        midias.append({
+                            "url": _build_minio_url(obj.object_name),
+                            "filename": file,
+                            "contexto": contexto,
+                            "tamanho_bytes": obj.size,
+                            "data_criacao": obj.last_modified.isoformat() if obj.last_modified else None
+                        })
+        except Exception:
+            pass
+
+    # 2. Local
+    if os.path.exists(UPLOAD_DIR):
+        for root, dirs, files in os.walk(UPLOAD_DIR):
+            for file in files:
+                filepath = Path(root) / file
+                contexto = filepath.parent.name
+                if contexto in CONTEXTOS_VALIDOS:
+                    stat = filepath.stat()
+                    url = f"/static/uploads/{contexto}/{file}"
+                    if not any(m["filename"] == file and m["contexto"] == contexto for m in midias):
+                        midias.append({
+                            "url": url,
+                            "filename": file,
+                            "contexto": contexto,
+                            "tamanho_bytes": stat.st_size,
+                            "data_criacao": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                        })
+                        
+    midias.sort(key=lambda x: x["data_criacao"] or "", reverse=True)
+    return midias
+
+
+@router.delete("/{contexto}/{filename}", status_code=204)
+async def deletar_upload(
+    contexto: str,
+    filename: str,
+    current_user: UserPublic = Depends(require_roles(Role.ADMIN, Role.GESTOR)),
+):
+    if contexto not in CONTEXTOS_VALIDOS:
+        raise HTTPException(status_code=400, detail="Contexto inválido")
+        
+    deletou = False
+    
+    # 1. MinIO
+    if MINIO_ENABLED and MINIO_CLIENT:
+        try:
+            object_name = f"{contexto}/{filename}"
+            MINIO_CLIENT.remove_object(MINIO_BUCKET, object_name)
+            deletou = True
+        except S3Error:
+            pass
+            
+    # 2. Local
+    filepath = UPLOAD_DIR / contexto / filename
+    if filepath.exists():
+        filepath.unlink()
+        deletou = True
+        
+    if not deletou:
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+        
+    return None

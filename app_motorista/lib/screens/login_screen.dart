@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:app_motorista/core/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  final Function(String, String, String) onLoginSuccess;
+  final Function(String, String, String, String) onLoginSuccess;
   const LoginScreen({super.key, required this.onLoginSuccess});
 
   @override
@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (profileRes.statusCode == 200) {
           final profile = json.decode(profileRes.body);
           final mId = profile['id'] ?? profile['_id'];
-          widget.onLoginSuccess(token, mId.toString(), profile['nome']);
+          widget.onLoginSuccess(token, mId.toString(), profile['nome'], _pin);
         }
       } else {
         setState(() {

@@ -22,7 +22,8 @@ import {
   Warning,
   ListBullets,
   Trash,
-  Calendar
+  Calendar,
+  Camera
 } from '@phosphor-icons/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useJornadas } from '@/hooks/useJornadas';
@@ -418,7 +419,13 @@ function UnifiedTimeline({ journey }: { journey: Jornada }) {
 export function JornadasView() {
   const [activeTab, setActiveTab] = useState<'painel' | 'realtime' | 'importar'>('painel');
   const [search, setSearch] = useState('');
-  const [dataFiltro, setDataFiltro] = useState('');
+  const [dataFiltro, setDataFiltro] = useState(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
   const [selectedJornada, setSelectedJornada] = useState<Jornada | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
@@ -453,12 +460,26 @@ export function JornadasView() {
 
   // Estados dos eventos em tempo real
   const [liveEvents, setLiveEvents] = useState<any[]>([]);
+  const [realtimePage, setRealtimePage] = useState(1);
+  const realtimePageSize = 100;
   const [filtroTipoEvento, setFiltroTipoEvento] = useState('');
   const [filtroIntervalo, setFiltroIntervalo] = useState('all');
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string>('');
   const [motoristas, setMotoristas] = useState<any[]>([]);
-  const [datetimeInicio, setDatetimeInicio] = useState('');
-  const [datetimeFim, setDatetimeFim] = useState('');
+  const [datetimeInicio, setDatetimeInicio] = useState(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T00:00`;
+  });
+  const [datetimeFim, setDatetimeFim] = useState(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T23:59`;
+  });
 
   const dataFiltroRealtime = datetimeInicio ? datetimeInicio.split('T')[0] : '';
   const horaInicio = datetimeInicio && datetimeInicio.includes('T') ? datetimeInicio.split('T')[1] : '';
@@ -679,6 +700,10 @@ export function JornadasView() {
     return () => clearInterval(interval);
   }, [activeTab, selectedMotoristaId, datetimeInicio, datetimeFim]);
 
+  useEffect(() => {
+    setRealtimePage(1);
+  }, [selectedMotoristaId, datetimeInicio, datetimeFim, filtroTipoEvento, filtroIntervalo]);
+
   // Prefetch automático do GPS completo ao receber a lista de eventos
   useEffect(() => {
     if (liveEvents.length === 0) return;
@@ -774,8 +799,9 @@ export function JornadasView() {
         }
       }
       return true;
-    });
   })();
+
+  const paginatedEvents = filteredEvents.slice((realtimePage - 1) * realtimePageSize, realtimePage * realtimePageSize);
 
   // Estados do Seletor de Faixa por Arrasto (Timeline Range Drag Selector)
   const isTrackDraggingRef = useRef(false);
@@ -1000,6 +1026,137 @@ export function JornadasView() {
                   </Card>
                 </div>
               </div>
+
+              {/* Fotografias e Comprovantes */}
+              {(selectedJornada.fotos?.km_inicial_url || 
+                selectedJornada.fotos?.km_final_url || 
+                selectedJornada.vistoria?.foto_avarias_url ||
+                selectedJornada.faturamento?.comprovante_uber_url ||
+                selectedJornada.faturamento?.comprovante_99_url ||
+                selectedJornada.faturamento?.comprovante_outros_url) && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <Camera size={18} className="text-slate-600" />
+                    Fotografias e Comprovantes da Jornada
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {selectedJornada.fotos?.km_inicial_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Odômetro Inicial</span>
+                        <a 
+                          href={selectedJornada.fotos.km_inicial_url.startsWith('http') ? selectedJornada.fotos.km_inicial_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.fotos.km_inicial_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity"
+                        >
+                          <img 
+                            src={selectedJornada.fotos.km_inicial_url.startsWith('http') ? selectedJornada.fotos.km_inicial_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.fotos.km_inicial_url}`}
+                            alt="Odômetro Inicial" 
+                            className="w-full h-full object-cover" 
+                          />
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.fotos?.km_final_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Odômetro Final</span>
+                        <a 
+                          href={selectedJornada.fotos.km_final_url.startsWith('http') ? selectedJornada.fotos.km_final_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.fotos.km_final_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity"
+                        >
+                          <img 
+                            src={selectedJornada.fotos.km_final_url.startsWith('http') ? selectedJornada.fotos.km_final_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.fotos.km_final_url}`}
+                            alt="Odômetro Final" 
+                            className="w-full h-full object-cover" 
+                          />
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.vistoria?.foto_avarias_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Avarias Vistoria</span>
+                        <a 
+                          href={selectedJornada.vistoria.foto_avarias_url.startsWith('http') ? selectedJornada.vistoria.foto_avarias_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.vistoria.foto_avarias_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity"
+                        >
+                          <img 
+                            src={selectedJornada.vistoria.foto_avarias_url.startsWith('http') ? selectedJornada.vistoria.foto_avarias_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.vistoria.foto_avarias_url}`}
+                            alt="Foto Avarias" 
+                            className="w-full h-full object-cover" 
+                          />
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.faturamento?.comprovante_uber_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Comprovante Uber</span>
+                        <a 
+                          href={selectedJornada.faturamento.comprovante_uber_url.startsWith('http') ? selectedJornada.faturamento.comprovante_uber_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_uber_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity flex items-center justify-center bg-slate-50"
+                        >
+                          {selectedJornada.faturamento.comprovante_uber_url.endsWith('.pdf') ? (
+                            <span className="text-xs font-semibold text-red-500">Visualizar PDF</span>
+                          ) : (
+                            <img 
+                              src={selectedJornada.faturamento.comprovante_uber_url.startsWith('http') ? selectedJornada.faturamento.comprovante_uber_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_uber_url}`}
+                              alt="Comprovante Uber" 
+                              className="w-full h-full object-cover" 
+                            />
+                          )}
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.faturamento?.comprovante_99_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Comprovante 99</span>
+                        <a 
+                          href={selectedJornada.faturamento.comprovante_99_url.startsWith('http') ? selectedJornada.faturamento.comprovante_99_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_99_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity flex items-center justify-center bg-slate-50"
+                        >
+                          {selectedJornada.faturamento.comprovante_99_url.endsWith('.pdf') ? (
+                            <span className="text-xs font-semibold text-red-500">Visualizar PDF</span>
+                          ) : (
+                            <img 
+                              src={selectedJornada.faturamento.comprovante_99_url.startsWith('http') ? selectedJornada.faturamento.comprovante_99_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_99_url}`}
+                              alt="Comprovante 99" 
+                              className="w-full h-full object-cover" 
+                            />
+                          )}
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.faturamento?.comprovante_outros_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Comprovante Outros</span>
+                        <a 
+                          href={selectedJornada.faturamento.comprovante_outros_url.startsWith('http') ? selectedJornada.faturamento.comprovante_outros_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_outros_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity flex items-center justify-center bg-slate-50"
+                        >
+                          {selectedJornada.faturamento.comprovante_outros_url.endsWith('.pdf') ? (
+                            <span className="text-xs font-semibold text-red-500">Visualizar PDF</span>
+                          ) : (
+                            <img 
+                              src={selectedJornada.faturamento.comprovante_outros_url.startsWith('http') ? selectedJornada.faturamento.comprovante_outros_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_outros_url}`}
+                              alt="Comprovante Outros" 
+                              className="w-full h-full object-cover" 
+                            />
+                          )}
+                        </a>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-6">
@@ -1363,7 +1520,8 @@ export function JornadasView() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredEvents.map((ev, idx) => {
+                      paginatedEvents.map((ev, idx) => {
+                        const actualIdx = (realtimePage - 1) * realtimePageSize + idx;
                         let badgeColor: "default" | "secondary" | "destructive" | "outline" = "outline";
                         if (ev.tipo === "INICIO_JORNADA") badgeColor = "default";
                         else if (ev.tipo === "FIM_JORNADA") badgeColor = "destructive";
@@ -1378,7 +1536,7 @@ export function JornadasView() {
                           if (trackStartIdxRef.current === null || trackHoverIdx === null) return false;
                           const start = Math.min(trackStartIdxRef.current, trackHoverIdx);
                           const end = Math.max(trackStartIdxRef.current, trackHoverIdx);
-                          return idx >= start && idx <= end;
+                          return actualIdx >= start && actualIdx <= end;
                         })();
 
                         const rowBgColor = (() => {
@@ -1389,7 +1547,7 @@ export function JornadasView() {
                         })();
 
                         const trackDotColor = (() => {
-                          if (trackStartIdxRef.current === idx) {
+                          if (trackStartIdxRef.current === actualIdx) {
                             return dragSelectModeRef.current ? 'bg-emerald-500 scale-125 animate-pulse' : 'bg-rose-500 scale-125 animate-pulse';
                           }
                           if (isRowInRange) {
@@ -1407,15 +1565,15 @@ export function JornadasView() {
 
                         return (
                           <TableRow 
-                            key={idx} 
+                            key={actualIdx} 
                             className={`hover:bg-slate-50/50 transition-all duration-150 ${rowBgColor}`}
                           >
                             <TableCell className="w-[50px] relative select-none text-center p-0">
                               <div className={`absolute top-0 bottom-0 w-0.5 left-1/2 -translate-x-1/2 z-0 ${trackLineColor}`} />
                               <div 
                                 className="relative z-10 flex justify-center items-center h-full min-h-[44px]"
-                                onMouseDown={(e) => handleTrackMouseDown(e, idx)}
-                                onMouseEnter={() => handleTrackMouseEnter(idx)}
+                                onMouseDown={(e) => handleTrackMouseDown(e, actualIdx)}
+                                onMouseEnter={() => handleTrackMouseEnter(actualIdx)}
                               >
                                 <div
                                   className={`w-3.5 h-3.5 rounded-full border-2 border-white transition-all shadow-sm cursor-row-resize ${trackDotColor}`}
@@ -1476,6 +1634,38 @@ export function JornadasView() {
                   )}
                 </TableBody>
               </Table>
+
+              {/* Controles de Paginação */}
+              {filteredEvents.length > realtimePageSize && (
+                <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-4">
+                  <span className="text-xs text-slate-500">
+                    Mostrando <strong>{((realtimePage - 1) * realtimePageSize) + 1}</strong> a <strong>{Math.min(realtimePage * realtimePageSize, filteredEvents.length)}</strong> de <strong>{filteredEvents.length}</strong> eventos
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={realtimePage === 1}
+                      onClick={() => setRealtimePage(p => Math.max(1, p - 1))}
+                      className="h-8 px-3 text-xs"
+                    >
+                      Anterior
+                    </Button>
+                    <span className="text-xs font-semibold px-2 text-slate-700">
+                      Página {realtimePage} de {Math.ceil(filteredEvents.length / realtimePageSize)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={realtimePage >= Math.ceil(filteredEvents.length / realtimePageSize)}
+                      onClick={() => setRealtimePage(p => Math.min(Math.ceil(filteredEvents.length / realtimePageSize), p + 1))}
+                      className="h-8 px-3 text-xs"
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
 
             {/* Painel do Mapa Lateral (Split Screen) */}

@@ -309,6 +309,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: Colors.redAccent,
               onPressed: _abrirManutencao,
             ),
+            const SizedBox(height: 24),
+            
+            // DADOS DE VISTORIA E FOTOS DO CHECK-IN
+            _buildCheckInInfo(),
+            
             const SizedBox(height: 40),
             // ENCERRAR JORNADA
             SizedBox(
@@ -323,6 +328,189 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: const Icon(Icons.power_settings_new, color: Colors.white),
                 label: const Text('ENCERRAR JORNADA HOJE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getFullUrl(String? url) {
+    if (url == null) return '';
+    if (url.startsWith('http')) return url;
+    final base = ApiService.baseUrl.replaceAll('/api', '');
+    return '$base$url';
+  }
+
+  void _mostrarImagemZoom(String url, String title) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  errorBuilder: (ctx, err, stack) => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32.0),
+                      child: Column(
+                        children: [
+                          Icon(Icons.broken_image, color: Colors.redAccent, size: 48),
+                          SizedBox(height: 8),
+                          Text('Erro ao carregar imagem', style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckInInfo() {
+    final fotos = widget.jornada['fotos'];
+    final vistoria = widget.jornada['vistoria'];
+    
+    final kmInicialFotoUrl = fotos?['km_inicial_url'] as String?;
+    final fotoAvariasUrl = vistoria?['foto_avarias_url'] as String?;
+    
+    final kmInicial = widget.jornada['km']?['inicial'] ?? 0;
+    
+    final checklistItems = <String>[];
+    if (vistoria != null) {
+      if (vistoria['pneus_ok'] == true) checklistItems.add('Pneus');
+      if (vistoria['oleo_ok'] == true) checklistItems.add('Óleo');
+      if (vistoria['agua_ok'] == true) checklistItems.add('Água');
+      if (vistoria['farois_ok'] == true) checklistItems.add('Faróis');
+      if (vistoria['limpeza_ok'] == true) checklistItems.add('Limpeza');
+    }
+
+    final hasKmFoto = kmInicialFotoUrl != null && kmInicialFotoUrl.isNotEmpty;
+    final hasAvariaFoto = fotoAvariasUrl != null && fotoAvariasUrl.isNotEmpty;
+
+    if (!hasKmFoto && !hasAvariaFoto && checklistItems.isEmpty) {
+      return const SizedBox();
+    }
+
+    return Card(
+      color: const Color(0xFF1E293B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.assignment_turned_in_outlined, color: Colors.blueAccent, size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'Fotos e Vistoria de Início',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                ),
+              ],
+            ),
+            const Divider(color: Colors.white10, height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Odômetro Inicial: $kmInicial km', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                if (checklistItems.isNotEmpty)
+                  Text('Itens OK: ${checklistItems.join(", ")}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                if (hasKmFoto)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Foto do Odômetro', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () => _mostrarImagemZoom(_getFullUrl(kmInicialFotoUrl), 'Odômetro Inicial'),
+                          child: Container(
+                            height: 100,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                _getFullUrl(kmInicialFotoUrl),
+                                fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, stack) => const Center(
+                                  child: Icon(Icons.broken_image, color: Colors.redAccent),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (hasKmFoto && hasAvariaFoto)
+                  const SizedBox(width: 16),
+                if (hasAvariaFoto)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Foto de Avarias', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () => _mostrarImagemZoom(_getFullUrl(fotoAvariasUrl), 'Avarias do Veículo'),
+                          child: Container(
+                            height: 100,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                _getFullUrl(fotoAvariasUrl),
+                                fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, stack) => const Center(
+                                  child: Icon(Icons.broken_image, color: Colors.redAccent),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

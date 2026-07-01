@@ -204,7 +204,13 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         });
         return;
       } catch (e) {
-        // Token pode ter expirado
+        // Token pode ter expirado ou inválido
+        final prefs2 = await SharedPreferences.getInstance();
+        await prefs2.remove('token');
+        await prefs2.remove('motorista_id');
+        await prefs2.remove('motorista_nome');
+        await prefs2.remove('motorista_pin');
+        ApiService.token = null;
       }
     }
     setState(() {
@@ -221,16 +227,21 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         return body;
+      } else if (res.statusCode == 401) {
+        throw Exception('UNAUTHENTICATED');
       }
-    } catch (_) {}
+    } catch (e) {
+      rethrow;
+    }
     return null;
   }
 
-  void _onLoginSuccess(String t, String id, String nome) async {
+  void _onLoginSuccess(String t, String id, String nome, String pin) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', t);
     await prefs.setString('motorista_id', id);
     await prefs.setString('motorista_nome', nome);
+    await prefs.setString('motorista_pin', pin);
     ApiService.init(ApiService.baseUrl, t, id, nome);
 
     final j = await _fetchJornadaAberta();
@@ -268,6 +279,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     await prefs.remove('token');
     await prefs.remove('motorista_id');
     await prefs.remove('motorista_nome');
+    await prefs.remove('motorista_pin');
     ApiService.token = null;
     setState(() {
       _currentScreen = 'login';
@@ -479,6 +491,9 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     });
     // Inicia a jornada via API
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final pin = prefs.getString('motorista_pin') ?? '1234';
+      
       double lat = -20.219;
       double lon = -40.264;
       try {
@@ -491,7 +506,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       } catch (_) {}
 
       final res = await http.post(
-        Uri.parse('${ApiService.baseUrl}/jornadas?pin=1234&localizacao_lat=$lat&localizacao_lon=$lon'),
+        Uri.parse('${ApiService.baseUrl}/jornadas?pin=$pin&localizacao_lat=$lat&localizacao_lon=$lon'),
         headers: ApiService.headers,
         body: json.encode({
           'veiculo_id': _selectedVeiculo!['id_placa'],

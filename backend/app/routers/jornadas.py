@@ -81,6 +81,17 @@ def _normalizar_jornada(d: dict) -> dict:
     return d
 
 
+async def _populate_motorista_nome(doc: dict, db) -> dict:
+    if not doc:
+        return doc
+    mid = doc.get("motorista_id")
+    if mid:
+        user = await db["users"].find_one({"_id": ObjectId(str(mid))})
+        if user:
+            doc["motorista_nome"] = user.get("nome")
+    return doc
+
+
 # ─── CRUD principal ──────────────────────────────────────────────────────────
 
 @router.post("", response_model=Jornada, status_code=201)
@@ -124,7 +135,9 @@ async def abrir_jornada(
                 now_utc = datetime.now(timezone.utc)
                 seconds_diff = abs((now_utc - dt_inicio).total_seconds())
                 if seconds_diff <= 15:
-                    return Jornada(**_normalizar_jornada(aberta))
+                    normalized = _normalizar_jornada(aberta)
+                    await _populate_motorista_nome(normalized, db)
+                    return Jornada(**normalized)
         except Exception:
             pass
 
@@ -156,7 +169,9 @@ async def abrir_jornada(
 
     await db["jornadas"].insert_one(doc)
     criado = await db["jornadas"].find_one({"_id": doc["_id"]})
-    return Jornada(**_normalizar_jornada(criado))
+    normalized = _normalizar_jornada(criado)
+    await _populate_motorista_nome(normalized, db)
+    return Jornada(**normalized)
 
 
 @router.get("/aberta", response_model=Optional[Jornada])
@@ -170,7 +185,11 @@ async def jornada_aberta(
         "motorista_id": motorista_id,
         "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]},
     })
-    return Jornada(**_normalizar_jornada(doc)) if doc else None
+    if doc:
+        normalized = _normalizar_jornada(doc)
+        await _populate_motorista_nome(normalized, db)
+        return Jornada(**normalized)
+    return None
 
 
 @router.get("", response_model=List[Jornada])
@@ -196,7 +215,19 @@ async def listar_jornadas(
 
     limit = min(limit, 200)  # teto de segurança
     docs = await db["jornadas"].find(filtro).sort("data", -1).skip(skip).limit(limit).to_list(limit)
-    return [Jornada(**_normalizar_jornada(d)) for d in docs]
+
+    # Get driver names in bulk
+    mids = list(set(d["motorista_id"] for d in docs if "motorista_id" in d))
+    motoristas = await db["users"].find({"_id": {"$in": mids}}).to_list(None)
+    mot_map = {str(m["_id"]): m["nome"] for m in motoristas}
+
+    normalized_docs = []
+    for d in docs:
+        d = _normalizar_jornada(d)
+        d["motorista_nome"] = mot_map.get(str(d.get("motorista_id")), "Motorista Desconhecido")
+        normalized_docs.append(d)
+
+    return [Jornada(**d) for d in normalized_docs]
 
 
 @router.get("/eventos", response_model=List[dict])
@@ -205,6 +236,8 @@ async def listar_todos_eventos(
     data_inicio: Optional[date] = None,
     data_fim: Optional[date] = None,
     motorista_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 1000,
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
@@ -401,7 +434,8 @@ async def listar_todos_eventos(
             })
             
     # Carrega pontos de telemetria GPS como eventos
-    gps_points = await db["historico_gps"].find(filt_gps).sort("timestamp", -1).limit(400).to_list(None)
+    gps_limit = skip + limit
+    gps_points = await db["historico_gps"].find(filt_gps).sort("timestamp", -1).limit(gps_limit).to_list(None)
     for pt in gps_points:
         m_id = str(pt.get("motorista_id"))
         j_id = str(pt.get("jornada_id")) if pt.get("jornada_id") else ""
@@ -444,7 +478,7 @@ async def listar_todos_eventos(
         return str(ts) if ts else ""
         
     todos_eventos.sort(key=get_timestamp, reverse=True)
-    return todos_eventos
+    return todos_eventos[skip : skip + limit]
 
 
 @router.get("/{jornada_id}", response_model=Jornada)
@@ -461,7 +495,10 @@ async def get_jornada(
         and str(doc["motorista_id"]) != str(current_user.id)
     ):
         raise HTTPException(status_code=403, detail="Acesso negado")
-    return Jornada(**_normalizar_jornada(doc))
+    
+    normalized = _normalizar_jornada(doc)
+    await _populate_motorista_nome(normalized, db)
+    return Jornada(**normalized)
 
 
 @router.patch("/{jornada_id}", response_model=Jornada)
@@ -478,7 +515,10 @@ async def atualizar_jornada(
     update = dados.model_dump(exclude_none=True)
     await db["jornadas"].update_one({"_id": jornada_id}, {"$set": update})
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
-    return Jornada(**atualizado)
+    
+    normalized = _normalizar_jornada(atualizado)
+    await _populate_motorista_nome(normalized, db)
+    return Jornada(**normalized)
 
 
 # ─── Fechar jornada ──────────────────────────────────────────────────────────
@@ -570,7 +610,9 @@ async def fechar_jornada(
 
     await db["jornadas"].update_one({"_id": jornada_id}, {"$set": update})
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
-    return Jornada(**_normalizar_jornada(atualizado))
+    normalized = _normalizar_jornada(atualizado)
+    await _populate_motorista_nome(normalized, db)
+    return Jornada(**normalized)
 
 
 # ─── Pausas ──────────────────────────────────────────────────────────────────

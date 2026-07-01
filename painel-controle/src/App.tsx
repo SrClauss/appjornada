@@ -13,6 +13,7 @@ import { ManutencoesView } from '@/views/ManutencoesView';
 import { MetasView } from '@/views/MetasView';
 import { ConfiguracoesView } from '@/views/ConfiguracoesView';
 import { PrecosParticularesView } from '@/views/PrecosParticularesView';
+import { MediaManagementView } from '@/views/MediaManagementView';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -80,6 +81,7 @@ function App() {
       case 'metas':          return <MetasView />;
       case 'configuracoes':  return <ConfiguracoesView />;
       case 'tarifas-particulares': return <PrecosParticularesView />;
+      case 'gestao-midias':  return <MediaManagementView />;
       default:               return <DashboardView />;
     }
   };

@@ -111,6 +111,7 @@ class VistoriaVeiculo(BaseModel):
 class JornadaBase(BaseModel):
     data: Optional[date] = None
     motorista_id: Optional[PyObjectId] = None
+    motorista_nome: Optional[str] = None
     veiculo_id: str
     status: str = "ABERTA"
     km: Optional[KmJornada] = None
