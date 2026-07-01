@@ -13,6 +13,8 @@ import 'package:app_motorista/screens/manutencao_ativa_screen.dart';
 import 'package:app_motorista/screens/processar_print_screen.dart';
 import 'package:app_motorista/screens/corrida_particular_screen.dart';
 import 'package:app_motorista/screens/fechamento_wizard_screen.dart';
+import 'package:app_motorista/screens/revisao_comprovante_screen.dart';
+import 'package:app_motorista/core/overlay_service.dart';
 import 'package:app_motorista/widgets/stepper_layout.dart';
 import 'package:app_motorista/steps/auditoria_anterior_step.dart';
 import 'package:app_motorista/steps/veiculo_step.dart';
@@ -71,6 +73,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
   
   // Dados coletados no fluxo
   Map<String, dynamic>? _selectedVeiculo;
+  Map<String, dynamic>? _pendingRevisionData;
   Map<String, bool> _checklist = {
     'pneus': true,
     'oleo': true,
@@ -96,6 +99,25 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _checkSession();
     _initSharingIntentListener();
+    _initOverlayListener();
+  }
+
+  void _initOverlayListener() {
+    OverlayService.initialize();
+    OverlayService.onRevisionRequest = (data) {
+      setState(() {
+        _pendingRevisionData = data;
+        _currentScreen = 'revisao_comprovante';
+      });
+    };
+    OverlayService.getPendingRevision().then((data) {
+      if (data != null && mounted) {
+        setState(() {
+          _pendingRevisionData = data;
+          _currentScreen = 'revisao_comprovante';
+        });
+      }
+    });
   }
 
   @override
@@ -397,6 +419,13 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             setState(() {
               _currentScreen = 'dashboard';
             });
+          },
+        );
+      case 'revisao_comprovante':
+        return RevisaoComprovanteScreen(
+          revisionData: _pendingRevisionData!,
+          onCompleted: () {
+            _checkSession();
           },
         );
       default:

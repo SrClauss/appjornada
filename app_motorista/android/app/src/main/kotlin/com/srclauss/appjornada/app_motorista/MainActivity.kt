@@ -39,6 +39,7 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannel()
+        handleIntent(intent)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(
@@ -51,6 +52,34 @@ class MainActivity : FlutterActivity() {
                 screenshotReceiver,
                 IntentFilter(OverlayBubbleService.ACTION_SCREENSHOT_CAPTURED)
             )
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent != null && intent.hasExtra("action") && intent.getStringExtra("action") == "revisar_comprovante") {
+            val filePath = intent.getStringExtra("filePath")
+            val plataforma = intent.getStringExtra("plataforma")
+            val valor = intent.getDoubleExtra("valor", 0.0)
+            val origem = intent.getStringExtra("origem")
+            val destino = intent.getStringExtra("destino")
+            
+            val data = mapOf(
+                "filePath" to filePath,
+                "plataforma" to plataforma,
+                "valor" to valor,
+                "origem" to origem,
+                "destino" to destino
+            )
+            pendingRevision = data
+            
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                MethodChannel(messenger, CHANNEL).invokeMethod("onNavigateToRevision", data)
+            }
         }
     }
 
@@ -78,6 +107,40 @@ class MainActivity : FlutterActivity() {
                 }
                 "isOverlayRunning" -> {
                     result.success(OverlayBubbleService.isServiceRunning)
+                }
+                "showWarningNotification" -> {
+                    val arguments = call.arguments as? Map<*, *>
+                    val filePath = arguments?.get("filePath") as? String
+                    val plataforma = arguments?.get("plataforma") as? String
+                    val valor = arguments?.get("valor") as? Double
+                    val origem = arguments?.get("origem") as? String
+                    val destino = arguments?.get("destino") as? String
+                    
+                    showWarningNotification(filePath, plataforma, valor, origem, destino)
+                    
+                    val serviceIntent = Intent(this, OverlayBubbleService::class.java).apply {
+                        action = "ACTION_SET_WARNING"
+                        putExtra("warning_active", true)
+                        putExtra("filePath", filePath)
+                        putExtra("plataforma", plataforma)
+                        putExtra("valor", valor ?: 0.0)
+                        putExtra("origem", origem)
+                        putExtra("destino", destino)
+                    }
+                    startService(serviceIntent)
+                    result.success(true)
+                }
+                "clearWarning" -> {
+                    val serviceIntent = Intent(this, OverlayBubbleService::class.java).apply {
+                        action = "ACTION_SET_WARNING"
+                        putExtra("warning_active", false)
+                    }
+                    startService(serviceIntent)
+                    result.success(true)
+                }
+                "getPendingRevision" -> {
+                    result.success(pendingRevision)
+                    pendingRevision = null
                 }
                 else -> {
                     result.notImplemented()
@@ -158,5 +221,49 @@ class MainActivity : FlutterActivity() {
                 getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
         }
+    }
+    private fun showWarningNotification(
+        filePath: String?,
+        plataforma: String?,
+        valor: Double?,
+        origem: String?,
+        destino: String?
+    ) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("action", "revisar_comprovante")
+            putExtra("filePath", filePath)
+            putExtra("plataforma", plataforma)
+            putExtra("valor", valor ?: 0.0)
+            putExtra("origem", origem)
+            putExtra("destino", destino)
+        }
+        
+        val pendingIntent = android.app.PendingIntent.getActivity(
+            this,
+            2002,
+            intent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            else
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        
+        val channelId = "gps_telemetria_channel"
+        val notification = androidx.core.app.NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Revisão de Comprovante")
+            .setContentText("Alguns dados do print não foram identificados. Clique para revisar.")
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+            
+        notificationManager.notify(2003, notification)
+    }
+
+    companion object {
+        var pendingRevision: Map<String, Any?>? = null
     }
 }

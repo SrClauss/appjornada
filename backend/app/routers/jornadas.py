@@ -1034,6 +1034,94 @@ async def upload_e_processar_comprovante(
     }
 
 
+@router.post("/aberta/comprovante/revisao", status_code=201)
+async def revisar_comprovante(
+    url_comprovante: str = Form(...),
+    plataforma: str = Form(...),
+    valor: float = Form(...),
+    origem: Optional[str] = Form(None),
+    destino: Optional[str] = Form(None),
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """
+    Recebe correções manuais de um comprovante que não teve todos os dados extraídos automaticamente.
+    """
+    # Encontra a jornada ativa
+    doc = await db["jornadas"].find_one({
+        "motorista_id": ObjectId(str(current_user.id)),
+        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]}
+    })
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nenhuma jornada ativa encontrada para este motorista."
+        )
+
+    # Atualiza faturamento
+    faturamento_existente = doc.get("faturamento") or {}
+    if not isinstance(faturamento_existente, dict):
+        faturamento_existente = {}
+
+    val_uber = faturamento_existente.get("uber") or 0.0
+    val_99 = faturamento_existente.get("noventa_nove") or 0.0
+    val_outros = faturamento_existente.get("outros") or 0.0
+    
+    comp_uber = faturamento_existente.get("comprovante_uber_url")
+    comp_99 = faturamento_existente.get("comprovante_99_url")
+    comp_outros = faturamento_existente.get("comprovante_outros_url")
+
+    if plataforma == "UBER":
+        val_uber = round(val_uber + valor, 2)
+        comp_uber = url_comprovante
+    elif plataforma == "99":
+        val_99 = round(val_99 + valor, 2)
+        comp_99 = url_comprovante
+    else:
+        val_outros = round(val_outros + valor, 2)
+        comp_outros = url_comprovante
+
+    total_dia = round(val_uber + val_99 + val_outros, 2)
+
+    novo_comprovante = {
+        "plataforma": plataforma,
+        "valor": valor,
+        "origem": origem,
+        "destino": destino,
+        "url_comprovante": url_comprovante,
+        "data_processamento": datetime.now(timezone.utc).isoformat()
+    }
+
+    comprovantes_processados = faturamento_existente.get("comprovantes_processados") or []
+    if not isinstance(comprovantes_processados, list):
+        comprovantes_processados = []
+        
+    comprovantes_processados.append(novo_comprovante)
+
+    faturamento_atualizado = {
+        "uber": val_uber,
+        "noventa_nove": val_99,
+        "outros": val_outros,
+        "total_dia": total_dia,
+        "comprovante_uber_url": comp_uber,
+        "comprovante_99_url": comp_99,
+        "comprovante_outros_url": comp_outros,
+        "comprovantes_processados": comprovantes_processados,
+        "corridas_uber": faturamento_existente.get("corridas_uber") or 0,
+        "corridas_99": faturamento_existente.get("corridas_99") or 0,
+        "corridas_outros": faturamento_existente.get("corridas_outros") or 0
+    }
+
+    await db["jornadas"].update_one(
+        {"_id": doc["_id"]},
+        {
+            "$set": {"faturamento": faturamento_atualizado}
+        }
+    )
+
+    return {"status": "sucesso", "faturamento": faturamento_atualizado}
+
+
 # ─── Validação de Fechamento & Corrida Particular ───────────────────────────
 
 @router.post("/{jornada_id}/validar-fechamento")

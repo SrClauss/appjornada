@@ -38,6 +38,12 @@ class OverlayBubbleService : Service() {
     private lateinit var windowManager: WindowManager
     private var floatingContainer: LinearLayout? = null
     private var isMinimized = false
+    private var warningActive = false
+    private var warningFilePath: String? = null
+    private var warningPlataforma: String? = null
+    private var warningValor = 0.0
+    private var warningOrigem: String? = null
+    private var warningDestino: String? = null
     private var mediaProjection: MediaProjection? = null
     private var mediaProjectionManager: MediaProjectionManager? = null
     private var isCapturing = false
@@ -74,6 +80,18 @@ class OverlayBubbleService : Service() {
         val action = intent.action
         if (action == ACTION_STOP) {
             stopSelf()
+            return START_NOT_STICKY
+        }
+
+        if (action == "ACTION_SET_WARNING") {
+            warningActive = intent.getBooleanExtra("warning_active", false)
+            warningFilePath = intent.getStringExtra("filePath")
+            warningPlataforma = intent.getStringExtra("plataforma")
+            warningValor = intent.getDoubleExtra("valor", 0.0)
+            warningOrigem = intent.getStringExtra("origem")
+            warningDestino = intent.getStringExtra("destino")
+            
+            floatingContainer?.let { updateBarLayout(it) }
             return START_NOT_STICKY
         }
 
@@ -151,8 +169,8 @@ class OverlayBubbleService : Service() {
         layoutParams.y = 500
 
         val container = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             val padding = (8 * resources.displayMetrics.density).toInt()
             setPadding(padding, padding, padding, padding)
         }
@@ -234,7 +252,7 @@ class OverlayBubbleService : Service() {
                 setImageResource(android.R.drawable.ic_menu_today)
                 setColorFilter(Color.WHITE)
                 layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
-                    rightMargin = (8 * density).toInt()
+                    bottomMargin = (8 * density).toInt()
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
@@ -250,11 +268,44 @@ class OverlayBubbleService : Service() {
                 setImageResource(android.R.drawable.ic_menu_camera)
                 setColorFilter(Color.WHITE)
                 layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
-                    rightMargin = (8 * density).toInt()
+                    bottomMargin = (8 * density).toInt()
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
                     takeScreenshot()
+                }
+            }
+
+            val warningBtn = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_lock_silent_mode_off)
+                if (warningActive) {
+                    setColorFilter(Color.parseColor("#EF4444")) // Vermelho brilhante
+                } else {
+                    setColorFilter(Color.parseColor("#A5B4FC")) // Indigo desbotado
+                }
+                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                    bottomMargin = (8 * density).toInt()
+                }
+                setPadding(padding, padding, padding, padding)
+                setOnClickListener {
+                    if (warningActive) {
+                        val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            putExtra("action", "revisar_comprovante")
+                            putExtra("filePath", warningFilePath)
+                            putExtra("plataforma", warningPlataforma)
+                            putExtra("valor", warningValor)
+                            putExtra("origem", warningOrigem)
+                            putExtra("destino", warningDestino)
+                        }
+                        startActivity(intent)
+                    } else {
+                        val intent = packageManager.getLaunchIntentForPackage(packageName)
+                        if (intent != null) {
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                        }
+                    }
                 }
             }
 
@@ -271,6 +322,7 @@ class OverlayBubbleService : Service() {
 
             container.addView(homeBtn)
             container.addView(cameraBtn)
+            container.addView(warningBtn)
             container.addView(minimizeBtn)
         }
     }

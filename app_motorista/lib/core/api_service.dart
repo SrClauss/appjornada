@@ -76,4 +76,40 @@ class ApiService {
     }
     return null;
   }
+
+  // Salva correção manual de comprovante
+  static Future<Map<String, dynamic>?> revisarComprovante({
+    required String urlComprovante,
+    required String plataforma,
+    required double valor,
+    String? origem,
+    String? destino,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/jornadas/aberta/comprovante/revisao');
+      final request = http.MultipartRequest('POST', uri);
+      
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      request.fields['url_comprovante'] = urlComprovante;
+      request.fields['plataforma'] = plataforma;
+      request.fields['valor'] = valor.toString();
+      if (origem != null) request.fields['origem'] = origem;
+      if (destino != null) request.fields['destino'] = destino;
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        print('[ApiService] Erro na revisão (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao revisar comprovante: $e');
+    }
+    return null;
+  }
 }
