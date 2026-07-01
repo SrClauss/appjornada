@@ -10,7 +10,7 @@ if os.path.exists(env_path):
                 parts = line.strip().split("=", 1)
                 if len(parts) == 2:
                     key, val = parts
-                    os.environ[key] = val
+                    os.environ.setdefault(key, val)
 
 # Pega o MONGO_URL do env
 mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017/appjornada")
