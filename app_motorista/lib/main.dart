@@ -215,7 +215,9 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             } else if (status == 'EM_MANUTENCAO') {
               _currentScreen = 'manutencao';
             } else {
-              _currentScreen = 'dashboard';
+              if (_currentScreen == 'splash' || _currentScreen == 'login' || _currentScreen == 'trilho') {
+                _currentScreen = 'dashboard';
+              }
               GpsService.startTracking(j['_id'] ?? j['id']);
             }
           } else {
