@@ -662,8 +662,15 @@ async def fechar_jornada(
     total_segundos = None
     if inicio_str:
         from datetime import time
-        h, m, s = map(int, inicio_str.split(":")[:3])
-        inicio_dt = datetime.combine(date.today(), time(h, m, s), tzinfo=timezone.utc)
+        parts = inicio_str.split(":")
+        h = int(parts[0])
+        m = int(parts[1])
+        s = int(parts[2].split(".")[0]) if len(parts) > 2 else 0
+        try:
+            j_date = date.fromisoformat(doc.get("data", ""))
+        except Exception:
+            j_date = date.today()
+        inicio_dt = datetime.combine(j_date, time(h, m, s), tzinfo=timezone.utc)
         total_segundos = int((fim - inicio_dt).total_seconds())
 
     km_inicial = doc.get("km", {}).get("inicial") or 0
