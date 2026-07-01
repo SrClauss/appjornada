@@ -33,6 +33,7 @@ fi
 if [ "$BUILD_APK" = true ]; then
   echo "==> Iniciando compilação do APK de Produção (app_motorista)..."
   cd "$LOCAL_DIR/app_motorista"
+  flutter clean
   flutter build apk --release
   cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/app-release.apk"
   cd "$LOCAL_DIR"
