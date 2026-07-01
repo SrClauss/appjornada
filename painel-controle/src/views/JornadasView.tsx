@@ -799,6 +799,7 @@ export function JornadasView() {
         }
       }
       return true;
+    });
   })();
 
   const paginatedEvents = filteredEvents.slice((realtimePage - 1) * realtimePageSize, realtimePage * realtimePageSize);
