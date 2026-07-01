@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
@@ -369,12 +370,28 @@ class OverlayBubbleService : Service() {
         }
     }
 
+    private fun isBitmapTransparent(bitmap: Bitmap): Boolean {
+        val w = bitmap.width
+        val h = bitmap.height
+        val stepX = (w / 20).coerceAtLeast(1)
+        val stepY = (h / 20).coerceAtLeast(1)
+        for (y in 0 until h step stepY) {
+            for (x in 0 until w step stepX) {
+                val pixel = bitmap.getPixel(x, y)
+                if (Color.alpha(pixel) > 0) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
     private fun takeScreenshot() {
         if (isCapturing || mediaProjection == null) return
         isCapturing = true
 
-        // Animação rápida de clique
-        floatingContainer?.alpha = 0.5f
+        // Esconde o menu flutuante temporariamente para não aparecer na captura de tela
+        floatingContainer?.visibility = View.GONE
 
         val metrics = DisplayMetrics()
         windowManager.defaultDisplay.getRealMetrics(metrics)
@@ -382,48 +399,58 @@ class OverlayBubbleService : Service() {
         val height = metrics.heightPixels
         val density = metrics.densityDpi
 
-        val imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
-        val virtualDisplay: VirtualDisplay? = mediaProjection!!.createVirtualDisplay(
-            "ScreenCapture",
-            width,
-            height,
-            density,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY,
-            imageReader.surface,
-            null,
-            null
-        )
+        // Pequeno delay para garantir que a janela flutuante sumiu da renderização antes do print
+        Handler(Looper.getMainLooper()).postDelayed({
+            val imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+            val virtualDisplay: VirtualDisplay? = mediaProjection!!.createVirtualDisplay(
+                "ScreenCapture",
+                width,
+                height,
+                density,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader.surface,
+                null,
+                null
+            )
 
-        val handler = Handler(Looper.getMainLooper())
-        
-        // Timeout para caso não receba frame
-        val timeoutRunnable = Runnable {
-            cleanupCapture(virtualDisplay, imageReader)
-        }
-        handler.postDelayed(timeoutRunnable, 3000)
-
-        imageReader.setOnImageAvailableListener({ reader ->
-            val image: Image? = reader.acquireLatestImage()
-            if (image != null) {
-                handler.removeCallbacks(timeoutRunnable)
-                try {
-                    val path = processImage(image, width, height)
-                    if (path != null) {
-                        broadcastScreenshotCaptured(path)
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                } finally {
-                    image.close()
-                    cleanupCapture(virtualDisplay, imageReader)
-                }
+            val handler = Handler(Looper.getMainLooper())
+            
+            // Timeout para caso não receba frame válido
+            val timeoutRunnable = Runnable {
+                cleanupCapture(virtualDisplay, imageReader)
             }
-        }, handler)
+            handler.postDelayed(timeoutRunnable, 3000)
+
+            imageReader.setOnImageAvailableListener({ reader ->
+                val image: Image? = reader.acquireLatestImage()
+                if (image != null) {
+                    try {
+                        val path = processImage(image, width, height)
+                        if (path != null) {
+                            handler.removeCallbacks(timeoutRunnable)
+                            broadcastScreenshotCaptured(path)
+                            image.close()
+                            cleanupCapture(virtualDisplay, imageReader)
+                        } else {
+                            // Frame em branco/transparente, descarta e espera o próximo válido
+                            image.close()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        try { image.close() } catch (ex: Exception) {}
+                        cleanupCapture(virtualDisplay, imageReader)
+                    }
+                }
+            }, handler)
+        }, 150)
     }
 
     private fun cleanupCapture(virtualDisplay: VirtualDisplay?, imageReader: ImageReader) {
         virtualDisplay?.release()
         imageReader.close()
+        
+        // Restaura a visibilidade da bolinha flutuante
+        floatingContainer?.visibility = View.VISIBLE
         floatingContainer?.alpha = if (isExpanded) 1.0f else 0.6f
         isCapturing = false
     }
@@ -446,6 +473,19 @@ class OverlayBubbleService : Service() {
         val croppedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
         bitmap.recycle()
 
+        // Se o frame capturado for 100% transparente/vazio, descarta-o
+        if (isBitmapTransparent(croppedBitmap)) {
+            croppedBitmap.recycle()
+            return null
+        }
+
+        // Cria um bitmap opaco com fundo branco para evitar que pixels transparentes/semi-transparentes fiquem pretos/escuros ao salvar em JPEG
+        val opaqueBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(opaqueBitmap)
+        canvas.drawColor(Color.WHITE)
+        canvas.drawBitmap(croppedBitmap, 0f, 0f, null)
+        croppedBitmap.recycle()
+
         // Salva na pasta de cache
         val cacheDir = externalCacheDir ?: cacheDir
         val file = File(cacheDir, "print_corrida_${System.currentTimeMillis()}.jpg")
@@ -453,8 +493,8 @@ class OverlayBubbleService : Service() {
         var fos: FileOutputStream? = null
         try {
             fos = FileOutputStream(file)
-            croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
-            croppedBitmap.recycle()
+            opaqueBitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
+            opaqueBitmap.recycle()
             return file.absolutePath
         } catch (e: IOException) {
             e.printStackTrace()

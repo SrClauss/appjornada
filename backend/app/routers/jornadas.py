@@ -997,11 +997,21 @@ async def upload_e_processar_comprovante(
                 destino = parsed.get("destino")
                 data_hora = parsed.get("data_hora")
             else:
-                if plataforma:
-                    plataforma_final = plataforma.upper()
+                error_body = response.text
+                print(f"[Gemini API Error] Status: {response.status_code}, Body: {error_body}")
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Erro na API de IA (Status {response.status_code}): {error_body}"
+                )
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        if plataforma:
-            plataforma_final = plataforma.upper()
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno ao processar o comprovante: {str(e)}"
+        )
 
     # 3. Salva o arquivo no servidor/MinIO usando a lógica existente em uploads.py
     import sys
@@ -1170,6 +1180,113 @@ async def revisar_comprovante(
             "$set": {"faturamento": faturamento_atualizado}
         }
     )
+
+    return {"status": "sucesso", "faturamento": faturamento_atualizado}
+
+
+@router.post("/aberta/comprovante/deletar", status_code=200)
+async def deletar_comprovante(
+    url_comprovante: str = Form(...),
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """
+    Remove um comprovante específico da jornada aberta e ajusta o faturamento.
+    """
+    doc = await db["jornadas"].find_one({
+        "motorista_id": ObjectId(str(current_user.id)),
+        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]}
+    })
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nenhuma jornada ativa encontrada para este motorista."
+        )
+
+    faturamento = doc.get("faturamento") or {}
+    comprovantes = faturamento.get("comprovantes_processados") or []
+    
+    # Encontra o comprovante a ser removido
+    comprovante_alvo = None
+    novos_comprovantes = []
+    for c in comprovantes:
+        if c.get("url_comprovante") == url_comprovante:
+            comprovante_alvo = c
+        else:
+            novos_comprovantes.append(c)
+
+    if not comprovante_alvo:
+        raise HTTPException(
+            status_code=404,
+            detail="Comprovante não encontrado na jornada ativa."
+        )
+
+    # Subtrai o valor
+    valor_subtrair = comprovante_alvo.get("valor", 0.0)
+    plataforma = comprovante_alvo.get("plataforma", "OUTROS")
+
+    val_uber = faturamento.get("uber") or 0.0
+    val_99 = faturamento.get("noventa_nove") or 0.0
+    val_outros = faturamento.get("outros") or 0.0
+
+    if plataforma == "UBER":
+        val_uber = max(0.0, round(val_uber - valor_subtrair, 2))
+    elif plataforma == "99":
+        val_99 = max(0.0, round(val_99 - valor_subtrair, 2))
+    else:
+        val_outros = max(0.0, round(val_outros - valor_subtrair, 2))
+
+    total_dia = round(val_uber + val_99 + val_outros, 2)
+
+    # Atualiza as URLs dos comprovantes principais
+    comp_uber = faturamento.get("comprovante_uber_url")
+    comp_99 = faturamento.get("comprovante_99_url")
+    comp_outros = faturamento.get("comprovante_outros_url")
+
+    def obter_ultimo_comprovante_url(plat):
+        for c in reversed(novos_comprovantes):
+            if c.get("plataforma") == plat:
+                return c.get("url_comprovante")
+        return None
+
+    if comp_uber == url_comprovante:
+        comp_uber = obter_ultimo_comprovante_url("UBER")
+    if comp_99 == url_comprovante:
+        comp_99 = obter_ultimo_comprovante_url("99")
+    if comp_outros == url_comprovante:
+        comp_outros = obter_ultimo_comprovante_url("OUTROS")
+
+    faturamento_atualizado = {
+        "uber": val_uber,
+        "noventa_nove": val_99,
+        "outros": val_outros,
+        "total_dia": total_dia,
+        "comprovante_uber_url": comp_uber,
+        "comprovante_99_url": comp_99,
+        "comprovante_outros_url": comp_outros,
+        "comprovantes_processados": novos_comprovantes,
+        "corridas_uber": faturamento.get("corridas_uber") or 0,
+        "corridas_99": faturamento.get("corridas_99") or 0,
+        "corridas_outros": faturamento.get("corridas_outros") or 0
+    }
+
+    await db["jornadas"].update_one(
+        {"_id": doc["_id"]},
+        {
+            "$set": {"faturamento": faturamento_atualizado}
+        }
+    )
+
+    try:
+        import sys
+        uploads_mod = sys.modules.get("app.routers.uploads")
+        if not uploads_mod:
+            import app.routers.uploads as uploads_mod
+        if "/uploads/comprovante/" in url_comprovante:
+            filename = url_comprovante.split("/uploads/comprovante/")[-1]
+            await uploads_mod.deletar_arquivo("comprovante", filename)
+    except Exception as e:
+        print(f"[DeletarComprovante] Erro ao deletar arquivo fisico: {e}")
 
     return {"status": "sucesso", "faturamento": faturamento_atualizado}
 

@@ -112,4 +112,30 @@ class ApiService {
     }
     return null;
   }
+
+  // Deleta um comprovante da jornada
+  static Future<Map<String, dynamic>?> deletarComprovante(String urlComprovante) async {
+    try {
+      final uri = Uri.parse('$baseUrl/jornadas/aberta/comprovante/deletar');
+      final request = http.MultipartRequest('POST', uri);
+      
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      request.fields['url_comprovante'] = urlComprovante;
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('[ApiService] Erro ao deletar comprovante (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao deletar comprovante: $e');
+    }
+    return null;
+  }
 }

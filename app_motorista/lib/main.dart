@@ -427,6 +427,10 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         return RevisaoComprovanteScreen(
           revisionData: _pendingRevisionData!,
           onCompleted: () {
+            setState(() {
+              _pendingRevisionData = null;
+              _currentScreen = 'dashboard';
+            });
             _checkSession();
           },
         );
