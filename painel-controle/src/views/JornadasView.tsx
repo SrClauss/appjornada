@@ -151,8 +151,18 @@ function JourneyMap({ coordinates }: MapViewProps) {
     L.marker(latLngs[0], { icon: startIcon }).addTo(layerGroup).bindPopup('Base de Operações (Início)');
     L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).addTo(layerGroup).bindPopup('Última coordenada registrada');
 
+    // Estende os limites para incluir o início e o fim da jornada
+    latLngs.forEach((latLng) => {
+      const ll = L.latLng(latLng[0], latLng[1]);
+      if (!mainBounds) {
+        mainBounds = L.latLngBounds(ll, ll);
+      } else {
+        mainBounds.extend(ll);
+      }
+    });
+
     if (mainBounds) {
-      map.fitBounds(mainBounds, { padding: [30, 30] });
+      map.fitBounds(mainBounds, { padding: [30, 30], maxZoom: 16 });
     }
   }, [coordinates]);
 
@@ -272,11 +282,18 @@ function SelectedEventsMap({ routes }: SelectedEventsMapProps) {
         L.marker(stop.coords, { icon: stopIcon })
           .addTo(layerGroup)
           .bindPopup(`<strong>Parada no Trajeto:</strong><br/>${stop.label}`);
+
+        const stopLatLng = L.latLng(stop.coords[0], stop.coords[1]);
+        if (!mainBounds) {
+          mainBounds = L.latLngBounds(stopLatLng, stopLatLng);
+        } else {
+          mainBounds.extend(stopLatLng);
+        }
       });
     });
 
     if (mainBounds) {
-      map.fitBounds(mainBounds, { padding: [40, 40] });
+      map.fitBounds(mainBounds, { padding: [40, 40], maxZoom: 16 });
     }
   }, [routes]);
 
