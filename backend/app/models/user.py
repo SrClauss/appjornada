@@ -24,9 +24,21 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    senha: str
+    senha: Optional[str] = None
     pin: Optional[str] = None          # PIN de 4 dígitos para abertura de jornada
     perfil_motorista: Optional[PerfilMotorista] = None
+
+    @model_validator(mode="after")
+    def validate_password_and_pin(self) -> 'UserCreate':
+        if self.role == Role.MOTORISTA:
+            if not self.pin:
+                raise ValueError("PIN é obrigatório para motoristas")
+            if len(self.pin) != 4 or not self.pin.isdigit():
+                raise ValueError("PIN deve ter exatamente 4 dígitos numéricos")
+        else:
+            if not self.senha:
+                raise ValueError("Senha é obrigatória para gestores e administradores")
+        return self
 
 
 class UserUpdate(BaseModel):
@@ -64,7 +76,7 @@ class UserPublic(UserBase):
 class User(UserBase):
     """Documento completo armazenado no MongoDB (inclui senha_hash)."""
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    senha_hash: str
+    senha_hash: Optional[str] = None
     pin_hash: Optional[str] = None     # bcrypt do PIN de jornada
     perfil_motorista: Optional[PerfilMotorista] = None
 

@@ -9,7 +9,7 @@ class TestRegistrar:
         resp = await client.post("/auth/registrar", json={
             "nome": "Novo Motorista",
             "email": "novo@example.com",
-            "senha": "senha123",
+            "pin": "1234",
             "role": "MOTORISTA",
         })
         assert resp.status_code == 201
@@ -31,7 +31,6 @@ class TestRegistrar:
         resp = await client.post("/auth/registrar", json={
             "nome": "Motorista Completo",
             "email": "completo@example.com",
-            "senha": "senha123",
             "role": "MOTORISTA",
             "pin": "5678",
             "perfil_motorista": {
@@ -50,7 +49,7 @@ class TestRegistrar:
         payload = {
             "nome": "Dup",
             "email": "dup@example.com",
-            "senha": "abc",
+            "pin": "1234",
             "role": "MOTORISTA",
         }
         await client.post("/auth/registrar", json=payload)
@@ -61,7 +60,7 @@ class TestRegistrar:
         resp = await client.post("/auth/registrar", json={
             "nome": "X",
             "email": "nao_e_email",
-            "senha": "abc",
+            "pin": "1234",
             "role": "MOTORISTA",
         })
         assert resp.status_code == 422
@@ -70,13 +69,30 @@ class TestRegistrar:
         resp = await client.post("/auth/registrar", json={
             "nome": "Seguro",
             "email": "seguro@example.com",
-            "senha": "senha123",
+            "pin": "1234",
             "role": "MOTORISTA",
         })
         assert resp.status_code == 201
         data = resp.json()
         assert "senha_hash" not in data
         assert "pin_hash" not in data
+
+
+    async def test_registrar_motorista_sem_pin_retorna_422(self, client):
+        resp = await client.post("/auth/registrar", json={
+            "nome": "Sem Pin",
+            "email": "sempin@example.com",
+            "role": "MOTORISTA",
+        })
+        assert resp.status_code == 422
+
+    async def test_registrar_gestor_sem_senha_retorna_422(self, client):
+        resp = await client.post("/auth/registrar", json={
+            "nome": "Sem Senha",
+            "email": "semsenha@example.com",
+            "role": "GESTOR",
+        })
+        assert resp.status_code == 422
 
 
 class TestLogin:

@@ -40,7 +40,8 @@ export function MotoristasView() {
     try {
       const payload = {
         ...form,
-        pin: form.pin ? form.pin : undefined,
+        senha: form.role !== 'MOTORISTA' ? form.senha : undefined,
+        pin: form.role === 'MOTORISTA' && form.pin ? form.pin : undefined,
       };
       await createMutation.mutateAsync(payload);
       toast.success('Motorista criado com sucesso!');
@@ -234,16 +235,18 @@ export function MotoristasView() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Senha inicial</Label>
-              <Input
-                type="password"
-                required
-                minLength={6}
-                value={form.senha}
-                onChange={(e) => setForm({ ...form, senha: e.target.value })}
-              />
-            </div>
+            {form.role !== 'MOTORISTA' && (
+              <div className="space-y-2">
+                <Label>Senha inicial</Label>
+                <Input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={form.senha}
+                  onChange={(e) => setForm({ ...form, senha: e.target.value })}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Role</Label>
               <Select
@@ -262,12 +265,13 @@ export function MotoristasView() {
             </div>
             {form.role === 'MOTORISTA' && (
               <div className="space-y-2">
-                <Label>PIN de Jornada (4 dígitos - opcional)</Label>
+                <Label>PIN de Jornada (4 dígitos)</Label>
                 <Input
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]{4}"
                   maxLength={4}
+                  required
                   placeholder="Ex: 1234"
                   value={form.pin}
                   onChange={(e) => {

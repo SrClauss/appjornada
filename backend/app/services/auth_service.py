@@ -15,7 +15,7 @@ async def registrar_usuario(db: AsyncIOMotorDatabase, dados: UserCreate) -> User
         )
 
     doc = dados.model_dump(exclude={"senha", "pin"})
-    doc["senha_hash"] = hash_senha(dados.senha)
+    doc["senha_hash"] = hash_senha(dados.senha) if dados.senha else None
     doc["pin_hash"] = hash_senha(dados.pin) if dados.pin else None
 
     if dados.perfil_motorista is not None:
@@ -37,7 +37,9 @@ async def login(db: AsyncIOMotorDatabase, email: str, senha: str) -> Token:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    valido = verificar_senha(senha, doc.get("senha_hash"))
+    valido = False
+    if doc.get("senha_hash"):
+        valido = verificar_senha(senha, doc["senha_hash"])
     if not valido and doc.get("role") == "MOTORISTA" and doc.get("pin_hash"):
         valido = verificar_senha(senha, doc["pin_hash"])
 

@@ -60,7 +60,7 @@ export interface User {
 export interface CreateUserPayload {
   nome: string;
   email: string;
-  senha: string;
+  senha?: string;
   role: Role;
   pin?: string;
 }
