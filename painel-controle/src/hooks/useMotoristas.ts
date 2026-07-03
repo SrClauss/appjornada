@@ -52,7 +52,11 @@ export function useUpdateUser() {
 export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.delete(`/users/${id}`),
+    mutationFn: (param: string | { id: string; hard?: boolean }) => {
+      const id = typeof param === 'string' ? param : param.id;
+      const hard = typeof param === 'string' ? false : !!param.hard;
+      return api.delete(`/users/${id}`, { params: { hard } });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['motoristas'] });
       qc.invalidateQueries({ queryKey: ['users'] });

@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Eye, Pencil, UserMinus } from '@phosphor-icons/react';
+import { Eye, Pencil, UserMinus, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useMotoristas, useCreateMotorista, useUpdateUser, useDeleteUser } from '@/hooks/useMotoristas';
 import type { User, Role, Situacao } from '@/lib/types';
@@ -74,6 +74,16 @@ export function MotoristasView() {
       toast.success('Motorista inativado.');
     } catch {
       toast.error('Erro ao inativar motorista.');
+    }
+  };
+
+  const handleHardDelete = async (user: User) => {
+    if (!confirm(`Excluir permanentemente o motorista ${user.nome}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await deleteMutation.mutateAsync({ id: user.id, hard: true });
+      toast.success('Motorista excluído com sucesso.');
+    } catch {
+      toast.error('Erro ao excluir motorista.');
     }
   };
 
@@ -180,6 +190,15 @@ export function MotoristasView() {
                           onClick={() => handleDelete(driver)}
                         >
                           <UserMinus size={16} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Excluir permanentemente"
+                          onClick={() => handleHardDelete(driver)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash size={16} />
                         </Button>
                       </div>
                     </TableCell>

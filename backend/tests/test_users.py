@@ -194,3 +194,15 @@ class TestDeletarUser:
         uid_falso = str(ObjectId())
         resp = await client.delete(f"/users/{uid_falso}", headers=admin_headers)
         assert resp.status_code == 404
+
+    async def test_admin_exclui_usuario_hard_delete(
+        self, client, motorista_user, admin_headers, db
+    ):
+        resp = await client.delete(
+            f"/users/{motorista_user['id']}",
+            params={"hard": "true"},
+            headers=admin_headers
+        )
+        assert resp.status_code == 204
+        doc = await db["users"].find_one({"_id": ObjectId(motorista_user["id"])})
+        assert doc is None

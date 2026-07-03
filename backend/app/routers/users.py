@@ -74,17 +74,27 @@ async def atualizar_user(
 @router.delete("/{user_id}", status_code=204)
 async def deletar_user(
     user_id: str,
+    hard: bool = False,
     db=Depends(get_db),
     current_user: UserPublic = Depends(require_roles(Role.ADMIN)),
 ):
-    """Inativa o usuário (soft delete) — preserva histórico de jornadas."""
-    resultado = await db["users"].update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {"situacao": "Inativo"}},
-    )
-    if resultado.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    """Inativa o usuário (soft delete) por padrão, ou exclui fisicamente (hard delete) se hard=True."""
+    if hard:
+        resultado = await db["users"].delete_one({"_id": ObjectId(user_id)})
+        if resultado.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado")
         
-    user_dict = current_user.model_dump()
-    user_dict["id"] = str(user_dict["id"])
-    await registrar_auditoria(db, user_dict, "INATIVAR_USER", {"target_user_id": user_id})
+        user_dict = current_user.model_dump()
+        user_dict["id"] = str(user_dict["id"])
+        await registrar_auditoria(db, user_dict, "EXCLUIR_USER", {"target_user_id": user_id})
+    else:
+        resultado = await db["users"].update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"situacao": "Inativo"}},
+        )
+        if resultado.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            
+        user_dict = current_user.model_dump()
+        user_dict["id"] = str(user_dict["id"])
+        await registrar_auditoria(db, user_dict, "INATIVAR_USER", {"target_user_id": user_id})
