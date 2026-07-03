@@ -29,8 +29,8 @@ export function MotoristasView() {
   const updateMutation = useUpdateUser();
   const deleteMutation = useDeleteUser();
 
-  const [form, setForm] = useState({ nome: '', email: '', senha: '', role: 'MOTORISTA' as Role });
-  const [editForm, setEditForm] = useState({ nome: '', situacao: 'Ativo' as Situacao });
+  const [form, setForm] = useState({ nome: '', email: '', senha: '', pin: '', role: 'MOTORISTA' as Role });
+  const [editForm, setEditForm] = useState({ nome: '', situacao: 'Ativo' as Situacao, pin: '' });
 
   const getInitials = (nome: string) =>
     nome.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
@@ -38,10 +38,14 @@ export function MotoristasView() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createMutation.mutateAsync(form);
+      const payload = {
+        ...form,
+        pin: form.pin ? form.pin : undefined,
+      };
+      await createMutation.mutateAsync(payload);
       toast.success('Motorista criado com sucesso!');
       setOpenCreate(false);
-      setForm({ nome: '', email: '', senha: '', role: 'MOTORISTA' });
+      setForm({ nome: '', email: '', senha: '', pin: '', role: 'MOTORISTA' });
     } catch {
       toast.error('Erro ao criar motorista.');
     }
@@ -51,7 +55,11 @@ export function MotoristasView() {
     e.preventDefault();
     if (!editUser) return;
     try {
-      await updateMutation.mutateAsync({ id: editUser.id, payload: editForm });
+      const payload = {
+        ...editForm,
+        pin: editForm.pin ? editForm.pin : undefined,
+      };
+      await updateMutation.mutateAsync({ id: editUser.id, payload });
       toast.success('Motorista atualizado!');
       setEditUser(null);
     } catch {
@@ -95,6 +103,7 @@ export function MotoristasView() {
                 <TableHead>Motorista</TableHead>
                 <TableHead>E-mail</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>PIN</TableHead>
                 <TableHead>Situação</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -102,7 +111,7 @@ export function MotoristasView() {
             <TableBody>
               {motoristas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Nenhum motorista encontrado.
                   </TableCell>
                 </TableRow>
@@ -122,6 +131,21 @@ export function MotoristasView() {
                     <TableCell className="text-sm text-muted-foreground">{driver.email}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{driver.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {driver.role === 'MOTORISTA' ? (
+                        driver.has_pin ? (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50">
+                            Sim
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50">
+                            Não
+                          </Badge>
+                        )
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={driver.situacao === 'Ativo' ? 'default' : 'destructive'}>
@@ -144,7 +168,7 @@ export function MotoristasView() {
                           title="Editar"
                           onClick={() => {
                             setEditUser(driver);
-                            setEditForm({ nome: driver.nome, situacao: driver.situacao });
+                            setEditForm({ nome: driver.nome, situacao: driver.situacao, pin: '' });
                           }}
                         >
                           <Pencil size={16} />
@@ -217,6 +241,23 @@ export function MotoristasView() {
                 </SelectContent>
               </Select>
             </div>
+            {form.role === 'MOTORISTA' && (
+              <div className="space-y-2">
+                <Label>PIN de Jornada (4 dígitos - opcional)</Label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{4}"
+                  maxLength={4}
+                  placeholder="Ex: 1234"
+                  value={form.pin}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setForm({ ...form, pin: val });
+                  }}
+                />
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpenCreate(false)}>
                 Cancelar
@@ -259,6 +300,23 @@ export function MotoristasView() {
                 </SelectContent>
               </Select>
             </div>
+            {editUser?.role === 'MOTORISTA' && (
+              <div className="space-y-2">
+                <Label>Novo PIN de Jornada (4 dígitos - opcional)</Label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{4}"
+                  maxLength={4}
+                  placeholder={editUser.has_pin ? "•••• (PIN cadastrado)" : "Cadastrar novo PIN"}
+                  value={editForm.pin}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setEditForm({ ...editForm, pin: val });
+                  }}
+                />
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditUser(null)}>
                 Cancelar
@@ -305,6 +363,14 @@ export function MotoristasView() {
                     {viewUser.situacao}
                   </Badge>
                 </div>
+                {viewUser.role === 'MOTORISTA' && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">PIN de Jornada</p>
+                    <Badge variant={viewUser.has_pin ? 'outline' : 'secondary'} className={viewUser.has_pin ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50" : ""}>
+                      {viewUser.has_pin ? 'Cadastrado' : 'Não cadastrado'}
+                    </Badge>
+                  </div>
+                )}
               </div>
 
               {viewUser.perfil_motorista && (

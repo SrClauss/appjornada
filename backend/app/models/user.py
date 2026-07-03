@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Annotated, Any, Optional
-from pydantic import BaseModel, BeforeValidator, EmailStr, Field
+from pydantic import BaseModel, BeforeValidator, EmailStr, Field, model_validator
 from bson import ObjectId
 from .base import PyObjectId
 from .motorista import PerfilMotorista
@@ -43,6 +43,16 @@ class UserPublic(UserBase):
     """Resposta segura — nunca expõe senha_hash."""
     id: Annotated[str, BeforeValidator(_to_str)] = Field(alias="_id")
     perfil_motorista: Optional[PerfilMotorista] = None
+    has_pin: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_pin_hash(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            data["has_pin"] = bool(data.get("pin_hash"))
+        elif hasattr(data, "pin_hash"):
+            data.has_pin = bool(getattr(data, "pin_hash"))
+        return data
 
     model_config = {
         "populate_by_name": True,

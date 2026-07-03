@@ -53,6 +53,8 @@ export interface User {
   role: Role;
   situacao: Situacao;
   perfil_motorista?: PerfilMotorista;
+  pin?: string;
+  has_pin?: boolean;
 }
 
 export interface CreateUserPayload {
@@ -60,6 +62,7 @@ export interface CreateUserPayload {
   email: string;
   senha: string;
   role: Role;
+  pin?: string;
 }
 
 export interface UpdateUserPayload {

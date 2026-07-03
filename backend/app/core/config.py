@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # Google Maps/Places API Key
     GOOGLE_API_KEY: Optional[str] = None
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     def get_cors_origins(self) -> List[str]:
         """Retorna lista de origens CORS a partir da variável de ambiente."""

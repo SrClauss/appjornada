@@ -82,6 +82,24 @@ class TestGetUser:
         assert "senha_hash" not in resp.json()
         assert "pin_hash" not in resp.json()
 
+    async def test_has_pin_in_user_public(self, client, motorista_user, gestor_user, admin_headers):
+        resp = await client.get(f"/users/{motorista_user['id']}", headers=admin_headers)
+        assert resp.status_code == 200
+        assert resp.json()["has_pin"] is True
+
+        resp = await client.get(f"/users/{gestor_user['id']}", headers=admin_headers)
+        assert resp.status_code == 200
+        assert resp.json()["has_pin"] is False
+
+        await client.patch(
+            f"/users/{gestor_user['id']}",
+            json={"pin": "1234"},
+            headers=admin_headers,
+        )
+        resp = await client.get(f"/users/{gestor_user['id']}", headers=admin_headers)
+        assert resp.status_code == 200
+        assert resp.json()["has_pin"] is True
+
 
 class TestAtualizarUser:
     async def test_admin_atualiza_nome(self, client, motorista_user, admin_headers):
