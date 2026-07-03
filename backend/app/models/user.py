@@ -53,7 +53,7 @@ class UserUpdate(BaseModel):
 
 class UserPublic(UserBase):
     """Resposta segura — nunca expõe senha_hash."""
-    id: Annotated[str, BeforeValidator(_to_str)] = Field(alias="_id")
+    id: Annotated[str, BeforeValidator(_to_str)]
     perfil_motorista: Optional[PerfilMotorista] = None
     has_pin: bool = False
 
@@ -62,8 +62,12 @@ class UserPublic(UserBase):
     def check_pin_hash(cls, data: Any) -> Any:
         if isinstance(data, dict):
             data["has_pin"] = bool(data.get("pin_hash"))
+            if "_id" in data and "id" not in data:
+                data["id"] = str(data["_id"])
         elif hasattr(data, "pin_hash"):
             data.has_pin = bool(getattr(data, "pin_hash"))
+            if hasattr(data, "_id") and not hasattr(data, "id"):
+                data.id = str(data._id)
         return data
 
     model_config = {
