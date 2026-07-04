@@ -1089,6 +1089,13 @@ async def resumo_clt_mensal(
 async def upload_e_processar_comprovante(
     arquivo: UploadFile = File(...),
     plataforma: Optional[str] = Form(None),
+    start_lat: Optional[float] = Form(None),
+    start_lon: Optional[float] = Form(None),
+    end_lat: Optional[float] = Form(None),
+    end_lon: Optional[float] = Form(None),
+    start_time: Optional[int] = Form(None),
+    end_time: Optional[int] = Form(None),
+    route_points: Optional[str] = Form(None),
     background_tasks: BackgroundTasks = None,
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
@@ -1220,6 +1227,79 @@ async def upload_e_processar_comprovante(
         import app.routers.uploads as uploads_mod
     url_comprovante = await uploads_mod._salvar_arquivo(arquivo, "comprovante")
 
+    # Se as coordenadas foram informadas, tenta obter as ruas via coordenadas (caso Gemini tenha falhado ou omitido)
+    if start_lat is not None and start_lon is not None:
+        try:
+            from app.routers.gps import obter_rua_por_coordenadas
+            resolved_origem = await obter_rua_por_coordenadas(start_lat, start_lon, db)
+            if resolved_origem and resolved_origem != "Rua não identificada":
+                origem = resolved_origem
+        except Exception as e:
+            print("Erro ao obter rua de origem via coordenadas:", e)
+
+    if end_lat is not None and end_lon is not None:
+        try:
+            from app.routers.gps import obter_rua_por_coordenadas
+            resolved_destino = await obter_rua_por_coordenadas(end_lat, end_lon, db)
+            if resolved_destino and resolved_destino != "Rua não identificada":
+                destino = resolved_destino
+        except Exception as e:
+            print("Erro ao obter rua de destino via coordenadas:", e)
+
+    # Converter timestamps de ms para datetimes
+    start_time_dt = None
+    end_time_dt = None
+    if start_time:
+        start_time_dt = datetime.fromtimestamp(start_time / 1000.0, tz=timezone.utc)
+    if end_time:
+        end_time_dt = datetime.fromtimestamp(end_time / 1000.0, tz=timezone.utc)
+
+    # Limpar pontos na faixa de horário da corrida gravada e inserir rota limpa
+    if start_time_dt and end_time_dt:
+        try:
+            await db["historico_gps"].delete_many({
+                "jornada_id": doc["_id"],
+                "timestamp": {"$gte": start_time_dt, "$lte": end_time_dt}
+            })
+        except Exception as e:
+            print("Erro ao limpar historico_gps:", e)
+
+        if route_points:
+            try:
+                pts_list = json.loads(route_points)
+                if isinstance(pts_list, list) and len(pts_list) > 0:
+                    docs_to_insert = []
+                    total_pts = len(pts_list)
+                    duration_ms = end_time - start_time
+                    step_ms = duration_ms / max(1, total_pts - 1)
+                    
+                    for idx, pt in enumerate(pts_list):
+                        lat = float(pt.get("lat", 0.0))
+                        lon = float(pt.get("lon", 0.0))
+                        pt_ms = start_time + int(idx * step_ms)
+                        pt_dt = datetime.fromtimestamp(pt_ms / 1000.0, tz=timezone.utc)
+                        
+                        docs_to_insert.append({
+                            "motorista_id": ObjectId(str(current_user.id)),
+                            "jornada_id": doc["_id"],
+                            "timestamp": pt_dt,
+                            "localizacao": {
+                                "type": "Point",
+                                "coordinates": [lon, lat]
+                            },
+                            "distancia_ultima_m": 0.0,
+                            "status": "CONDUZINDO",
+                            "rua": "Rua não identificada",
+                            "contador_mesclados": 1,
+                            "produtivo": True
+                        })
+                    
+                    if docs_to_insert:
+                        await db["historico_gps"].insert_many(docs_to_insert)
+                        print(f"[COM COMPROVANTE REGISTRADO] Inseridos {len(docs_to_insert)} pontos produtivos na jornada {doc['_id']}")
+            except Exception as e:
+                print(f"Erro ao inserir route_points: {e}")
+
     # 4. Atualiza os faturamentos da jornada ativa
     faturamento_existente = doc.get("faturamento") or {}
     if not isinstance(faturamento_existente, dict):
@@ -1253,7 +1333,13 @@ async def upload_e_processar_comprovante(
         "data_hora": data_hora,
         "url_comprovante": url_comprovante,
         "data_processamento": datetime.now(timezone.utc).isoformat(),
-        "match_produtivo_status": "PENDENTE"
+        "match_produtivo_status": "SUCESSO" if (start_time and end_time) else "PENDENTE",
+        "start_lat": start_lat,
+        "start_lon": start_lon,
+        "end_lat": end_lat,
+        "end_lon": end_lon,
+        "start_time": start_time_dt.isoformat() if start_time_dt else None,
+        "end_time": end_time_dt.isoformat() if end_time_dt else None
     }
 
     comprovantes_processados = faturamento_existente.get("comprovantes_processados") or []
@@ -1282,17 +1368,18 @@ async def upload_e_processar_comprovante(
         }
     )
     
-    # Disparar o match em background para marcar os dados de GPS como produtivos
-    if background_tasks and origem and destino:
-        from app.services.matching import calcular_match_produtivo
-        background_tasks.add_task(
-            calcular_match_produtivo,
-            jornada_id=str(doc["_id"]),
-            comprovante_url=url_comprovante,
-            origem=origem,
-            destino=destino,
-            data_hora=data_hora
-        )
+    # Só disparar o match em background (fallback) se não tivermos informações de início e fim da corrida
+    if not (start_time and end_time):
+        if background_tasks and origem and destino:
+            from app.services.matching import calcular_match_produtivo
+            background_tasks.add_task(
+                calcular_match_produtivo,
+                jornada_id=str(doc["_id"]),
+                comprovante_url=url_comprovante,
+                origem=origem,
+                destino=destino,
+                data_hora=data_hora
+            )
 
     # Retorna o status e os valores extraídos
     return {

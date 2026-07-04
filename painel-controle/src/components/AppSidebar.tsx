@@ -82,7 +82,7 @@ export function AppSidebar({ activeView, onNavigate }: AppSidebarProps) {
           <span>Sair do Sistema</span>
         </button>
         <div className="text-xs text-primary-foreground/60 mt-1">
-          v1.0.0 • 2026
+          v1.0.2 • 2026
         </div>
       </div>
     </aside>

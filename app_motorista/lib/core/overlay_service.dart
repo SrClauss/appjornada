@@ -12,8 +12,13 @@ class OverlayService {
 
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onScreenshotCaptured') {
-        final String filePath = call.arguments as String;
-        await _handleScreenshotCaptured(filePath);
+        if (call.arguments is String) {
+          final String filePath = call.arguments as String;
+          await _handleScreenshotCaptured(filePath);
+        } else if (call.arguments is Map) {
+          final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments as Map);
+          await _handleScreenshotCapturedMap(data);
+        }
       } else if (call.method == 'onNavigateToRevision') {
         final Map<dynamic, dynamic> data = call.arguments as Map<dynamic, dynamic>;
         if (onRevisionRequest != null) {
@@ -112,6 +117,84 @@ class OverlayService {
       }
     } catch (e) {
       print("[OverlayService] Exceção ao processar print capturado: $e");
+    }
+  }
+
+  static Future<void> _handleScreenshotCapturedMap(Map<String, dynamic> data) async {
+    final String filePath = data['filePath'];
+    final bool isRideRecord = data['isRideRecord'] ?? false;
+    
+    if (!isRideRecord) {
+      await _handleScreenshotCaptured(filePath);
+      return;
+    }
+    
+    print("[OverlayService] Print de Corrida Gravada recebido. Enviando para o servidor...");
+    
+    final double startLat = data['startLat'] ?? 0.0;
+    final double startLon = data['startLon'] ?? 0.0;
+    final double endLat = data['endLat'] ?? 0.0;
+    final double endLon = data['endLon'] ?? 0.0;
+    final int startTime = data['startTime'] ?? 0;
+    final int endTime = data['endTime'] ?? 0;
+    final List<dynamic> routePointsDynamic = data['routePoints'] ?? [];
+    
+    final List<Map<String, double>> routePoints = routePointsDynamic.map((item) {
+      final map = Map<dynamic, dynamic>.from(item as Map);
+      return {
+        'lat': (map['lat'] as num).toDouble(),
+        'lon': (map['lon'] as num).toDouble(),
+      };
+    }).toList();
+
+    try {
+      final res = await ApiService.uploadAndProcessComprovante(
+        filePath,
+        startLat: startLat,
+        startLon: startLon,
+        endLat: endLat,
+        endLon: endLon,
+        startTime: startTime,
+        endTime: endTime,
+        routePoints: routePoints,
+      );
+      
+      if (res != null) {
+        print("[OverlayService] Corrida gravada enviada com sucesso!");
+        final String? plataforma = res['plataforma'];
+        final dynamic valorRaw = res['valor_extraido'];
+        final String? origem = res['origem'];
+        final String? destino = res['destino'];
+        final String? url = res['url_comprovante'];
+
+        double valor = 0.0;
+        if (valorRaw is num) {
+          valor = valorRaw.toDouble();
+        } else if (valorRaw is String) {
+          valor = double.tryParse(valorRaw) ?? 0.0;
+        }
+
+        bool isIncompleto = false;
+        if (plataforma == null || plataforma == 'OUTROS' || valor <= 0.0) {
+          isIncompleto = true;
+        }
+
+        if (isIncompleto) {
+          print("[OverlayService] Comprovante incompleto detectado. Exibindo alerta de revisão.");
+          await _channel.invokeMethod('showWarningNotification', {
+            'filePath': filePath,
+            'plataforma': plataforma ?? '99',
+            'valor': valor,
+            'origem': origem ?? '',
+            'destino': destino ?? '',
+            'url_comprovante': url ?? '',
+          });
+        }
+      } else {
+        print("[OverlayService] Falha ao processar comprovante de corrida gravada no servidor.");
+      }
+    } catch (e) {
+      print("[OverlayService] Exceção ao processar corrida gravada: $e");
     }
   }
 }

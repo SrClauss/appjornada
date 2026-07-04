@@ -38,6 +38,7 @@ if [ "$BUILD_APK" = true ]; then
   mkdir -p "$LOCAL_DIR/nginx/html"
   cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/nginx/html/app-release.apk"
   cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/app-release.apk"
+  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/painel-controle/public/app-release.apk"
   cd "$LOCAL_DIR"
   echo "==> APK compilado e copiado com sucesso!"
 fi

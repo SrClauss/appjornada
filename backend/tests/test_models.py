@@ -57,7 +57,7 @@ class TestUserModels:
             nome="João",
             email="joao@example.com",
             senha="senha123",
-            role=Role.MOTORISTA,
+            role=Role.GESTOR,
         )
         assert u.nome == "João"
         assert u.email == "joao@example.com"

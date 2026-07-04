@@ -33,6 +33,7 @@ import androidx.core.app.NotificationCompat
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import android.location.LocationManager
 
 class OverlayBubbleService : Service() {
 
@@ -62,6 +63,65 @@ class OverlayBubbleService : Service() {
     private var mediaProjection: MediaProjection? = null
     private var mediaProjectionManager: MediaProjectionManager? = null
     private var isCapturing = false
+
+    private var isRideActive = false
+    private var rideStartTime = 0L
+    private var rideStartLat = 0.0
+    private var rideStartLon = 0.0
+    private val rideRoutePoints = ArrayList<Pair<Double, Double>>()
+    private var locationManager: LocationManager? = null
+    private val locationListener = object : android.location.LocationListener {
+        override fun onLocationChanged(location: android.location.Location) {
+            if (isRideActive) {
+                rideRoutePoints.add(Pair(location.latitude, location.longitude))
+            }
+        }
+        override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
+        override fun onProviderEnabled(provider: String) {}
+        override fun onProviderDisabled(provider: String) {}
+    }
+
+    private var capWasRideActive = false
+    private var capStartLat = 0.0
+    private var capStartLon = 0.0
+    private var capEndLat = 0.0
+    private var capEndLon = 0.0
+    private var capStartTime = 0L
+    private var capEndTime = 0L
+    private val capRoutePoints = ArrayList<Pair<Double, Double>>()
+
+    private fun startRideTracking() {
+        rideRoutePoints.clear()
+        rideStartTime = System.currentTimeMillis()
+        try {
+            locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            locationManager?.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                2000L,
+                2f,
+                locationListener
+            )
+            val lastKnown = locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            lastKnown?.let {
+                rideStartLat = it.latitude
+                rideStartLon = it.longitude
+                rideRoutePoints.add(Pair(it.latitude, it.longitude))
+            }
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun stopRideTracking() {
+        try {
+            locationManager?.removeUpdates(locationListener)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     companion object {
         const val ACTION_START = "ACTION_START"
@@ -308,16 +368,28 @@ class OverlayBubbleService : Service() {
                 }
             }
 
-            val cameraBtn = ImageView(this).apply {
-                setImageResource(android.R.drawable.ic_menu_camera)
-                setColorFilter(Color.WHITE)
+            val rideBtn = ImageView(this).apply {
+                if (isRideActive) {
+                    setImageResource(android.R.drawable.ic_media_pause)
+                    setColorFilter(Color.parseColor("#EF4444")) // Red when active
+                } else {
+                    setImageResource(android.R.drawable.ic_media_play)
+                    setColorFilter(Color.parseColor("#10B981")) // Green when ready to start
+                }
                 layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
                     bottomMargin = (8 * density).toInt()
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
                     resetCollapseTimer()
-                    takeScreenshot()
+                    if (!isRideActive) {
+                        isRideActive = true
+                        startRideTracking()
+                        updateBarLayout(container)
+                        android.widget.Toast.makeText(this@OverlayBubbleService, "Gravação de corrida iniciada", android.widget.Toast.LENGTH_SHORT).show()
+                    } else {
+                        takeScreenshot()
+                    }
                 }
             }
 
@@ -363,7 +435,7 @@ class OverlayBubbleService : Service() {
             }
 
             container.addView(homeBtn)
-            container.addView(cameraBtn)
+            container.addView(rideBtn)
             container.addView(warningBtn)
         } else {
             container.alpha = 0.6f
@@ -389,6 +461,48 @@ class OverlayBubbleService : Service() {
     private fun takeScreenshot() {
         if (isCapturing || mediaProjection == null) return
         isCapturing = true
+
+        val wasRideActive = isRideActive
+        val sLat = rideStartLat
+        val sLon = rideStartLon
+        val sTime = rideStartTime
+        val routeCopy = ArrayList(rideRoutePoints)
+
+        if (isRideActive) {
+            stopRideTracking()
+            isRideActive = false
+            floatingContainer?.let { updateBarLayout(it) }
+        }
+
+        var eLat = sLat
+        var eLon = sLon
+        val eTime = System.currentTimeMillis()
+
+        if (wasRideActive) {
+            try {
+                val lastKnown = locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                    ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                lastKnown?.let {
+                    eLat = it.latitude
+                    eLon = it.longitude
+                    routeCopy.add(Pair(it.latitude, it.longitude))
+                }
+            } catch (e: SecurityException) {
+                e.printStackTrace()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        capWasRideActive = wasRideActive
+        capStartLat = sLat
+        capStartLon = sLon
+        capEndLat = eLat
+        capEndLon = eLon
+        capStartTime = sTime
+        capEndTime = eTime
+        capRoutePoints.clear()
+        capRoutePoints.addAll(routeCopy)
 
         // Esconde o menu flutuante temporariamente para não aparecer na captura de tela
         floatingContainer?.visibility = View.GONE
@@ -428,7 +542,17 @@ class OverlayBubbleService : Service() {
                         val path = processImage(image, width, height)
                         if (path != null) {
                             handler.removeCallbacks(timeoutRunnable)
-                            broadcastScreenshotCaptured(path)
+                            broadcastScreenshotCaptured(
+                                path,
+                                capWasRideActive,
+                                capStartLat,
+                                capStartLon,
+                                capEndLat,
+                                capEndLon,
+                                capStartTime,
+                                capEndTime,
+                                capRoutePoints
+                            )
                             image.close()
                             cleanupCapture(virtualDisplay, imageReader)
                         } else {
@@ -504,9 +628,33 @@ class OverlayBubbleService : Service() {
         return null
     }
 
-    private fun broadcastScreenshotCaptured(filePath: String) {
+    private fun broadcastScreenshotCaptured(
+        filePath: String,
+        isRideRecord: Boolean,
+        startLat: Double,
+        startLon: Double,
+        endLat: Double,
+        endLon: Double,
+        startTime: Long,
+        endTime: Long,
+        routePoints: ArrayList<Pair<Double, Double>>
+    ) {
         val intent = Intent(ACTION_SCREENSHOT_CAPTURED)
         intent.putExtra(EXTRA_FILE_PATH, filePath)
+        intent.putExtra("is_ride_record", isRideRecord)
+        intent.putExtra("start_lat", startLat)
+        intent.putExtra("start_lon", startLon)
+        intent.putExtra("end_lat", endLat)
+        intent.putExtra("end_lon", endLon)
+        intent.putExtra("start_time", startTime)
+        intent.putExtra("end_time", endTime)
+        
+        val routeArray = DoubleArray(routePoints.size * 2)
+        for (i in routePoints.indices) {
+            routeArray[i * 2] = routePoints[i].first
+            routeArray[i * 2 + 1] = routePoints[i].second
+        }
+        intent.putExtra("route_points", routeArray)
         sendBroadcast(intent)
     }
 

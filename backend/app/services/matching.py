@@ -220,20 +220,36 @@ async def calcular_match_produtivo(
     )
     
     # Atualizar o status do comprovante para SUCESSO
-    await db["jornadas"].update_one(
-        {"_id": jornada_id},
-        {"$set": {"faturamento.comprovantes_processados.$[elem].match_produtivo_status": "SUCESSO"}},
-        array_filters=[{"elem.url_comprovante": comprovante_url}]
-    )
+    try:
+        await db["jornadas"].update_one(
+            {"_id": jornada_id},
+            {"$set": {"faturamento.comprovantes_processados.$[elem].match_produtivo_status": "SUCESSO"}},
+            array_filters=[{"elem.url_comprovante": comprovante_url}]
+        )
+    except NotImplementedError:
+        doc = await db["jornadas"].find_one({"_id": jornada_id})
+        if doc and "faturamento" in doc and "comprovantes_processados" in doc["faturamento"]:
+            for item in doc["faturamento"]["comprovantes_processados"]:
+                if item.get("url_comprovante") == comprovante_url:
+                    item["match_produtivo_status"] = "SUCESSO"
+            await db["jornadas"].replace_one({"_id": jornada_id}, doc)
     
     print(f"[MATCHING] Sucesso! {result.modified_count} pontos de GPS marcados como produtivos na jornada {jornada_id}")
 
 async def _marcar_falha_match(jornada_id: str, comprovante_url: str):
     db = get_db()
-    await db["jornadas"].update_one(
-        {"_id": jornada_id},
-        {"$set": {"faturamento.comprovantes_processados.$[elem].match_produtivo_status": "FALHA"}},
-        array_filters=[{"elem.url_comprovante": comprovante_url}]
-    )
+    try:
+        await db["jornadas"].update_one(
+            {"_id": jornada_id},
+            {"$set": {"faturamento.comprovantes_processados.$[elem].match_produtivo_status": "FALHA"}},
+            array_filters=[{"elem.url_comprovante": comprovante_url}]
+        )
+    except NotImplementedError:
+        doc = await db["jornadas"].find_one({"_id": jornada_id})
+        if doc and "faturamento" in doc and "comprovantes_processados" in doc["faturamento"]:
+            for item in doc["faturamento"]["comprovantes_processados"]:
+                if item.get("url_comprovante") == comprovante_url:
+                    item["match_produtivo_status"] = "FALHA"
+            await db["jornadas"].replace_one({"_id": jornada_id}, doc)
 
 

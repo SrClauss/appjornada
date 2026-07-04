@@ -49,7 +49,18 @@ class ApiService {
   }
 
   // Upload e processamento automático do print de faturamento usando Gemini no servidor
-  static Future<Map<String, dynamic>?> uploadAndProcessComprovante(String filePath, {String? plataforma}) async {
+  // Upload e processamento automático do print de faturamento usando Gemini no servidor
+  static Future<Map<String, dynamic>?> uploadAndProcessComprovante(
+    String filePath, {
+    String? plataforma,
+    double? startLat,
+    double? startLon,
+    double? endLat,
+    double? endLon,
+    int? startTime,
+    int? endTime,
+    List<Map<String, double>>? routePoints,
+  }) async {
     try {
       final uri = Uri.parse('$baseUrl/jornadas/aberta/comprovante');
       final request = http.MultipartRequest('POST', uri);
@@ -61,6 +72,15 @@ class ApiService {
       request.files.add(await http.MultipartFile.fromPath('arquivo', filePath));
       if (plataforma != null) {
         request.fields['plataforma'] = plataforma;
+      }
+      if (startLat != null) request.fields['start_lat'] = startLat.toString();
+      if (startLon != null) request.fields['start_lon'] = startLon.toString();
+      if (endLat != null) request.fields['end_lat'] = endLat.toString();
+      if (endLon != null) request.fields['end_lon'] = endLon.toString();
+      if (startTime != null) request.fields['start_time'] = startTime.toString();
+      if (endTime != null) request.fields['end_time'] = endTime.toString();
+      if (routePoints != null) {
+        request.fields['route_points'] = json.encode(routePoints);
       }
       
       final streamedResponse = await request.send();

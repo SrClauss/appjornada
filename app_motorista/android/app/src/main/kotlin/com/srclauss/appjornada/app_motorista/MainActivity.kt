@@ -28,8 +28,31 @@ class MainActivity : FlutterActivity() {
             if (intent?.action == OverlayBubbleService.ACTION_SCREENSHOT_CAPTURED) {
                 val filePath = intent.getStringExtra(OverlayBubbleService.EXTRA_FILE_PATH)
                 if (filePath != null) {
+                    val isRideRecord = intent.getBooleanExtra("is_ride_record", false)
+                    val data = mutableMapOf<String, Any>(
+                        "filePath" to filePath,
+                        "isRideRecord" to isRideRecord
+                    )
+                    if (isRideRecord) {
+                        data["startLat"] = intent.getDoubleExtra("start_lat", 0.0)
+                        data["startLon"] = intent.getDoubleExtra("start_lon", 0.0)
+                        data["endLat"] = intent.getDoubleExtra("end_lat", 0.0)
+                        data["endLon"] = intent.getDoubleExtra("end_lon", 0.0)
+                        data["startTime"] = intent.getLongExtra("start_time", 0L)
+                        data["endTime"] = intent.getLongExtra("end_time", 0L)
+                        
+                        val routeList = mutableListOf<Map<String, Double>>()
+                        val routeArray = intent.getDoubleArrayExtra("route_points")
+                        if (routeArray != null) {
+                            for (i in 0 until routeArray.size / 2) {
+                                routeList.add(mapOf("lat" to routeArray[i * 2], "lon" to routeArray[i * 2 + 1]))
+                            }
+                        }
+                        data["routePoints"] = routeList
+                    }
+                    
                     flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                        MethodChannel(messenger, CHANNEL).invokeMethod("onScreenshotCaptured", filePath)
+                        MethodChannel(messenger, CHANNEL).invokeMethod("onScreenshotCaptured", data)
                     }
                 }
             }

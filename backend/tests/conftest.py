@@ -54,6 +54,7 @@ async def client(db):
         patch("app.main.connect_db", new_callable=AsyncMock),
         patch("app.main.close_db", new_callable=AsyncMock),
         patch("app.main.criar_scheduler") as mock_sched,
+        patch("app.services.matching.get_db", return_value=db),
     ):
         mock_sched.return_value.start = lambda: None
         mock_sched.return_value.shutdown = lambda **kw: None
