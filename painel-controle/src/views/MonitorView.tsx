@@ -11,14 +11,31 @@ import {
   Clock, 
   ArrowClockwise, 
   ArrowLeft,
-  Circle
+  Circle,
+  BellRinging,
+  BellSlash,
+  WarningCircle
 } from '@phosphor-icons/react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+
+interface AlertaInatividade {
+  motorista_id: string;
+  motorista_nome: string;
+  jornada_id: string;
+  minutos_parado: number;
+  ultima_posicao?: string;
+  timestamp?: string;
+}
 
 export function MonitorView() {
   const [hoje, setHoje] = useState('');
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('pwa_notifications_enabled') === 'true';
+  });
+  const [notifiedAlertKeys, setNotifiedAlertKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const localDate = new Date();
@@ -63,9 +80,93 @@ export function MonitorView() {
     refetchInterval: 15000,
   });
 
+  // Query para alertas de inatividade em tempo real
+  const { 
+    data: alertasData,
+    refetch: refetchAlertas,
+    isRefetching: refetchingAlertas
+  } = useQuery({
+    queryKey: ['monitor-alertas-inatividade'],
+    queryFn: async () => {
+      const { data } = await api.get<{ alertas: AlertaInatividade[]; total_alertas: number }>('/gps/alertas-inatividade');
+      return data;
+    },
+    refetchInterval: 10000, // Polling a cada 10 segundos
+  });
+
+  const alertas = alertasData?.alertas ?? [];
+
+  // Dispara a Notificação Push do Navegador quando surge novo alerta
+  useEffect(() => {
+    if (!notificationsEnabled || Notification.permission !== 'granted' || alertas.length === 0) {
+      return;
+    }
+
+    const newKeys = new Set(notifiedAlertKeys);
+    let newlyNotified = false;
+
+    for (const alerta of alertas) {
+      const alertKey = `${alerta.jornada_id}_${alerta.minutos_parado}`;
+      if (!newKeys.has(alertKey)) {
+        newKeys.add(alertKey);
+        newlyNotified = true;
+
+        try {
+          new Notification('🚨 Alerta de Inatividade', {
+            body: `Motorista ${alerta.motorista_nome} está inativo há ${alerta.minutos_parado} min!`,
+            icon: '/favicon.ico',
+            tag: `inatividade_${alerta.jornada_id}`,
+          });
+        } catch (err) {
+          console.error('Erro ao emitir notificação de inatividade:', err);
+        }
+      }
+    }
+
+    if (newlyNotified) {
+      setNotifiedAlertKeys(newKeys);
+    }
+  }, [alertas, notificationsEnabled, notifiedAlertKeys]);
+
+  const toggleNotifications = async () => {
+    if (!notificationsEnabled) {
+      if (!('Notification' in window)) {
+        toast.error('Este navegador não possui suporte a Notificações Push.');
+        return;
+      }
+
+      let permission = Notification.permission;
+      if (permission === 'default') {
+        permission = await Notification.requestPermission();
+      }
+
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        localStorage.setItem('pwa_notifications_enabled', 'true');
+        toast.success('Notificações de Inatividade ativadas em tempo real!');
+
+        try {
+          new Notification('📢 Monitor PWA', {
+            body: 'Notificações de inatividade em tempo real foram ativadas com sucesso.',
+            icon: '/favicon.ico',
+          });
+        } catch (e) {
+          console.error('Erro ao emitir notificação de teste:', e);
+        }
+      } else {
+        toast.error('Permissão de notificação negada no navegador.');
+      }
+    } else {
+      setNotificationsEnabled(false);
+      localStorage.setItem('pwa_notifications_enabled', 'false');
+      toast.info('Notificações de inatividade desativadas.');
+    }
+  };
+
   const handleManualRefresh = () => {
     refetchJornadas();
     refetchVeiculos();
+    refetchAlertas();
   };
 
   const handleGoBack = () => {
@@ -110,7 +211,7 @@ export function MonitorView() {
     v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const isGlobalLoading = loadingJornadas || loadingVeiculos;
-  const isGlobalRefetching = refetchingJornadas || refetchingVeiculos;
+  const isGlobalRefetching = refetchingJornadas || refetchingVeiculos || refetchingAlertas;
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 pb-8">
@@ -137,14 +238,39 @@ export function MonitorView() {
           </div>
         </div>
 
-        <button
-          onClick={handleManualRefresh}
-          disabled={isGlobalLoading}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 transition-colors flex items-center gap-1.5 text-xs"
-        >
-          <ArrowClockwise size={14} className={isGlobalRefetching ? 'animate-spin' : ''} />
-          {isGlobalRefetching ? 'Carregando...' : 'Atualizar'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botão para Habilitar / Desabilitar Notificações Push em Tempo Real */}
+          <button
+            onClick={toggleNotifications}
+            title={notificationsEnabled ? "Notificações de inatividade ativas" : "Clique para ativar notificações de inatividade"}
+            className={`px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-semibold border ${
+              notificationsEnabled
+                ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80 shadow-sm'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-750 hover:text-slate-200'
+            }`}
+          >
+            {notificationsEnabled ? (
+              <>
+                <BellRinging size={15} className="text-emerald-400 animate-pulse" />
+                <span>Notificações ON</span>
+              </>
+            ) : (
+              <>
+                <BellSlash size={15} />
+                <span>Notificações OFF</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={handleManualRefresh}
+            disabled={isGlobalLoading}
+            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 transition-colors flex items-center gap-1.5 text-xs"
+          >
+            <ArrowClockwise size={14} className={isGlobalRefetching ? 'animate-spin' : ''} />
+            {isGlobalRefetching ? 'Carregando...' : 'Atualizar'}
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -157,6 +283,40 @@ export function MonitorView() {
           </div>
         ) : (
           <>
+            {/* Cards de Alertas de Inatividade Detectados */}
+            {alertas.length > 0 && (
+              <Card className="p-4 bg-rose-950/40 border-rose-900/60 rounded-xl shadow-lg border">
+                <div className="flex items-center justify-between mb-2.5">
+                  <h2 className="text-xs font-bold text-rose-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <WarningCircle size={18} className="text-rose-400 animate-pulse" />
+                    Alertas de Inatividade ({alertas.length})
+                  </h2>
+                  <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/30 text-[9px] uppercase tracking-wider font-semibold">
+                    Ação Recomendada
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  {alertas.map((a) => (
+                    <div key={a.jornada_id} className="p-3 bg-slate-900/90 border border-rose-900/50 rounded-lg flex items-center justify-between gap-2 text-xs">
+                      <div>
+                        <div className="font-bold text-slate-100 flex items-center gap-1.5">
+                          {a.motorista_nome}
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                            {a.minutos_parado} min parado
+                          </span>
+                        </div>
+                        {a.ultima_posicao && (
+                          <span className="text-[10px] text-slate-400 mt-1 block truncate max-w-[280px]">
+                            📍 {a.ultima_posicao}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             {/* KPI Cards Grid */}
             <div className="grid grid-cols-2 gap-3">
               {/* Andando Card */}
