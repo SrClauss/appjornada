@@ -74,7 +74,31 @@ void onStart(ServiceInstance service) async {
     inactivityRefTime = DateTime.now();
     isAutoPaused = false;
 
-    print('[BackgroundService] Iniciando monitoramento GPS para jornada: $jornadaId');
+    int tempoInatividadeMinutos = prefs.getInt('tempo_inatividade_minutos') ?? 25;
+    double raioMudancaMetros = prefs.getDouble('raio_mudanca_metros') ?? 30.0;
+
+    try {
+      final cfgRes = await http.get(
+        Uri.parse('$baseUrl/config/inatividade'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (cfgRes.statusCode == 200) {
+        final cfgData = json.decode(cfgRes.body);
+        if (cfgData['tempo_inatividade_minutos'] != null) {
+          tempoInatividadeMinutos = (cfgData['tempo_inatividade_minutos'] as num).toInt();
+          await prefs.setInt('tempo_inatividade_minutos', tempoInatividadeMinutos);
+        }
+        if (cfgData['raio_mudanca_metros'] != null) {
+          raioMudancaMetros = (cfgData['raio_mudanca_metros'] as num).toDouble();
+          await prefs.setDouble('raio_mudanca_metros', raioMudancaMetros);
+        }
+      }
+    } catch (_) {}
+
+    print('[BackgroundService] Iniciando monitoramento GPS para jornada: $jornadaId (Inatividade: $tempoInatividadeMinutos min / $raioMudancaMetros m)');
 
     if (service is AndroidServiceInstance) {
       service.setForegroundNotificationInfo(
@@ -149,7 +173,7 @@ void onStart(ServiceInstance service) async {
       }
       lastPosition = pos;
 
-      // --- Monitoramento de Inatividade (menos de 30 metros em 25 minutos) ---
+      // --- Monitoramento de Inatividade (configurável) ---
       if (!isAutoPaused) {
         if (inactivityRefPosition == null) {
           inactivityRefPosition = pos;
@@ -161,14 +185,15 @@ void onStart(ServiceInstance service) async {
             pos.latitude,
             pos.longitude,
           );
-          if (distRef > 30.0) {
+          if (distRef > raioMudancaMetros) {
             inactivityRefPosition = pos;
             inactivityRefTime = agora;
           } else {
             final elapsedSec = agora.difference(inactivityRefTime!).inSeconds;
-            if (elapsedSec >= 1500) { // 25 minutos (1500 seg)
+            final limitSec = tempoInatividadeMinutos * 60;
+            if (elapsedSec >= limitSec) {
               isAutoPaused = true;
-              print('[BackgroundService] Inatividade detectada (>= 25 min sem deslocamento >30m). Disparando pausa.');
+              print('[BackgroundService] Inatividade detectada (>= $tempoInatividadeMinutos min sem deslocamento >${raioMudancaMetros}m). Disparando pausa.');
               _trigarPausaInatividade(baseUrl, token, jornadaId, pos);
             }
           }

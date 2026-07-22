@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Gear, Shield, User, Pencil, UserMinus, Plus } from '@phosphor-icons/react';
+import { Gear, Shield, User, Pencil, UserMinus, Plus, Timer } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUpdateUser, useAllUsers, useCreateMotorista, useDeleteUser } from '@/hooks/useMotoristas';
@@ -55,6 +55,39 @@ export function ConfiguracoesView() {
   const [limparArquivosZip, setLimparArquivosZip] = useState(false);
   const [limparJornadasCompletas, setLimparJornadasCompletas] = useState(false);
   const [loadingLimpeza, setLoadingLimpeza] = useState(false);
+
+  const [inatividadeForm, setInatividadeForm] = useState({
+    tempo_inatividade_minutos: 25,
+    raio_mudanca_metros: 30,
+  });
+  const [savingInatividade, setSavingInatividade] = useState(false);
+
+  useEffect(() => {
+    api.get('/config/inatividade')
+      .then(res => {
+        if (res.data) {
+          setInatividadeForm({
+            tempo_inatividade_minutos: res.data.tempo_inatividade_minutos ?? 25,
+            raio_mudanca_metros: res.data.raio_mudanca_metros ?? 30,
+          });
+        }
+      })
+      .catch(err => console.error('Erro ao carregar configurações de inatividade:', err));
+  }, []);
+
+  const handleSaveInatividade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingInatividade(true);
+    try {
+      await api.put('/config/inatividade', inatividadeForm);
+      toast.success('Parâmetros de inatividade salvos com sucesso!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar parâmetros de inatividade.');
+    } finally {
+      setSavingInatividade(false);
+    }
+  };
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,6 +299,46 @@ export function ConfiguracoesView() {
                 disabled={!pwForm.nova || pwForm.nova !== pwForm.confirmar || updateMutation.isPending}
               >
                 Alterar Senha
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Configurações de Inatividade da Jornada */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Timer className="text-amber-500" size={24} />
+              <CardTitle>Inatividade da Jornada</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSaveInatividade} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Tempo Limite de Inatividade (minutos)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={inatividadeForm.tempo_inatividade_minutos}
+                  onChange={(e) => setInatividadeForm({ ...inatividadeForm, tempo_inatividade_minutos: Number(e.target.value) })}
+                />
+                <p className="text-xs text-muted-foreground">Padrão: 25 minutos. Se o motorista permanecer sem deslocamento maior que o raio neste período, a jornada é pausada.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Raio Mínimo de Deslocamento (metros)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min={1}
+                  value={inatividadeForm.raio_mudanca_metros}
+                  onChange={(e) => setInatividadeForm({ ...inatividadeForm, raio_mudanca_metros: Number(e.target.value) })}
+                />
+                <p className="text-xs text-muted-foreground">Padrão: 30 metros. Movimentações iguais ou abaixo deste valor contam como inatividade acumulada.</p>
+              </div>
+
+              <Button type="submit" disabled={savingInatividade} className="w-full">
+                {savingInatividade ? 'Salvando...' : 'Salvar Parâmetros de Inatividade'}
               </Button>
             </form>
           </CardContent>

@@ -158,4 +158,20 @@ class ApiService {
     }
     return null;
   }
+
+  // Busca configurações de inatividade do backend
+  static Future<Map<String, dynamic>?> getConfigInatividade() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/config/inatividade'),
+        headers: headers,
+      );
+      if (res.statusCode == 200) {
+        return json.decode(res.body);
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao buscar configs de inatividade: $e');
+    }
+    return null;
+  }
 }
