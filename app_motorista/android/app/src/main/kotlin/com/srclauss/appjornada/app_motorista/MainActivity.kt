@@ -84,24 +84,32 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent != null && intent.hasExtra("action") && intent.getStringExtra("action") == "revisar_comprovante") {
-            val filePath = intent.getStringExtra("filePath")
-            val plataforma = intent.getStringExtra("plataforma")
-            val valor = intent.getDoubleExtra("valor", 0.0)
-            val origem = intent.getStringExtra("origem")
-            val destino = intent.getStringExtra("destino")
-            
-            val data = mapOf(
-                "filePath" to filePath,
-                "plataforma" to plataforma,
-                "valor" to valor,
-                "origem" to origem,
-                "destino" to destino
-            )
-            pendingRevision = data
-            
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, CHANNEL).invokeMethod("onNavigateToRevision", data)
+        if (intent != null && intent.hasExtra("action")) {
+            val action = intent.getStringExtra("action")
+            if (action == "revisar_comprovante") {
+                val filePath = intent.getStringExtra("filePath")
+                val plataforma = intent.getStringExtra("plataforma")
+                val valor = intent.getDoubleExtra("valor", 0.0)
+                val origem = intent.getStringExtra("origem")
+                val destino = intent.getStringExtra("destino")
+                
+                val data = mapOf(
+                    "filePath" to filePath,
+                    "plataforma" to plataforma,
+                    "valor" to valor,
+                    "origem" to origem,
+                    "destino" to destino
+                )
+                pendingRevision = data
+                
+                flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                    MethodChannel(messenger, CHANNEL).invokeMethod("onNavigateToRevision", data)
+                }
+            } else if (action == "pausa_inatividade") {
+                pendingPausaInatividade = true
+                flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                    MethodChannel(messenger, CHANNEL).invokeMethod("onNavigateToPausaInatividade", null)
+                }
             }
         }
     }
@@ -164,6 +172,20 @@ class MainActivity : FlutterActivity() {
                 "getPendingRevision" -> {
                     result.success(pendingRevision)
                     pendingRevision = null
+                }
+                "showInactivityNotification" -> {
+                    showInactivityNotification()
+                    val serviceIntent = Intent(this, OverlayBubbleService::class.java).apply {
+                        action = "ACTION_SET_WARNING"
+                        putExtra("warning_active", true)
+                        putExtra("warning_type", "PAUSA_INATIVIDADE")
+                    }
+                    startService(serviceIntent)
+                    result.success(true)
+                }
+                "getPendingPausaInatividade" -> {
+                    result.success(pendingPausaInatividade)
+                    pendingPausaInatividade = false
                 }
                 else -> {
                     result.notImplemented()
@@ -286,6 +308,36 @@ class MainActivity : FlutterActivity() {
         notificationManager.notify(2003, notification)
     }
 
+    private fun showInactivityNotification() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("action", "pausa_inatividade")
+        }
+        
+        val pendingIntent = android.app.PendingIntent.getActivity(
+            this,
+            2004,
+            intent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            else
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        
+        val channelId = "gps_telemetria_channel"
+        val notification = androidx.core.app.NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Jornada Pausada por Inatividade")
+            .setContentText("Você ficou sem se movimentar por 25 minutos. Sua jornada foi pausada.")
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+            
+        notificationManager.notify(2004, notification)
+    }
+
     override fun onResume() {
         super.onResume()
         if (OverlayBubbleService.isServiceRunning) {
@@ -310,5 +362,6 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         var pendingRevision: Map<String, Any?>? = null
+        var pendingPausaInatividade: Boolean = false
     }
 }

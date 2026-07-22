@@ -5,6 +5,7 @@ class OverlayService {
   static const _channel = MethodChannel('com.srclauss.appjornada/overlay');
   static bool _initialized = false;
   static Function(Map<String, dynamic>)? onRevisionRequest;
+  static Function()? onPausaInatividadeRequest;
 
   static void initialize() {
     if (_initialized) return;
@@ -23,6 +24,10 @@ class OverlayService {
         final Map<dynamic, dynamic> data = call.arguments as Map<dynamic, dynamic>;
         if (onRevisionRequest != null) {
           onRevisionRequest!(Map<String, dynamic>.from(data));
+        }
+      } else if (call.method == 'onNavigateToPausaInatividade') {
+        if (onPausaInatividadeRequest != null) {
+          onPausaInatividadeRequest!();
         }
       }
     });
@@ -73,6 +78,24 @@ class OverlayService {
       print("[OverlayService] Erro ao obter revisão pendente: $e");
     }
     return null;
+  }
+
+  static Future<void> showInactivityNotification() async {
+    try {
+      await _channel.invokeMethod('showInactivityNotification');
+    } catch (e) {
+      print("[OverlayService] Erro ao exibir notificação de inatividade: $e");
+    }
+  }
+
+  static Future<bool> getPendingPausaInatividade() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('getPendingPausaInatividade');
+      return res ?? false;
+    } catch (e) {
+      print("[OverlayService] Erro ao verificar pausa por inatividade pendente: $e");
+    }
+    return false;
   }
 
   static Future<void> _handleScreenshotCaptured(String filePath) async {

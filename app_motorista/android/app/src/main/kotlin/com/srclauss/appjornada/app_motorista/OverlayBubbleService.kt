@@ -55,6 +55,7 @@ class OverlayBubbleService : Service() {
     }
 
     private var warningActive = false
+    private var warningType: String? = null
     private var warningFilePath: String? = null
     private var warningPlataforma: String? = null
     private var warningValor = 0.0
@@ -166,6 +167,7 @@ class OverlayBubbleService : Service() {
 
         if (action == "ACTION_SET_WARNING") {
             warningActive = intent.getBooleanExtra("warning_active", false)
+            warningType = intent.getStringExtra("warning_type") ?: "REVISAO"
             warningFilePath = intent.getStringExtra("filePath")
             warningPlataforma = intent.getStringExtra("plataforma")
             warningValor = intent.getDoubleExtra("valor", 0.0)
@@ -413,17 +415,26 @@ class OverlayBubbleService : Service() {
 
                         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                         notificationManager.cancel(2003)
+                        notificationManager.cancel(2004)
 
-                        val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                            putExtra("action", "revisar_comprovante")
-                            putExtra("filePath", warningFilePath)
-                            putExtra("plataforma", warningPlataforma)
-                            putExtra("valor", warningValor)
-                            putExtra("origem", warningOrigem)
-                            putExtra("destino", warningDestino)
+                        if (warningType == "PAUSA_INATIVIDADE") {
+                            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                putExtra("action", "pausa_inatividade")
+                            }
+                            startActivity(intent)
+                        } else {
+                            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                putExtra("action", "revisar_comprovante")
+                                putExtra("filePath", warningFilePath)
+                                putExtra("plataforma", warningPlataforma)
+                                putExtra("valor", warningValor)
+                                putExtra("origem", warningOrigem)
+                                putExtra("destino", warningDestino)
+                            }
+                            startActivity(intent)
                         }
-                        startActivity(intent)
                     } else {
                         val intent = packageManager.getLaunchIntentForPackage(packageName)
                         if (intent != null) {

@@ -96,6 +96,10 @@ class _PausaScreenState extends State<PausaScreen> {
     final m = (_duration.inMinutes % 60).toString().padLeft(2, '0');
     final s = (_duration.inSeconds % 60).toString().padLeft(2, '0');
 
+    final pausas = widget.jornada['pausas'] as List? ?? [];
+    final ativa = pausas.firstWhere((p) => p['fim'] == null, orElse: () => null);
+    final isPorInatividade = ativa != null && (ativa['tipo'] == 'PAUSA_INATIVIDADE' || ativa['tipo'] == 'OCIOSIDADE');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pausa Ativa'),
@@ -116,6 +120,30 @@ class _PausaScreenState extends State<PausaScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              if (isPorInatividade) ...[
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade900.withOpacity(0.35),
+                    border: Border.all(color: Colors.amber, width: 1.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 32),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Sua jornada foi pausada por inatividade (sem movimentação superior a 30m nos últimos 25 minutos).',
+                          style: TextStyle(color: Colors.amber, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const Icon(Icons.pause_circle_filled, size: 100, color: Colors.amber),
               const SizedBox(height: 24),
               const Text(

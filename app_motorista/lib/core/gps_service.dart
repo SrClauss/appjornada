@@ -20,6 +20,9 @@ void onStart(ServiceInstance service) async {
   Position? lastPosition;
   List<Map<String, dynamic>> pendingPoints = [];
   DateTime? lastBatchSentTime;
+  Position? inactivityRefPosition;
+  DateTime? inactivityRefTime;
+  bool isAutoPaused = false;
 
   // Se o serviço for Android, configura eventos específicos
   if (service is AndroidServiceInstance) {
@@ -67,6 +70,9 @@ void onStart(ServiceInstance service) async {
     lastPosition = null;
     pendingPoints.clear();
     lastBatchSentTime = null;
+    inactivityRefPosition = null;
+    inactivityRefTime = DateTime.now();
+    isAutoPaused = false;
 
     print('[BackgroundService] Iniciando monitoramento GPS para jornada: $jornadaId');
 
@@ -114,6 +120,8 @@ void onStart(ServiceInstance service) async {
       };
       pendingPoints.add(point);
       lastPosition = pos;
+      inactivityRefPosition = pos;
+      inactivityRefTime = DateTime.now();
       
       final success = await _sendBatchBackground(baseUrl, token, motoristaId, jornadaId, [point]);
       if (success) {
@@ -140,6 +148,32 @@ void onStart(ServiceInstance service) async {
         );
       }
       lastPosition = pos;
+
+      // --- Monitoramento de Inatividade (menos de 30 metros em 25 minutos) ---
+      if (!isAutoPaused) {
+        if (inactivityRefPosition == null) {
+          inactivityRefPosition = pos;
+          inactivityRefTime = agora;
+        } else {
+          final distRef = Geolocator.distanceBetween(
+            inactivityRefPosition!.latitude,
+            inactivityRefPosition!.longitude,
+            pos.latitude,
+            pos.longitude,
+          );
+          if (distRef > 30.0) {
+            inactivityRefPosition = pos;
+            inactivityRefTime = agora;
+          } else {
+            final elapsedSec = agora.difference(inactivityRefTime!).inSeconds;
+            if (elapsedSec >= 1500) { // 25 minutos (1500 seg)
+              isAutoPaused = true;
+              print('[BackgroundService] Inatividade detectada (>= 25 min sem deslocamento >30m). Disparando pausa.');
+              _trigarPausaInatividade(baseUrl, token, jornadaId, pos);
+            }
+          }
+        }
+      }
 
       final status = pos.speed > 0.8 ? 'CONDUZINDO' : 'PARADO';
       final point = {
@@ -210,6 +244,23 @@ Future<bool> _sendBatchBackground(
     print('[BackgroundService] Exceção ao enviar batch de localização: $e');
     return false;
   }
+}
+
+Future<void> _trigarPausaInatividade(String baseUrl, String token, String jornadaId, Position pos) async {
+  try {
+    final uri = Uri.parse('$baseUrl/jornadas/$jornadaId/pausas?tipo=PAUSA_INATIVIDADE&localizacao_lat=${pos.latitude}&localizacao_lon=${pos.longitude}');
+    await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+  } catch (e) {
+    print('[BackgroundService] Erro ao enviar requisição de pausa por inatividade: $e');
+  }
+
+  await OverlayService.showInactivityNotification();
 }
 
 // Ponto de entrada executado no iOS em segundo plano

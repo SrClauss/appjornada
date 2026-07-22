@@ -111,6 +111,9 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         _currentScreen = 'revisao_comprovante';
       });
     };
+    OverlayService.onPausaInatividadeRequest = () {
+      _navigateToPausaInatividade();
+    };
     OverlayService.getPendingRevision().then((data) {
       if (data != null && mounted) {
         setState(() {
@@ -119,6 +122,25 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         });
       }
     });
+    OverlayService.getPendingPausaInatividade().then((pending) {
+      if (pending == true && mounted) {
+        _navigateToPausaInatividade();
+      }
+    });
+  }
+
+  Future<void> _navigateToPausaInatividade() async {
+    try {
+      final j = await _fetchJornadaAberta();
+      if (j != null && mounted) {
+        setState(() {
+          _jornadaAberta = j;
+          _currentScreen = 'pausa';
+        });
+      }
+    } catch (e) {
+      print("[MainRouter] Erro ao buscar jornada aberta para pausa por inatividade: $e");
+    }
   }
 
   @override
