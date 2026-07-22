@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from app.db.database import get_database
+from app.db.database import get_db
 from app.routers.auth import get_current_user
 
 router = APIRouter(prefix="/config", tags=["configuracoes"])
@@ -22,7 +22,7 @@ async def get_config_inatividade():
     Retorna as configurações atuais de inatividade (tempo em minutos e raio em metros).
     Retorna os valores padrão se ainda não houver alteração salva.
     """
-    db = get_database()
+    db = get_db()
     doc = await db["configuracoes"].find_one({"_id": "inatividade"})
     if not doc:
         return ConfigInatividadeSchema(
@@ -49,7 +49,7 @@ async def update_config_inatividade(
             detail="Apenas administradores e gestores podem alterar as configurações.",
         )
 
-    db = get_database()
+    db = get_db()
     data = payload.model_dump()
     await db["configuracoes"].update_one(
         {"_id": "inatividade"},
