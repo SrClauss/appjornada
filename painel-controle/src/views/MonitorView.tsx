@@ -14,7 +14,9 @@ import {
   Circle,
   BellRinging,
   BellSlash,
-  WarningCircle
+  WarningOctagon,
+  Gauge,
+  Sparkle
 } from '@phosphor-icons/react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,17 +34,28 @@ interface AlertaInatividade {
 
 export function MonitorView() {
   const [hoje, setHoje] = useState('');
+  const [currentTimeStr, setCurrentTimeStr] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
     return localStorage.getItem('pwa_notifications_enabled') === 'true';
   });
   const [notifiedAlertKeys, setNotifiedAlertKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const localDate = new Date();
-    const yyyy = localDate.getFullYear();
-    const mm = String(localDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(localDate.getDate()).padStart(2, '0');
-    setHoje(`${yyyy}-${mm}-${dd}`);
+    const updateTime = () => {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      setHoje(`${yyyy}-${mm}-${dd}`);
+
+      setCurrentTimeStr(
+        now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      );
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const { 
@@ -60,7 +73,7 @@ export function MonitorView() {
       return data;
     },
     enabled: !!hoje,
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 10000,
   });
 
   const { 
@@ -80,7 +93,6 @@ export function MonitorView() {
     refetchInterval: 15000,
   });
 
-  // Query para alertas de inatividade em tempo real
   const { 
     data: alertasData,
     refetch: refetchAlertas,
@@ -91,12 +103,12 @@ export function MonitorView() {
       const { data } = await api.get<{ alertas: AlertaInatividade[]; total_alertas: number }>('/gps/alertas-inatividade');
       return data;
     },
-    refetchInterval: 10000, // Polling a cada 10 segundos
+    refetchInterval: 10000,
   });
 
   const alertas = alertasData?.alertas ?? [];
 
-  // Dispara a Notificação Push do Navegador quando surge novo alerta
+  // Dispara Notificação Push do Navegador quando surge novo alerta
   useEffect(() => {
     if (!notificationsEnabled || Notification.permission !== 'granted' || alertas.length === 0) {
       return;
@@ -173,7 +185,7 @@ export function MonitorView() {
     window.location.hash = '/dashboard';
   };
 
-  // KPIs Calculations
+  // KPI Calculations
   const activeJourneys = jornadas.filter(
     (j) => j.status === 'ABERTA' || j.status === 'EM_ANDAMENTO' || j.status === 'EM_PAUSA'
   );
@@ -214,101 +226,134 @@ export function MonitorView() {
   const isGlobalRefetching = refetchingJornadas || refetchingVeiculos || refetchingAlertas;
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 pb-8">
-      {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col min-h-screen bg-[#07090e] text-slate-100 antialiased font-sans selection:bg-cyan-500 selection:text-black">
+      {/* Background Subtle Glow Grid */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/10 via-[#07090e] to-[#07090e] pointer-events-none z-0"></div>
+
+      {/* Futuristic Header */}
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-[#0d1117]/85 backdrop-blur-xl border-b border-slate-800/80 shadow-2xl">
+        <div className="flex items-center gap-3">
           <button 
             onClick={handleGoBack}
-            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors"
+            className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/50 transition-all duration-200 shadow-sm group"
+            title="Voltar ao Painel"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
           </button>
-          <div>
-            <h1 className="text-md font-bold tracking-tight text-white flex items-center gap-2">
-              Painel Monitor PWA
-              {isGlobalRefetching && (
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
-                </span>
-              )}
-            </h1>
-            <p className="text-xs text-slate-400">Torre de Controle Operacional</p>
+          
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+              <Gauge size={18} className="text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
+                  Monitor Operacional
+                </h1>
+                <Badge variant="outline" className="bg-sky-500/10 border-sky-500/30 text-sky-400 text-[10px] px-1.5 py-0 font-mono">
+                  LIVE
+                </Badge>
+              </div>
+              <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+                <span>{currentTimeStr}</span>
+                <span className="text-slate-600">•</span>
+                <span>Torre de Controle</span>
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* Control Action Buttons */}
         <div className="flex items-center gap-2">
-          {/* Botão para Habilitar / Desabilitar Notificações Push em Tempo Real */}
+          {/* Notification Toggle Button */}
           <button
             onClick={toggleNotifications}
             title={notificationsEnabled ? "Notificações de inatividade ativas" : "Clique para ativar notificações de inatividade"}
-            className={`px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-semibold border ${
+            className={`px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 text-xs font-semibold border backdrop-blur-md shadow-sm ${
               notificationsEnabled
-                ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80 shadow-sm'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-750 hover:text-slate-200'
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 shadow-emerald-950/40'
+                : 'bg-slate-800/80 border-slate-700/80 text-slate-400 hover:bg-slate-700/80 hover:text-slate-200'
             }`}
           >
             {notificationsEnabled ? (
               <>
-                <BellRinging size={15} className="text-emerald-400 animate-pulse" />
-                <span>Notificações ON</span>
+                <BellRinging size={16} className="text-emerald-400 animate-pulse" />
+                <span className="hidden sm:inline">Alertas ON</span>
               </>
             ) : (
               <>
-                <BellSlash size={15} />
-                <span>Notificações OFF</span>
+                <BellSlash size={16} />
+                <span className="hidden sm:inline">Alertas OFF</span>
               </>
             )}
           </button>
 
+          {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
             disabled={isGlobalLoading}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 transition-colors flex items-center gap-1.5 text-xs"
+            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 disabled:opacity-50 text-slate-300 hover:text-white transition-all duration-200 flex items-center gap-1.5 text-xs font-medium shadow-sm"
+            title="Atualizar Dados"
           >
-            <ArrowClockwise size={14} className={isGlobalRefetching ? 'animate-spin' : ''} />
-            {isGlobalRefetching ? 'Carregando...' : 'Atualizar'}
+            <ArrowClockwise size={15} className={`text-sky-400 ${isGlobalRefetching ? 'animate-spin' : ''}`} />
+            <span className="hidden md:inline">{isGlobalRefetching ? 'Atualizando...' : 'Atualizar'}</span>
           </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 space-y-5">
+      <main className="relative z-10 flex-1 p-4 md:p-6 space-y-6 max-w-7xl mx-auto w-full">
         {isGlobalLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-24 w-full bg-slate-900 rounded-xl" />
-            <Skeleton className="h-48 w-full bg-slate-900 rounded-xl" />
-            <Skeleton className="h-48 w-full bg-slate-900 rounded-xl" />
+            <Skeleton className="h-28 w-full bg-slate-900/60 rounded-2xl border border-slate-800/50" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Skeleton className="h-28 bg-slate-900/60 rounded-2xl border border-slate-800/50" />
+              <Skeleton className="h-28 bg-slate-900/60 rounded-2xl border border-slate-800/50" />
+              <Skeleton className="h-28 bg-slate-900/60 rounded-2xl border border-slate-800/50" />
+              <Skeleton className="h-28 bg-slate-900/60 rounded-2xl border border-slate-800/50" />
+            </div>
+            <Skeleton className="h-64 w-full bg-slate-900/60 rounded-2xl border border-slate-800/50" />
           </div>
         ) : (
           <>
-            {/* Cards de Alertas de Inatividade Detectados */}
+            {/* Critical Alert Banner for Inactivity */}
             {alertas.length > 0 && (
-              <Card className="p-4 bg-rose-950/40 border-rose-900/60 rounded-xl shadow-lg border">
-                <div className="flex items-center justify-between mb-2.5">
-                  <h2 className="text-xs font-bold text-rose-300 flex items-center gap-1.5 uppercase tracking-wider">
-                    <WarningCircle size={18} className="text-rose-400 animate-pulse" />
-                    Alertas de Inatividade ({alertas.length})
-                  </h2>
-                  <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/30 text-[9px] uppercase tracking-wider font-semibold">
-                    Ação Recomendada
-                  </Badge>
+              <Card className="p-4 bg-gradient-to-r from-rose-950/70 via-rose-900/40 to-slate-900/80 border-rose-600/50 rounded-2xl shadow-xl shadow-rose-950/30 backdrop-blur-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                      <WarningOctagon size={20} className="animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-rose-200 tracking-wide flex items-center gap-2">
+                        Alertas de Inatividade Detectados
+                        <Badge className="bg-rose-500/30 text-rose-200 border-rose-400/40 font-mono text-[10px] px-2">
+                          {alertas.length} {alertas.length === 1 ? 'ALERTA' : 'ALERTAS'}
+                        </Badge>
+                      </h2>
+                      <p className="text-xs text-rose-300/80 mt-0.5">Motoristas sem deslocamento superior ao raio configurado</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   {alertas.map((a) => (
-                    <div key={a.jornada_id} className="p-3 bg-slate-900/90 border border-rose-900/50 rounded-lg flex items-center justify-between gap-2 text-xs">
-                      <div>
-                        <div className="font-bold text-slate-100 flex items-center gap-1.5">
-                          {a.motorista_nome}
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                            {a.minutos_parado} min parado
+                    <div 
+                      key={a.jornada_id} 
+                      className="p-3 bg-[#0d1117]/90 border border-rose-500/30 rounded-xl flex items-center justify-between gap-3 text-xs shadow-inner"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm truncate">{a.motorista_nome}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono font-semibold text-[10px] shrink-0">
+                            ⏱️ {a.minutos_parado} min parado
                           </span>
                         </div>
                         {a.ultima_posicao && (
-                          <span className="text-[10px] text-slate-400 mt-1 block truncate max-w-[280px]">
-                            📍 {a.ultima_posicao}
-                          </span>
+                          <p className="text-[11px] text-slate-400 mt-1 truncate flex items-center gap-1">
+                            <span className="text-rose-400 font-bold">📍</span> {a.ultima_posicao}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -317,202 +362,224 @@ export function MonitorView() {
               </Card>
             )}
 
-            {/* KPI Cards Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Andando Card */}
-              <div className="p-3 bg-gradient-to-br from-emerald-950/40 to-slate-900 border border-emerald-900/30 rounded-xl shadow-md flex flex-col justify-between h-24">
+            {/* Futuristic KPI Grid (4 Cols on Desktop, 2 Cols on Mobile) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              
+              {/* Rodando Card */}
+              <div className="p-4 bg-gradient-to-br from-emerald-950/30 via-slate-900/80 to-slate-950 border border-emerald-500/30 rounded-2xl shadow-xl shadow-emerald-950/20 backdrop-blur-md flex flex-col justify-between h-28 relative overflow-hidden group hover:border-emerald-500/50 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/20 transition-all"></div>
                 <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Rodando</span>
-                  <div className="p-1 rounded-lg bg-emerald-500/10 text-emerald-400">
-                    <Circle weight="fill" size={14} className="animate-pulse" />
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider font-mono">Motoristas Rodando</span>
+                  <div className="p-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-sm">
+                    <Circle weight="fill" size={12} className="animate-pulse" />
                   </div>
                 </div>
-                <div>
-                  <div className="text-2xl font-black text-white">{motoristasAndando}</div>
-                  <div className="text-[10px] text-slate-400">Motoristas Ativos</div>
+                <div className="flex items-baseline justify-between mt-2">
+                  <div className="text-3xl font-black text-white tracking-tight font-mono">{motoristasAndando}</div>
+                  <span className="text-[10px] text-emerald-400/80 font-medium">Em trânsito</span>
                 </div>
               </div>
 
               {/* Pausa Card */}
-              <div className="p-3 bg-gradient-to-br from-amber-950/40 to-slate-900 border border-amber-900/30 rounded-xl shadow-md flex flex-col justify-between h-24">
+              <div className="p-4 bg-gradient-to-br from-amber-950/30 via-slate-900/80 to-slate-950 border border-amber-500/30 rounded-2xl shadow-xl shadow-amber-950/20 backdrop-blur-md flex flex-col justify-between h-28 relative overflow-hidden group hover:border-amber-500/50 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/20 transition-all"></div>
                 <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">Pausa</span>
-                  <div className="p-1 rounded-lg bg-amber-500/10 text-amber-400">
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider font-mono">Em Pausa</span>
+                  <div className="p-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-sm">
                     <Clock size={16} />
                   </div>
                 </div>
-                <div>
-                  <div className="text-2xl font-black text-white">{motoristasPausa}</div>
-                  <div className="text-[10px] text-slate-400">Em Intervalo</div>
+                <div className="flex items-baseline justify-between mt-2">
+                  <div className="text-3xl font-black text-white tracking-tight font-mono">{motoristasPausa}</div>
+                  <span className="text-[10px] text-amber-400/80 font-medium">Em intervalo</span>
                 </div>
               </div>
 
               {/* Faturamento Card */}
-              <div className="p-3 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-xl shadow-md flex flex-col justify-between h-24 col-span-2">
+              <div className="p-4 bg-gradient-to-br from-sky-950/30 via-slate-900/80 to-slate-950 border border-sky-500/30 rounded-2xl shadow-xl shadow-sky-950/20 backdrop-blur-md flex flex-col justify-between h-28 relative overflow-hidden group hover:border-sky-500/50 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-sky-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-sky-500/20 transition-all"></div>
                 <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase font-bold text-sky-400 tracking-wider">Faturamento Hoje</span>
-                  <div className="p-1 rounded-lg bg-sky-500/10 text-sky-400">
+                  <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider font-mono">Faturamento Hoje</span>
+                  <div className="p-1.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm">
                     <CurrencyDollar size={16} />
                   </div>
                 </div>
-                <div className="flex justify-between items-end">
-                  <div className="text-2xl font-black text-white">{formatCurrency(faturamentoHoje)}</div>
-                  <div className="text-[10px] text-slate-400">
-                    Total declarado/prints
-                  </div>
+                <div className="flex items-baseline justify-between mt-2">
+                  <div className="text-2xl md:text-3xl font-black text-white tracking-tight font-mono">{formatCurrency(faturamentoHoje)}</div>
                 </div>
               </div>
 
-              {/* Despesas Card */}
-              <div className="p-3 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-xl shadow-md flex flex-col justify-between h-24">
+              {/* Lucro Líquido Real Card */}
+              <div className="p-4 bg-gradient-to-br from-indigo-950/30 via-slate-900/80 to-slate-950 border border-indigo-500/30 rounded-2xl shadow-xl shadow-indigo-950/20 backdrop-blur-md flex flex-col justify-between h-28 relative overflow-hidden group hover:border-indigo-500/50 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all"></div>
                 <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase font-bold text-pink-400 tracking-wider">Despesas</span>
-                  <div className="p-1 rounded-lg bg-pink-500/10 text-pink-400">
+                  <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider font-mono">Lucro Líquido Real</span>
+                  <div className="p-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 shadow-sm">
+                    <Sparkle size={16} />
+                  </div>
+                </div>
+                <div className="flex items-baseline justify-between mt-2">
+                  <div className="text-2xl md:text-3xl font-black text-white tracking-tight font-mono">{formatCurrency(lucroLiquidoHoje)}</div>
+                  <span className="text-[10px] text-indigo-400/80 font-medium">DRE Líquido</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Secondary KPI Bar (Despesas + Oficina) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-pink-400">
                     <GasPump size={16} />
                   </div>
-                </div>
-                <div>
-                  <div className="text-lg font-black text-white">{formatCurrency(totalDespesasHoje)}</div>
-                  <div className="text-[10px] text-slate-400">Combustível/Pedágio</div>
-                </div>
-              </div>
-
-              {/* Lucro Líquido Real (DRE) Card */}
-              <div className="p-3 bg-gradient-to-br from-emerald-950/40 to-slate-900 border border-emerald-900/30 rounded-xl shadow-md flex flex-col justify-between h-24 col-span-2">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Lucro Líquido Real</span>
-                  <div className="p-1 rounded-lg bg-emerald-500/10 text-emerald-400">
-                    <CurrencyDollar size={16} />
-                  </div>
-                </div>
-                <div className="flex justify-between items-end">
-                  <div className="text-2xl font-black text-white">{formatCurrency(lucroLiquidoHoje)}</div>
-                  <div className="text-[10px] text-slate-400">
-                    Após manutenção e depreciação
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Despesas do Dia</span>
+                    <span className="text-sm font-bold text-white font-mono">{formatCurrency(totalDespesasHoje)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Manutenção Card */}
-              <div className="p-3 bg-gradient-to-br from-indigo-950/40 to-slate-900 border border-indigo-900/30 rounded-xl shadow-md flex flex-col justify-between h-24">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Manutenção</span>
-                  <div className="p-1 rounded-lg bg-indigo-500/10 text-indigo-400">
+              <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400">
                     <Wrench size={16} />
                   </div>
-                </div>
-                <div>
-                  <div className="text-lg font-black text-white">{veiculosManutencao.length}</div>
-                  <div className="text-[10px] text-slate-400">Carros na Oficina</div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Na Oficina</span>
+                    <span className="text-sm font-bold text-white font-mono">{veiculosManutencao.length} Veículos</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Active Journeys Monitor */}
-            <Card className="p-4 bg-slate-900/40 border-slate-800 rounded-xl">
-              <h2 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-1.5">
-                <Users size={16} className="text-sky-400" />
-                Motoristas Operando ({activeJourneys.length})
-              </h2>
+            {/* Active Journeys Monitor Card */}
+            <Card className="p-5 bg-[#0d1117]/80 border-slate-800/90 rounded-2xl shadow-2xl backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
+                <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                    <Users size={16} />
+                  </div>
+                  Motoristas Operando ({activeJourneys.length})
+                </h2>
+                <Badge variant="outline" className="bg-slate-800/60 border-slate-700 text-slate-300 text-[10px] font-mono">
+                  Real-time GPS
+                </Badge>
+              </div>
 
               {activeJourneys.length === 0 ? (
-                <div className="text-center py-6 text-slate-500 text-xs">
-                  Nenhum motorista com jornada aberta no momento.
+                <div className="text-center py-10 text-slate-500 text-xs flex flex-col items-center gap-2">
+                  <Users size={32} className="text-slate-700" />
+                  <span>Nenhum motorista com jornada aberta no momento.</span>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {activeJourneys.map((j) => (
-                    <div 
-                      key={j.id} 
-                      className="p-3 bg-slate-900/70 border border-slate-800 rounded-lg flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-xs text-white truncate">
-                            {j.motorista_nome || 'Sem nome'}
-                          </span>
-                          <Badge 
-                            variant="outline" 
-                            className={`px-1.5 py-0 text-[9px] uppercase tracking-wider ${
-                              j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA'
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                            }`}
-                          >
-                            {j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA' ? 'Rodando' : 'Pausa'}
-                          </Badge>
-                          {(j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA') && j.telemetria_status && (
+                <div className="grid grid-cols-1 gap-3">
+                  {activeJourneys.map((j) => {
+                    const isRodando = j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA';
+                    const isParado = j.telemetria_status === 'PARADO';
+
+                    return (
+                      <div 
+                        key={j.id} 
+                        className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all duration-200 shadow-sm"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm text-white tracking-wide truncate">
+                              {j.motorista_nome || 'Motorista'}
+                            </span>
+                            
+                            {/* Status Badge */}
                             <Badge 
                               variant="outline" 
-                              className={`px-1.5 py-0 text-[9px] uppercase tracking-wider font-semibold ${
-                                j.telemetria_status === 'PARADO'
-                                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/35 animate-pulse'
-                                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/35'
+                              className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
+                                isRodando
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                               }`}
                             >
-                              {j.telemetria_status === 'PARADO' ? 'Parado' : 'Em Movimento'}
+                              {isRodando ? 'RODANDO' : 'EM PAUSA'}
                             </Badge>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                          <Car size={12} className="text-slate-500" />
-                          Veículo: <strong className="text-slate-300">{j.veiculo_id}</strong>
-                          {j.km?.inicial !== undefined && (
-                            <span className="text-[9px] text-slate-500">
-                              (KM Inicial: {j.km.inicial})
-                            </span>
-                          )}
-                        </p>
-                      </div>
 
-                      <div className="text-right">
-                        <span className="text-xs font-black text-slate-200 block">
-                          {formatCurrency(j.faturamento?.total_dia ?? 0)}
-                        </span>
-                        <span className="text-[9px] text-slate-500 block">
-                          Faturado
-                        </span>
+                            {/* Telemetria Status Badge */}
+                            {isRodando && j.telemetria_status && (
+                              <Badge 
+                                variant="outline" 
+                                className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
+                                  isParado
+                                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                }`}
+                              >
+                                {isParado ? 'PARADO' : 'EM MOVIMENTO'}
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-3 text-xs text-slate-400 mt-2 font-mono flex-wrap">
+                            <span className="flex items-center gap-1 text-slate-300">
+                              <Car size={14} className="text-slate-500" />
+                              Placa: <strong className="text-sky-400 font-semibold">{j.veiculo_id}</strong>
+                            </span>
+                            {j.km?.inicial !== undefined && (
+                              <span className="text-slate-500">
+                                KM Inicial: {j.km.inicial}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Revenue Badge */}
+                        <div className="text-left sm:text-right border-t sm:border-t-0 border-slate-800/80 pt-2 sm:pt-0 shrink-0">
+                          <span className="text-xs text-slate-500 uppercase tracking-wider block font-mono">
+                            Faturado Hoje
+                          </span>
+                          <span className="text-base font-black text-emerald-400 font-mono">
+                            {formatCurrency(j.faturamento?.total_dia ?? 0)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Card>
 
-            {/* Maintenance Vehicles List */}
-            <Card className="p-4 bg-slate-900/40 border-slate-800 rounded-xl">
-              <h2 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-1.5">
-                <Wrench size={16} className="text-indigo-400" />
-                Veículos em Manutenção ({veiculosManutencao.length})
-              </h2>
-
-              {veiculosManutencao.length === 0 ? (
-                <div className="text-center py-6 text-slate-500 text-xs">
-                  Nenhum veículo em manutenção no momento.
+            {/* Maintenance Vehicles Section */}
+            {veiculosManutencao.length > 0 && (
+              <Card className="p-5 bg-[#0d1117]/80 border-slate-800/90 rounded-2xl shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
+                  <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      <Wrench size={16} />
+                    </div>
+                    Veículos em Manutenção ({veiculosManutencao.length})
+                  </h2>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-2.5">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {veiculosManutencao.map((v) => (
                     <div 
                       key={v.id} 
-                      className="p-3 bg-slate-900/70 border border-slate-800 rounded-lg flex items-center justify-between"
+                      className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center justify-between gap-2 text-xs"
                     >
                       <div>
-                        <span className="font-bold text-xs text-white block">
+                        <span className="font-bold text-white text-sm font-mono block">
                           {v.id}
                         </span>
-                        <span className="text-[10px] text-slate-400 mt-0.5 block">
-                          {v.marca_modelo} ({v.cor})
+                        <span className="text-slate-400 text-xs block mt-0.5">
+                          {v.marca_modelo} ({v.cor || 'Sem cor'})
                         </span>
                       </div>
-                      <Badge className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 text-[9px] uppercase font-semibold">
-                        Oficina
+                      <Badge className="bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 text-[10px] uppercase font-bold font-mono">
+                        OFICINA
                       </Badge>
                     </div>
                   ))}
                 </div>
-              )}
-            </Card>
+              </Card>
+            )}
+
           </>
         )}
       </main>
