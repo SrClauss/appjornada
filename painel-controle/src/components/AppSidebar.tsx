@@ -10,7 +10,8 @@ import {
   SignOut,
   CurrencyDollar,
   Image,
-  DownloadSimple
+  DownloadSimple,
+  Gauge
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +24,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { icon: House, label: 'Dashboard', id: 'dashboard' },
+  { icon: Gauge, label: 'Mapa Ao Vivo (Monitor)', id: 'monitor' },
   { icon: Users, label: 'Motoristas', id: 'motoristas' },
   { icon: Car, label: 'Veículos', id: 'veiculos' },
   { icon: ClipboardText, label: 'Jornadas', id: 'jornadas' },

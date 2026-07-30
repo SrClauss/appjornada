@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Car, CurrencyDollar, ClipboardText } from '@phosphor-icons/react';
+import { Users, Car, CurrencyDollar, ClipboardText, Gauge } from '@phosphor-icons/react';
 import { useDashboard } from '@/hooks/useDashboard';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -41,6 +41,26 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6">
+      {/* Banner de Atalho para o Mapa Ao Vivo */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gradient-to-r from-sky-950/80 via-slate-900 to-indigo-950/80 border border-sky-500/30 rounded-2xl shadow-xl gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
+            <Gauge size={24} />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-white tracking-wide">Monitor Operacional & Mapa Ao Vivo</h2>
+            <p className="text-xs text-slate-400">Acompanhe a posição dos motoristas, veículos rodando e alertas em tempo real.</p>
+          </div>
+        </div>
+        <a
+          href="#/monitor"
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-sky-500/20 transition-all duration-200 flex items-center gap-2 shrink-0"
+        >
+          <span>ABRIR MAPA AO VIVO</span>
+          <span>→</span>
+        </a>
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
