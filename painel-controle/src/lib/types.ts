@@ -115,6 +115,17 @@ export interface UpdateVeiculoPayload {
   custo_depreciacao_por_km?: number;
 }
 
+export interface BaseOperacao {
+  id?: string;
+  nome: string;
+  cidade?: string;
+  estado?: string;
+  lat: number;
+  lon: number;
+  zoom_padrao?: number;
+  is_principal?: boolean;
+}
+
 // ── Jornada ───────────────────────────────────────────────────────────────────
 
 export interface Pausa {

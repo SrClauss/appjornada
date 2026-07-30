@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Jornada, Veiculo } from '@/lib/types';
+import type { Jornada, Veiculo, BaseOperacao } from '@/lib/types';
 import { 
   Users, 
   Car, 
@@ -134,6 +134,17 @@ export function MonitorView() {
       if (eventSource) eventSource.close();
     };
   }, [refetchJornadas, refetchVeiculos, refetchAlertas]);
+
+  const { data: bases = [] } = useQuery<BaseOperacao[]>({
+    queryKey: ['config-bases-operacoes'],
+    queryFn: async () => {
+      const { data } = await api.get<BaseOperacao[]>('/config/bases');
+      return data;
+    },
+  });
+
+  const [baseFocoId, setBaseFocoId] = useState<string>('AUTO');
+  const selectedBase = bases.find((b) => b.id === baseFocoId) || null;
 
   // Gestão da Configuração do Limite de KM Morta pelo Gestor
   const { data: configInatividade, refetch: refetchConfig } = useQuery({
@@ -435,7 +446,7 @@ export function MonitorView() {
 
             {/* Live Map View Section */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
                   <span>🗺️ Mapa Ao Vivo da Frota em Tempo Real</span>
                   <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-400 text-[10px]">
@@ -443,28 +454,47 @@ export function MonitorView() {
                   </Badge>
                 </h2>
 
-                {/* Gestor KM Morta Config Bar */}
-                <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
-                  <span className="text-slate-400 font-medium">Limite Razão KM Morta:</span>
-                  <input
-                    type="number"
-                    value={limiteKmMortaInput}
-                    onChange={(e) => setLimiteKmMortaInput(Number(e.target.value))}
-                    className="w-16 bg-slate-800 border border-slate-700 text-white font-mono text-center rounded px-1 py-0.5"
-                    min="0"
-                    max="100"
-                  />
-                  <span className="text-slate-400">%</span>
-                  <button
-                    onClick={handleSalvarLimiteKmMorta}
-                    className="ml-1 bg-sky-600 hover:bg-sky-500 text-white px-2 py-0.5 rounded text-[11px] font-bold transition-all"
-                  >
-                    Salvar
-                  </button>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* Seletor de Base de Operações */}
+                  <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                    <span className="text-slate-400 font-medium">🏢 Base Central:</span>
+                    <select
+                      value={baseFocoId}
+                      onChange={(e) => setBaseFocoId(e.target.value)}
+                      className="bg-slate-800 border border-slate-700 text-xs text-white rounded px-2 py-0.5 font-medium focus:outline-none focus:border-sky-500"
+                    >
+                      <option value="AUTO">🎯 Automático (Principal / Frota)</option>
+                      {bases.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          🏢 {b.nome} {b.is_principal ? '★ (Principal)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Gestor KM Morta Config Bar */}
+                  <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                    <span className="text-slate-400 font-medium">Limite Razão KM Morta:</span>
+                    <input
+                      type="number"
+                      value={limiteKmMortaInput}
+                      onChange={(e) => setLimiteKmMortaInput(Number(e.target.value))}
+                      className="w-16 bg-slate-800 border border-slate-700 text-white font-mono text-center rounded px-1 py-0.5"
+                      min="0"
+                      max="100"
+                    />
+                    <span className="text-slate-400">%</span>
+                    <button
+                      onClick={handleSalvarLimiteKmMorta}
+                      className="ml-1 bg-sky-600 hover:bg-sky-500 text-white px-2 py-0.5 rounded text-[11px] font-bold transition-all"
+                    >
+                      Salvar
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <LiveMapView jornadas={displayedJornadas} />
+              <LiveMapView jornadas={displayedJornadas} bases={bases} baseFoco={selectedBase} />
             </div>
 
             {/* Futuristic KPI Grid (4 Cols on Desktop, 2 Cols on Mobile) */}

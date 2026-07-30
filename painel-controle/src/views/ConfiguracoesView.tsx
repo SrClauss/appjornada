@@ -62,6 +62,35 @@ export function ConfiguracoesView() {
   });
   const [savingInatividade, setSavingInatividade] = useState(false);
 
+  // Bases de Operações State
+  const [bases, setBases] = useState<any[]>([]);
+  const [loadingBases, setLoadingBases] = useState(false);
+  const [openBaseDialog, setOpenBaseDialog] = useState(false);
+  const [editingBase, setEditingBase] = useState<any | null>(null);
+
+  const emptyBaseForm = {
+    nome: '',
+    cidade: 'São Mateus',
+    estado: 'ES',
+    lat: -18.716,
+    lon: -39.858,
+    zoom_padrao: 13,
+    is_principal: false,
+  };
+  const [baseForm, setBaseForm] = useState(emptyBaseForm);
+
+  const fetchBases = async () => {
+    try {
+      setLoadingBases(true);
+      const res = await api.get('/config/bases');
+      setBases(res.data || []);
+    } catch (e) {
+      console.error('Erro ao carregar bases:', e);
+    } finally {
+      setLoadingBases(false);
+    }
+  };
+
   useEffect(() => {
     api.get('/config/inatividade')
       .then(res => {
@@ -73,6 +102,8 @@ export function ConfiguracoesView() {
         }
       })
       .catch(err => console.error('Erro ao carregar configurações de inatividade:', err));
+
+    fetchBases();
   }, []);
 
   const handleSaveInatividade = async (e: React.FormEvent) => {
@@ -86,6 +117,47 @@ export function ConfiguracoesView() {
       toast.error('Erro ao salvar parâmetros de inatividade.');
     } finally {
       setSavingInatividade(false);
+    }
+  };
+
+  const handleSaveBase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingBase?.id) {
+        await api.put(`/config/bases/${editingBase.id}`, baseForm);
+        toast.success('Base de operações atualizada com sucesso!');
+      } else {
+        await api.post('/config/bases', baseForm);
+        toast.success('Base de operações cadastrada com sucesso!');
+      }
+      setOpenBaseDialog(false);
+      setEditingBase(null);
+      setBaseForm(emptyBaseForm);
+      fetchBases();
+    } catch (err) {
+      toast.error('Erro ao salvar base de operações.');
+    }
+  };
+
+  const handleDeleteBase = async (id: string) => {
+    if (!confirm('Deseja realmente excluir esta base de operações?')) return;
+    try {
+      await api.delete(`/config/bases/${id}`);
+      toast.success('Base de operações excluída.');
+      fetchBases();
+    } catch {
+      toast.error('Erro ao excluir base.');
+    }
+  };
+
+  const handleSetPrincipal = async (base: any) => {
+    if (!base.id) return;
+    try {
+      await api.put(`/config/bases/${base.id}`, { ...base, is_principal: true });
+      toast.success(`"${base.nome}" definida como Base Principal da frota!`);
+      fetchBases();
+    } catch {
+      toast.error('Erro ao definir base principal.');
     }
   };
 
@@ -430,6 +502,224 @@ export function ConfiguracoesView() {
           </CardContent>
         </Card>
       )}
+
+      {/* Gestão de Bases de Operações (Garagens e Centrais) */}
+      {(user?.role === 'ADMIN' || user?.role === 'GESTOR') && (
+        <Card className="mt-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏢</span>
+              <div>
+                <CardTitle>Bases de Operações e Garagens</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure os pontos centrais de operação da frota e a centralização do mapa ao vivo.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingBase(null);
+                setBaseForm(emptyBaseForm);
+                setOpenBaseDialog(true);
+              }}
+              className="flex items-center gap-1 bg-sky-600 hover:bg-sky-500 text-white"
+            >
+              <Plus size={16} /> Nova Base de Operações
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loadingBases ? (
+              <p className="text-sm text-muted-foreground">Carregando bases...</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Base de Operações</TableHead>
+                    <TableHead>Cidade / Estado</TableHead>
+                    <TableHead>Coordenadas (Lat, Lon)</TableHead>
+                    <TableHead>Zoom Padrão</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[140px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bases.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        Nenhuma base de operações cadastrada.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    bases.map((base) => (
+                      <TableRow key={base.id}>
+                        <TableCell className="font-medium flex items-center gap-2">
+                          <span>🏢</span> {base.nome}
+                        </TableCell>
+                        <TableCell>{base.cidade || '—'} {base.estado ? `/ ${base.estado}` : ''}</TableCell>
+                        <TableCell className="font-mono text-xs text-slate-600">
+                          {base.lat}, {base.lon}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{base.zoom_padrao ?? 13}x</TableCell>
+                        <TableCell>
+                          {base.is_principal ? (
+                            <Badge className="bg-sky-600 text-white font-bold">★ Base Principal</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-slate-500">Secundária</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {!base.is_principal && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px] px-2"
+                                onClick={() => handleSetPrincipal(base)}
+                                title="Definir como Base Principal"
+                              >
+                                Tornar Principal
+                              </Button>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Editar"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingBase(base);
+                                setBaseForm({
+                                  nome: base.nome,
+                                  cidade: base.cidade || '',
+                                  estado: base.estado || 'ES',
+                                  lat: base.lat,
+                                  lon: base.lon,
+                                  zoom_padrao: base.zoom_padrao ?? 13,
+                                  is_principal: !!base.is_principal,
+                                });
+                                setOpenBaseDialog(true);
+                              }}
+                            >
+                              <Pencil size={16} />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Excluir"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleDeleteBase(base.id)}
+                            >
+                              <UserMinus size={16} />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modal Cadastro/Edição Base de Operações */}
+      <Dialog open={openBaseDialog} onOpenChange={setOpenBaseDialog}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>{editingBase ? 'Editar Base de Operações' : 'Nova Base de Operações'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveBase} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome da Base / Garagem *</Label>
+              <Input
+                required
+                placeholder="Ex: Base Operacional São Mateus"
+                value={baseForm.nome}
+                onChange={(e) => setBaseForm({ ...baseForm, nome: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Cidade</Label>
+                <Input
+                  placeholder="São Mateus"
+                  value={baseForm.cidade}
+                  onChange={(e) => setBaseForm({ ...baseForm, cidade: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Estado (UF)</Label>
+                <Input
+                  placeholder="ES"
+                  maxLength={2}
+                  value={baseForm.estado}
+                  onChange={(e) => setBaseForm({ ...baseForm, estado: e.target.value.toUpperCase() })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Latitude *</Label>
+                <Input
+                  required
+                  type="number"
+                  step="any"
+                  placeholder="-18.716"
+                  value={baseForm.lat}
+                  onChange={(e) => setBaseForm({ ...baseForm, lat: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Longitude *</Label>
+                <Input
+                  required
+                  type="number"
+                  step="any"
+                  placeholder="-39.858"
+                  value={baseForm.lon}
+                  onChange={(e) => setBaseForm({ ...baseForm, lon: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Zoom Padrão (1 a 18)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={18}
+                  value={baseForm.zoom_padrao}
+                  onChange={(e) => setBaseForm({ ...baseForm, zoom_padrao: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2 flex flex-col justify-end">
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer pb-2">
+                  <input
+                    type="checkbox"
+                    checked={baseForm.is_principal}
+                    onChange={(e) => setBaseForm({ ...baseForm, is_principal: e.target.checked })}
+                    className="w-4 h-4 text-sky-600 rounded"
+                  />
+                  <span>Base Principal da Frota</span>
+                </label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpenBaseDialog(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {editingBase ? 'Atualizar Base' : 'Cadastrar Base'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {user?.role === 'ADMIN' && (
         <Card className="border-red-900/20 bg-red-500/5 mt-6">

@@ -1,26 +1,34 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { Jornada } from '@/lib/types';
+import type { Jornada, BaseOperacao } from '@/lib/types';
 
 interface LiveMapViewProps {
   jornadas: Jornada[];
+  bases?: BaseOperacao[];
+  baseFoco?: BaseOperacao | null;
   onSelectJornada?: (jornada: Jornada) => void;
 }
 
-export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
+export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }: LiveMapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
+
+  const basePrincipal = bases.find((b) => b.is_principal) || bases[0];
+  const targetBase = baseFoco || basePrincipal;
+
+  const fallbackLat = targetBase?.lat ?? -20.3155;
+  const fallbackLon = targetBase?.lon ?? -40.3128;
+  const fallbackZoom = targetBase?.zoom_padrao ?? 12;
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     if (!mapRef.current) {
-      // Centro inicial: Vitória / Grande Vitória - ES (exemplo padrão) ou centro dos veículos
       const map = L.map(containerRef.current, {
         zoomControl: true,
-      }).setView([-20.3155, -40.3128], 12);
+      }).setView([fallbackLat, fallbackLon], fallbackZoom);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
@@ -38,14 +46,48 @@ export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
 
     const bounds = L.latLngBounds([]);
 
-    // Adiciona marcadores para jornadas com localização de telemetria ou inicial
+    // Marcadores das Bases de Operações
+    bases.forEach((b) => {
+      if (b.lat && b.lon) {
+        const baseIcon = L.divIcon({
+          className: 'custom-base-marker',
+          html: `
+            <div style="
+              background-color: #3b82f6;
+              width: 28px;
+              height: 28px;
+              border-radius: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 0 10px #3b82f6;
+              border: 2px solid white;
+              color: white;
+              font-size: 14px;
+            ">
+              🏢
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+
+        const bMarker = L.marker([b.lat, b.lon], { icon: baseIcon }).addTo(map);
+        bMarker.bindPopup(`
+          <div style="color: #0f172a; font-family: sans-serif; padding: 4px;">
+            <h4 style="margin:0 0 4px 0; font-weight:bold; font-size:14px;">🏢 ${b.nome}</h4>
+            <p style="margin:0; font-size:12px; color:#475569;">${b.cidade || ''} ${b.estado ? `- ${b.estado}` : ''}</p>
+            ${b.is_principal ? '<span style="color:#3b82f6; font-weight:bold; font-size:11px;">★ Base Principal</span>' : ''}
+          </div>
+        `);
+        markersRef.current.push(bMarker);
+      }
+    });
+
+    // Marcadores dos Motoristas
     jornadas.forEach((j) => {
       let lat: number | undefined;
       let lon: number | undefined;
-
-      if (j.segmentos_rota && j.segmentos_rota.length > 0) {
-        // Tenta pegar última posição da polilinha se houver
-      }
 
       const locObj =
         (j as any).localizacao_atual ||
@@ -61,7 +103,6 @@ export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
         lon = Number(locObj.longitude);
       }
 
-      // Se não tiver lat/lon direta, ignora exibição deste marcador no mapa
       if (!lat || !lon) {
         return;
       }
@@ -119,20 +160,24 @@ export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
       bounds.extend([lat, lon]);
     });
 
-    if (markersRef.current.length === 1 && bounds.isValid()) {
+    if (baseFoco) {
+      map.setView([baseFoco.lat, baseFoco.lon], baseFoco.zoom_padrao || 13);
+    } else if (markersRef.current.length === 1 && bounds.isValid()) {
       const center = bounds.getCenter();
       map.setView([center.lat, center.lng], 14);
     } else if (markersRef.current.length > 1 && bounds.isValid()) {
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    } else if (targetBase) {
+      map.setView([targetBase.lat, targetBase.lon], targetBase.zoom_padrao || 13);
     }
-  }, [jornadas]);
+  }, [jornadas, bases, baseFoco, fallbackLat, fallbackLon, fallbackZoom]);
 
   return (
     <div className="relative w-full h-[380px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#0d1117]">
       <div ref={containerRef} className="w-full h-full z-10" />
 
       {/* Overlay de Legenda */}
-      <div className="absolute bottom-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 flex items-center gap-4 text-xs text-slate-300">
+      <div className="absolute bottom-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 flex items-center gap-4 text-xs text-slate-300 flex-wrap">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
           <span>Rodando</span>
@@ -148,6 +193,9 @@ export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
           <span>Encerrada</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px]">🏢 Base Operacional</span>
         </div>
       </div>
     </div>
