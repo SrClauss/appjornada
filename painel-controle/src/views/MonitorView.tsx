@@ -244,10 +244,22 @@ export function MonitorView() {
     window.location.hash = '/dashboard';
   };
 
+  const [filtroStatus, setFiltroStatus] = useState<'ATIVAS' | 'TODAS' | 'ENCERRADAS'>('ATIVAS');
+
   // KPI Calculations
   const activeJourneys = jornadas.filter(
     (j) => j.status === 'ABERTA' || j.status === 'EM_ANDAMENTO' || j.status === 'EM_PAUSA'
   );
+
+  const displayedJornadas = jornadas.filter((j) => {
+    if (filtroStatus === 'ATIVAS') {
+      return j.status === 'ABERTA' || j.status === 'EM_ANDAMENTO' || j.status === 'EM_PAUSA';
+    }
+    if (filtroStatus === 'ENCERRADAS') {
+      return j.status === 'ENCERRADA';
+    }
+    return true;
+  });
   
   const motoristasAndando = activeJourneys.filter(
     (j) => j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA'
@@ -452,7 +464,7 @@ export function MonitorView() {
                 </div>
               </div>
 
-              <LiveMapView jornadas={jornadas} />
+              <LiveMapView jornadas={displayedJornadas} />
             </div>
 
             {/* Futuristic KPI Grid (4 Cols on Desktop, 2 Cols on Mobile) */}
@@ -546,29 +558,61 @@ export function MonitorView() {
               </div>
             </div>
 
-            {/* Active Journeys Monitor Card */}
+            {/* Journeys Monitor Card */}
             <Card className="p-5 bg-[#0d1117]/80 border-slate-800/90 rounded-2xl shadow-2xl backdrop-blur-xl">
-              <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 border-b border-slate-800/80 pb-3">
                 <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
                     <Users size={16} />
                   </div>
-                  Motoristas Operando ({activeJourneys.length})
+                  <span>Monitor de Jornadas ({displayedJornadas.length})</span>
                 </h2>
-                <Badge variant="outline" className="bg-slate-800/60 border-slate-700 text-slate-300 text-[10px] font-mono">
-                  Real-time GPS
-                </Badge>
+
+                {/* Filter Selector Tabs */}
+                <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-800 p-1 rounded-xl text-xs">
+                  <button
+                    onClick={() => setFiltroStatus('ATIVAS')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-all text-[11px] ${
+                      filtroStatus === 'ATIVAS'
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    🚀 Ativas ({activeJourneys.length})
+                  </button>
+                  <button
+                    onClick={() => setFiltroStatus('TODAS')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-all text-[11px] ${
+                      filtroStatus === 'TODAS'
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    📋 Todas ({jornadas.length})
+                  </button>
+                  <button
+                    onClick={() => setFiltroStatus('ENCERRADAS')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-all text-[11px] ${
+                      filtroStatus === 'ENCERRADAS'
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    🏁 Encerradas ({jornadas.length - activeJourneys.length})
+                  </button>
+                </div>
               </div>
 
-              {activeJourneys.length === 0 ? (
+              {displayedJornadas.length === 0 ? (
                 <div className="text-center py-10 text-slate-500 text-xs flex flex-col items-center gap-2">
                   <Users size={32} className="text-slate-700" />
-                  <span>Nenhum motorista com jornada aberta no momento.</span>
+                  <span>Nenhuma jornada encontrada neste filtro.</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-3">
-                  {activeJourneys.map((j) => {
+                  {displayedJornadas.map((j) => {
                     const isRodando = j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA';
+                    const isEncerrada = j.status === 'ENCERRADA';
                     const isParado = j.telemetria_status === 'PARADO';
 
                     return (
@@ -586,12 +630,14 @@ export function MonitorView() {
                             <Badge 
                               variant="outline" 
                               className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
-                                isRodando
+                                isEncerrada
+                                  ? 'bg-slate-800 text-slate-400 border-slate-700'
+                                  : isRodando
                                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                                   : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                               }`}
                             >
-                              {isRodando ? 'RODANDO' : 'EM PAUSA'}
+                              {isEncerrada ? 'ENCERRADA' : isRodando ? 'RODANDO' : 'EM PAUSA'}
                             </Badge>
 
                             {/* Telemetria Status Badge */}

@@ -84,6 +84,7 @@ ssh "$SERVER" bash <<EOF
   set -euo pipefail
   cd "$REMOTE_DIR"
   docker compose up -d --build
+  docker compose restart nginx
   echo "==> Containers em execução:"
   docker compose ps
 EOF

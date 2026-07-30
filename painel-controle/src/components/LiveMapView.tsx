@@ -66,7 +66,14 @@ export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
         return;
       }
 
-      const statusColor = j.status === 'EM_ANDAMENTO' ? '#10B981' : j.status === 'EM_PAUSA' ? '#F59E0B' : '#6366F1';
+      const statusColor =
+        j.status === 'EM_ANDAMENTO'
+          ? '#10B981'
+          : j.status === 'EM_PAUSA'
+          ? '#F59E0B'
+          : j.status === 'ABERTA'
+          ? '#6366F1'
+          : '#64748B';
       
       const customIcon = L.divIcon({
         className: 'custom-vehicle-marker',
@@ -137,6 +144,10 @@ export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
           <span>Aberta</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+          <span>Encerrada</span>
         </div>
       </div>
     </div>
