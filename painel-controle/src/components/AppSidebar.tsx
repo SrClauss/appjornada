@@ -9,7 +9,8 @@ import {
   Gear,
   SignOut,
   CurrencyDollar,
-  Image
+  Image,
+  DownloadSimple
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -74,6 +75,14 @@ export function AppSidebar({ activeView, onNavigate }: AppSidebarProps) {
       </nav>
       
       <div className="p-4 border-t border-primary-foreground/10 flex flex-col gap-2">
+        <a
+          href="/app-release.apk"
+          download="app-release.apk"
+          className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 font-semibold transition-all duration-150 border border-emerald-500/30 shadow-sm"
+        >
+          <DownloadSimple size={20} className="flex-shrink-0 text-emerald-400" />
+          <span>Baixar App Motorista</span>
+        </a>
         <button
           onClick={logout}
           className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-lg hover:bg-red-500/20 text-red-200 hover:text-white transition-all duration-155"
@@ -82,7 +91,7 @@ export function AppSidebar({ activeView, onNavigate }: AppSidebarProps) {
           <span>Sair do Sistema</span>
         </button>
         <div className="text-xs text-primary-foreground/60 mt-1">
-          v1.0.2 • 2026
+          v1.0.3 • 2026
         </div>
       </div>
     </aside>

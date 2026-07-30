@@ -1,4 +1,4 @@
-import { Bell, SignOut } from '@phosphor-icons/react';
+import { Bell, SignOut, DownloadSimple } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -18,6 +18,16 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 h-16 bg-card border-b border-border shadow-sm">
       <div className="h-full px-6 flex items-center justify-end gap-4">
+        {/* Botão de Download do App Motorista APK */}
+        <a
+          href="/app-release.apk"
+          download="app-release.apk"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-all shadow-sm"
+          title="Baixar APK do App Motorista (v1.0.3)"
+        >
+          <DownloadSimple size={16} />
+          <span>Baixar App (APK)</span>
+        </a>
         <button className="relative p-2 hover:bg-muted rounded-lg transition-colors">
           <Bell size={20} className="text-foreground" />
           {alertCount > 0 && (
