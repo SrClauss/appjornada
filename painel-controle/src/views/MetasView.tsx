@@ -29,7 +29,8 @@ const goalTypeLabel: Record<GoalType, string> = {
   FATURAMENTO_DIA: 'Faturamento Diário',
   KM_MES: 'KM Mensal',
   HORAS_MES: 'Horas Mensais',
-  CORRIDAS_PARTICULARES: 'Corridas Particulares (R$ ou Qtd)',
+  CORRIDAS_PARTICULARES_VALOR: 'Corridas Particulares (Faturamento R$)',
+  CORRIDAS_PARTICULARES_QTD: 'Corridas Particulares (Qtd. de Corridas)',
 };
 
 export function MetasView() {
@@ -204,16 +205,20 @@ export function MetasView() {
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Faixa Mínima:</span>
                           <span className="font-semibold">
-                            {goal.tipo === 'FATURAMENTO_DIA'
+                            {goal.tipo === 'FATURAMENTO_DIA' || goal.tipo === 'CORRIDAS_PARTICULARES_VALOR'
                               ? formatCurrency(goal.faixa_minima)
+                              : goal.tipo === 'CORRIDAS_PARTICULARES_QTD'
+                              ? `${goal.faixa_minima} corridas`
                               : goal.faixa_minima}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Faixa Máxima:</span>
                           <span className="font-semibold">
-                            {goal.tipo === 'FATURAMENTO_DIA'
+                            {goal.tipo === 'FATURAMENTO_DIA' || goal.tipo === 'CORRIDAS_PARTICULARES_VALOR'
                               ? formatCurrency(goal.faixa_maxima)
+                              : goal.tipo === 'CORRIDAS_PARTICULARES_QTD'
+                              ? `${goal.faixa_maxima} corridas`
                               : goal.faixa_maxima}
                           </span>
                         </div>
@@ -264,10 +269,11 @@ export function MetasView() {
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="FATURAMENTO_DIA">Faturamento Diário</SelectItem>
-                  <SelectItem value="KM_MES">KM Mensal</SelectItem>
-                  <SelectItem value="HORAS_MES">Horas Mensais</SelectItem>
-                  <SelectItem value="CORRIDAS_PARTICULARES">Corridas Particulares (R$ ou Qtd)</SelectItem>
+                  <SelectItem value="FATURAMENTO_DIA">Faturamento Diário (R$)</SelectItem>
+                  <SelectItem value="KM_MES">KM Mensal (km)</SelectItem>
+                  <SelectItem value="HORAS_MES">Horas Mensais (h)</SelectItem>
+                  <SelectItem value="CORRIDAS_PARTICULARES_VALOR">Corridas Particulares (Faturamento R$)</SelectItem>
+                  <SelectItem value="CORRIDAS_PARTICULARES_QTD">Corridas Particulares (Qtd. de Corridas)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
