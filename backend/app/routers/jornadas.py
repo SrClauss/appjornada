@@ -668,22 +668,10 @@ async def fechar_jornada(
     if not doc:
         raise HTTPException(status_code=404, detail="Jornada não encontrada")
     if doc["status"] == "ENCERRADA":
-        # Idempotência para cliques duplos: se foi encerrada muito recentemente, retorna ela
-        try:
-            fim_str = doc.get("horario", {}).get("fim")
-            if fim_str:
-                dt_str = f"{doc['data']}T{fim_str}"
-                if not dt_str.endswith("Z"):
-                    dt_str += "Z"
-                dt_fim = datetime.fromisoformat(dt_str)
-                now_utc = datetime.now(timezone.utc)
-                seconds_diff = abs((now_utc - dt_fim).total_seconds())
-                if seconds_diff <= 15:
-                    return Jornada(**_normalizar_jornada(doc))
-        except Exception:
-            pass
-
-        raise HTTPException(status_code=409, detail="Jornada já encerrada")
+        # Idempotência total: se já está encerrada, retorna a jornada sem lançar erro 409
+        normalized = _normalizar_jornada(doc)
+        await _populate_motorista_nome(normalized, db)
+        return Jornada(**normalized)
     if doc["status"] not in ("ABERTA", "EM_ANDAMENTO", "EM_PAUSA"):
         raise HTTPException(status_code=409, detail="Jornada em estado inválido para encerramento")
 

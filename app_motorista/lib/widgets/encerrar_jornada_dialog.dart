@@ -173,13 +173,13 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
           '&faturamento_outros=${double.tryParse(_outrosController.text) ?? 0.0}';
       
       if (_fotoHodometroUrl != null) {
-        urlStr += '&foto_km_final_url=$_fotoHodometroUrl';
+        urlStr += '&foto_km_final_url=${Uri.encodeComponent(_fotoHodometroUrl!)}';
       }
       if (_fotoUberUrl != null) {
-        urlStr += '&comprovante_uber_url=$_fotoUberUrl';
+        urlStr += '&comprovante_uber_url=${Uri.encodeComponent(_fotoUberUrl!)}';
       }
       if (_foto99Url != null) {
-        urlStr += '&comprovante_99_url=$_foto99Url';
+        urlStr += '&comprovante_99_url=${Uri.encodeComponent(_foto99Url!)}';
       }
 
       final res = await http.patch(
@@ -187,7 +187,7 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
         headers: ApiService.headers,
       );
 
-      if (res.statusCode == 200) {
+      if (res.statusCode == 200 || res.statusCode == 409) {
         widget.onCompleted();
         Navigator.pop(context);
       } else {

@@ -235,7 +235,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
         body: json.encode(requestBody),
       );
 
-      if (res.statusCode == 200) {
+      if (res.statusCode == 200 || res.statusCode == 409) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Jornada encerrada com sucesso!'), backgroundColor: Colors.green),
