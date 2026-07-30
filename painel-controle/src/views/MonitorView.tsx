@@ -22,6 +22,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { LiveMapView } from '@/components/LiveMapView';
 
 interface AlertaInatividade {
   motorista_id: string;
@@ -107,6 +108,64 @@ export function MonitorView() {
   });
 
   const alertas = alertasData?.alertas ?? [];
+
+  // Real-Time SSE (Server-Sent Events) - Transmissão sem necessidade de Polling constante
+  useEffect(() => {
+    const sseUrl = `${api.defaults.baseURL || ''}/events/stream`;
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource(sseUrl);
+      eventSource.onmessage = (ev) => {
+        try {
+          const payload = JSON.parse(ev.data);
+          if (payload.type !== 'ping') {
+            refetchJornadas();
+            refetchVeiculos();
+            refetchAlertas();
+          }
+        } catch (e) {
+          // Ignore
+        }
+      };
+    } catch (e) {
+      console.warn('SSE EventSource indisponível:', e);
+    }
+    return () => {
+      if (eventSource) eventSource.close();
+    };
+  }, [refetchJornadas, refetchVeiculos, refetchAlertas]);
+
+  // Gestão da Configuração do Limite de KM Morta pelo Gestor
+  const { data: configInatividade, refetch: refetchConfig } = useQuery({
+    queryKey: ['config-inatividade'],
+    queryFn: async () => {
+      const { data } = await api.get<{ tempo_inatividade_minutos: number; raio_mudanca_metros: number; limite_km_morta_pct: number }>('/config/inatividade');
+      return data;
+    },
+  });
+
+  const [limiteKmMortaInput, setLimiteKmMortaInput] = useState<number>(20);
+
+  useEffect(() => {
+    if (configInatividade?.limite_km_morta_pct !== undefined) {
+      setLimiteKmMortaInput(configInatividade.limite_km_morta_pct);
+    }
+  }, [configInatividade]);
+
+  const handleSalvarLimiteKmMorta = async () => {
+    try {
+      await api.put('/config/inatividade', {
+        tempo_inatividade_minutos: configInatividade?.tempo_inatividade_minutos ?? 25,
+        raio_mudanca_metros: configInatividade?.raio_mudanca_metros ?? 30,
+        limite_km_morta_pct: Number(limiteKmMortaInput),
+      });
+      toast.success(`Limite de Razão KM Morta atualizado para ${limiteKmMortaInput}%!`);
+      refetchConfig();
+      refetchJornadas();
+    } catch (e) {
+      toast.error('Erro ao atualizar limite de auditoria.');
+    }
+  };
 
   // Dispara Notificação Push do Navegador quando surge novo alerta
   useEffect(() => {
@@ -210,7 +269,7 @@ export function MonitorView() {
       lucroLiquidoHoje += j.dre.lucro_liquido;
     }
     for (const ab of (j.abastecimentos ?? [])) {
-      totalDespesasHoje += (ab.valor_gasolina ?? 0) + (ab.valor_gnv ?? 0) + (ab.valor_etanol ?? 0)
+      totalDespesasHoje += (ab.valor_gasolina ?? ab.gasolina ?? 0) + (ab.valor_gnv ?? ab.gnv ?? 0) + (ab.valor_etanol ?? ab.etanol ?? 0)
         + (ab.valor_pedagio ?? 0) + (ab.valor_estacionamento ?? 0) + (ab.valor_outros ?? 0);
     }
   }
@@ -361,6 +420,40 @@ export function MonitorView() {
                 </div>
               </Card>
             )}
+
+            {/* Live Map View Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                  <span>🗺️ Mapa Ao Vivo da Frota em Tempo Real</span>
+                  <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-400 text-[10px]">
+                    SSE ONLINE
+                  </Badge>
+                </h2>
+
+                {/* Gestor KM Morta Config Bar */}
+                <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                  <span className="text-slate-400 font-medium">Limite Razão KM Morta:</span>
+                  <input
+                    type="number"
+                    value={limiteKmMortaInput}
+                    onChange={(e) => setLimiteKmMortaInput(Number(e.target.value))}
+                    className="w-16 bg-slate-800 border border-slate-700 text-white font-mono text-center rounded px-1 py-0.5"
+                    min="0"
+                    max="100"
+                  />
+                  <span className="text-slate-400">%</span>
+                  <button
+                    onClick={handleSalvarLimiteKmMorta}
+                    className="ml-1 bg-sky-600 hover:bg-sky-500 text-white px-2 py-0.5 rounded text-[11px] font-bold transition-all"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </div>
+
+              <LiveMapView jornadas={jornadas} />
+            </div>
 
             {/* Futuristic KPI Grid (4 Cols on Desktop, 2 Cols on Mobile) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

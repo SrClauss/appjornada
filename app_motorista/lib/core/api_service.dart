@@ -48,6 +48,33 @@ class ApiService {
     return null;
   }
 
+  // Upload e leitura por IA do Hodômetro via Gemini
+  static Future<Map<String, dynamic>?> processarFotoOdometro(String filePath, {String contexto = 'km_inicial'}) async {
+    try {
+      final uri = Uri.parse('$baseUrl/ocr/odometro');
+      final request = http.MultipartRequest('POST', uri);
+      
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      request.fields['contexto'] = contexto;
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('[ApiService] Erro OCR Odômetro (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao enviar foto do hodômetro: $e');
+    }
+    return null;
+  }
+
   // Upload e processamento automático do print de faturamento usando Gemini no servidor
   // Upload e processamento automático do print de faturamento usando Gemini no servidor
   static Future<Map<String, dynamic>?> uploadAndProcessComprovante(

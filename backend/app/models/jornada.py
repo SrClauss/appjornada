@@ -15,6 +15,8 @@ class KmJornada(BaseModel):
     final: Optional[float] = None
     rodados: Optional[float] = None
     morta: Optional[float] = 0.0
+    inicial_contestado: Optional[bool] = False
+    final_contestado: Optional[bool] = False
 
 
 class HorarioJornada(BaseModel):

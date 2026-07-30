@@ -9,17 +9,19 @@ router = APIRouter(prefix="/config", tags=["configuracoes"])
 
 DEFAULT_TEMPO_INATIVIDADE_MINUTOS = 25
 DEFAULT_RAIO_MUDANCA_METROS = 30.0
+DEFAULT_LIMITE_KM_MORTA_PCT = 20.0
 
 
 class ConfigInatividadeSchema(BaseModel):
     tempo_inatividade_minutos: int = Field(default=25, ge=1, description="Tempo limite de inatividade em minutos")
     raio_mudanca_metros: float = Field(default=30.0, ge=1.0, description="Raio de mudança de posição em metros")
+    limite_km_morta_pct: float = Field(default=20.0, ge=0.0, le=100.0, description="Limite máximo aceitável de Razão KM Morta (%) pelo Gestor")
 
 
 @router.get("/inatividade", response_model=ConfigInatividadeSchema)
 async def get_config_inatividade():
     """
-    Retorna as configurações atuais de inatividade (tempo em minutos e raio em metros).
+    Retorna as configurações atuais de inatividade e auditoria de KM morta.
     Retorna os valores padrão se ainda não houver alteração salva.
     """
     db = get_db()
@@ -28,10 +30,12 @@ async def get_config_inatividade():
         return ConfigInatividadeSchema(
             tempo_inatividade_minutos=DEFAULT_TEMPO_INATIVIDADE_MINUTOS,
             raio_mudanca_metros=DEFAULT_RAIO_MUDANCA_METROS,
+            limite_km_morta_pct=DEFAULT_LIMITE_KM_MORTA_PCT,
         )
     return ConfigInatividadeSchema(
         tempo_inatividade_minutos=doc.get("tempo_inatividade_minutos", DEFAULT_TEMPO_INATIVIDADE_MINUTOS),
         raio_mudanca_metros=float(doc.get("raio_mudanca_metros", DEFAULT_RAIO_MUDANCA_METROS)),
+        limite_km_morta_pct=float(doc.get("limite_km_morta_pct", DEFAULT_LIMITE_KM_MORTA_PCT)),
     )
 
 
@@ -41,7 +45,7 @@ async def update_config_inatividade(
     current_user: dict = Depends(get_current_user),
 ):
     """
-    Atualiza as configurações globais de inatividade. Apenas gestores ou admins têm permissão.
+    Atualiza as configurações globais de inatividade e limite de KM morta. Apenas gestores ou admins têm permissão.
     """
     if current_user.get("role") not in ["ADMIN", "GESTOR"]:
         raise HTTPException(

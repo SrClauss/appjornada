@@ -133,6 +133,9 @@ export interface AbastecimentoJornada {
   gnv?: number;
   gasolina?: number;
   etanol?: number;
+  valor_gnv?: number;
+  valor_gasolina?: number;
+  valor_etanol?: number;
   valor_pedagio?: number;
   valor_estacionamento?: number;
   valor_outros?: number;
@@ -163,6 +166,14 @@ export interface SegmentoRota {
   polyline: string;
 }
 
+export interface ScoreAuditoria {
+  score_risco: number;
+  nivel_risco: 'VERDE' | 'AMARELO' | 'VERMELHO';
+  motivos_risco: string[];
+  razao_km_morta_pct: number;
+  limite_km_morta_pct: number;
+}
+
 export interface Jornada {
   id: string;
   data: string;
@@ -186,14 +197,32 @@ export interface Jornada {
     noventa_nove?: number;
     outros?: number;
     total_dia?: number;
+    comprovante_uber_url?: string;
+    comprovante_99_url?: string;
+    comprovante_outros_url?: string;
     comprovantes_processados?: ComprovanteProcessado[];
   };
   dre?: DREJornada;
   saldo_horas_dia?: number;
   bonus_dia?: number;
+  fotos?: {
+    km_inicial_url?: string;
+    km_final_url?: string;
+  };
+  vistoria?: {
+    pneus_ok?: boolean;
+    oleo_ok?: boolean;
+    agua_ok?: boolean;
+    farois_ok?: boolean;
+    limpeza_ok?: boolean;
+    observacoes?: string;
+    foto_avarias_url?: string;
+  };
   pausas: Pausa[];
   abastecimentos: AbastecimentoJornada[];
   observacoes?: string;
+  auditoria_status?: string;
+  score_auditoria?: ScoreAuditoria;
   telemetria_status?: 'CONDUZINDO' | 'PARADO' | null;
   telemetria_ultima_atualizacao?: string | null;
   rota_polyline?: string;

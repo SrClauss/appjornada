@@ -6,6 +6,7 @@ import 'package:app_motorista/core/api_service.dart';
 class EncerrarJornadaDialog extends StatefulWidget {
   final Map<String, dynamic> jornada;
   final VoidCallback onCompleted;
+
   const EncerrarJornadaDialog({super.key, required this.jornada, required this.onCompleted});
 
   @override
@@ -26,9 +27,69 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
   bool _fotoHodometroUploading = false;
   bool _fotoUberUploading = false;
   bool _foto99Uploading = false;
+  double? _kmAiLido;
   
   bool _loading = false;
   final ImagePicker _picker = ImagePicker();
+
+  Future<void> _capturarEProcessarHodometroFinal() async {
+    try {
+      final XFile? file = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (file != null) {
+        setState(() {
+          _fotoHodometroUploading = true;
+        });
+        
+        final resOcr = await ApiService.processarFotoOdometro(file.path, contexto: 'km_final');
+        
+        setState(() {
+          _fotoHodometroUploading = false;
+          if (resOcr != null && resOcr['foto_url'] != null) {
+            _fotoHodometroUrl = resOcr['foto_url'];
+            
+            if (resOcr['sucesso'] == true && resOcr['km_lido'] != null) {
+              final double kmDetectado = (resOcr['km_lido'] as num).toDouble();
+              _kmAiLido = kmDetectado;
+              if (kmDetectado % 1 == 0) {
+                _kmController.text = kmDetectado.toInt().toString();
+              } else {
+                _kmController.text = kmDetectado.toString();
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: const Color(0xFF10B981),
+                  content: Text('✨ Hodômetro final lido pela IA: ${kmDetectado.toStringAsFixed(1)} km'),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  backgroundColor: Colors.orange,
+                  content: Text('Foto do hodômetro salva! Confira o KM final informado.'),
+                ),
+              );
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Falha ao enviar a foto do hodômetro para o servidor.')),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _fotoHodometroUploading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao capturar foto: $e')),
+      );
+    }
+  }
 
   Future<void> _capturarImagem(
     String contexto,
@@ -64,16 +125,20 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
   }
 
   Future<void> _confirmarFechamento() async {
-    final km = double.tryParse(_kmController.text) ?? 0;
-    if (km <= 0) {
+    if (_fotoHodometroUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, digite o KM final.')),
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('É obrigatório tirar a foto do hodômetro final para encerramento.'),
+        ),
       );
       return;
     }
-    if (_fotoHodometroUrl == null) {
+
+    final km = double.tryParse(_kmController.text) ?? 0;
+    if (km <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, tire foto do hodômetro para encerramento.')),
+        const SnackBar(content: Text('Por favor, digite ou confirme o KM final.')),
       );
       return;
     }
@@ -124,7 +189,7 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
 
       if (res.statusCode == 200) {
         widget.onCompleted();
-        Navigator.pop(context); // Fechar Dialog
+        Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao fechar jornada: ${res.body}')),
@@ -143,7 +208,6 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Escuta mudanças nos controllers para exibir botões de prints dinamicamente
     final showUberPrint = (double.tryParse(_uberController.text) ?? 0.0) > 0;
     final show99Print = (double.tryParse(_noventaNoveController.text) ?? 0.0) > 0;
 
@@ -152,15 +216,59 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Informe o faturamento das plataformas e quilometragem final.'),
+            const Text('Fotografe o hodômetro final para leitura automática com IA.'),
             const SizedBox(height: 16),
+
+            // FOTO HODÔMETRO COM IA
+            _fotoHodometroUploading
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          CircularProgressIndicator(strokeWidth: 2.5),
+                          SizedBox(width: 12),
+                          Text('Lendo hodômetro com IA...'),
+                        ],
+                      ),
+                    ),
+                  )
+                : OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      side: BorderSide(
+                        color: _fotoHodometroUrl != null ? Colors.green : const Color(0xFF6366F1),
+                        width: 1.5,
+                      ),
+                    ),
+                    onPressed: _capturarEProcessarHodometroFinal,
+                    icon: Icon(
+                      _fotoHodometroUrl != null ? Icons.check_circle : Icons.camera_alt,
+                      color: _fotoHodometroUrl != null ? Colors.green : const Color(0xFF6366F1),
+                    ),
+                    label: Text(
+                      _fotoHodometroUrl != null ? 'Refazer Foto do Hodômetro Final' : 'FOTOGRAFAR HODÔMETRO (IA)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _fotoHodometroUrl != null ? Colors.green : const Color(0xFF6366F1),
+                      ),
+                    ),
+                  ),
+
+            const SizedBox(height: 12),
             TextField(
               controller: _kmController,
+              enabled: _fotoHodometroUrl != null,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'KM Final no Hodômetro', border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                labelText: 'KM Final no Hodômetro',
+                hintText: _fotoHodometroUrl == null ? 'Tire a foto acima primeiro' : 'Confirme ou ajuste a leitura',
+                border: const OutlineInputBorder(),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: _uberController,
               keyboardType: TextInputType.number,
@@ -181,28 +289,6 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
               decoration: const InputDecoration(labelText: 'Faturamento Particular (R\$)', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
-            
-            // FOTO HODÔMETRO
-            _fotoHodometroUploading
-                ? const CircularProgressIndicator()
-                : OutlinedButton.icon(
-                    onPressed: () => _capturarImagem('km_final', ImageSource.camera, (url) {
-                      setState(() {
-                        _fotoHodometroUrl = url;
-                      });
-                    }, (val) {
-                      setState(() {
-                        _fotoHodometroUploading = val;
-                      });
-                    }),
-                    icon: Icon(
-                      _fotoHodometroUrl != null ? Icons.check_circle : Icons.camera_alt,
-                      color: _fotoHodometroUrl != null ? Colors.green : Colors.grey,
-                    ),
-                    label: Text(_fotoHodometroUrl != null ? 'Foto do Hodômetro Salva!' : 'Fotografar Hodômetro Final'),
-                  ),
-            
-            const SizedBox(height: 8),
 
             // PRINT UBER
             if (showUberPrint) ...[

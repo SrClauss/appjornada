@@ -15,6 +15,8 @@ from app.core.dependencies import get_current_user, require_roles
 from app.core.security import verificar_senha
 from app.core.config import settings
 from app.db.audit import registrar_auditoria
+from app.services.audit import calcular_score_auditoria
+from app.routers.events import event_manager
 
 router = APIRouter(prefix="/jornadas", tags=["jornadas"])
 
@@ -155,6 +157,9 @@ def _normalizar_jornada(d: dict) -> dict:
             "total_horas_segundos": None
         }
         
+    res_audit = calcular_score_auditoria(d)
+    d["auditoria_status"] = res_audit["nivel_risco"]
+    d["score_auditoria"] = res_audit
     return d
 
 
@@ -845,6 +850,12 @@ async def fechar_jornada(
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
     normalized = _normalizar_jornada(atualizado)
     await _populate_motorista_nome(normalized, db)
+    
+    try:
+        await event_manager.broadcast("jornada_atualizada", {"jornada_id": jornada_id, "status": "ENCERRADA"})
+    except Exception:
+        pass
+
     return Jornada(**normalized)
 
 

@@ -1230,14 +1230,17 @@ export function JornadasView() {
                     {selectedJornada.status}
                   </Badge>
                   <Badge 
-                    variant={selectedJornada.auditoria_status === 'APROVADA' ? 'outline' : 'secondary'} 
+                    variant="outline" 
                     className={`px-3 py-1 text-sm font-semibold uppercase tracking-wider ${
-                      selectedJornada.auditoria_status === 'APROVADA' 
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      (selectedJornada.score_auditoria?.nivel_risco || selectedJornada.auditoria_status) === 'VERDE' || selectedJornada.auditoria_status === 'APROVADA'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                        : (selectedJornada.score_auditoria?.nivel_risco || selectedJornada.auditoria_status) === 'AMARELO'
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
                     }`}
                   >
-                    Auditoria: {selectedJornada.auditoria_status || 'PENDENTE'}
+                    Auditoria: {selectedJornada.score_auditoria?.nivel_risco || selectedJornada.auditoria_status || 'PENDENTE'}
+                    {selectedJornada.score_auditoria ? ` (${selectedJornada.score_auditoria.score_risco} pts)` : ''}
                   </Badge>
 
                   {selectedJornada.status === 'ENCERRADA' && selectedJornada.auditoria_status !== 'APROVADA' && (
@@ -1253,6 +1256,20 @@ export function JornadasView() {
                   )}
                 </div>
               </div>
+
+              {/* Triggers / Motivos do Risco de Auditoria */}
+              {selectedJornada.score_auditoria?.motivos_risco && selectedJornada.score_auditoria.motivos_risco.length > 0 && (
+                <div className="mt-3 p-3 bg-slate-900/90 border border-amber-500/30 rounded-xl text-xs space-y-1">
+                  <div className="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>⚠️ Alertas de Inconsistência Detectados:</span>
+                  </div>
+                  <ul className="list-disc list-inside text-slate-300 space-y-0.5 pl-1">
+                    {selectedJornada.score_auditoria.motivos_risco.map((motivo, idx) => (
+                      <li key={idx}>{motivo}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
