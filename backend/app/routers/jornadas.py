@@ -301,6 +301,7 @@ async def jornada_aberta(
 async def listar_jornadas(
     data: Optional[date] = None,
     motorista_id: Optional[str] = None,
+    veiculo_id: Optional[str] = None,
     status_filtro: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
@@ -312,6 +313,9 @@ async def listar_jornadas(
         filtro["motorista_id"] = ObjectId(str(current_user.id))
     elif motorista_id:
         filtro["motorista_id"] = ObjectId(motorista_id)
+
+    if veiculo_id:
+        filtro["veiculo_id"] = veiculo_id
 
     if data:
         filtro["data"] = data.isoformat()

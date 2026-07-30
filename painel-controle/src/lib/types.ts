@@ -8,7 +8,7 @@ export type JourneyStatus = 'ABERTA' | 'EM_ANDAMENTO' | 'EM_PAUSA' | 'ENCERRADA'
 export type VehicleStatus = 'RODANDO' | 'MANUTENCAO' | 'INATIVO';
 export type MaintenanceStatus = 'EM_ANDAMENTO' | 'CONCLUIDA';
 export type PauseType = 'ALMOCO' | 'LANCHE' | 'DESCANSO' | 'ABASTECIMENTO' | 'PAUSA_MOTORISTA' | 'OUTRO';
-export type GoalType = 'FATURAMENTO_DIA' | 'KM_MES' | 'HORAS_MES';
+export type GoalType = 'FATURAMENTO_DIA' | 'KM_MES' | 'HORAS_MES' | 'CORRIDAS_PARTICULARES';
 export type GoalReference = 'GERAL' | 'MOTORISTA';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────

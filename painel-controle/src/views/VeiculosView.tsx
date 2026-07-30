@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,19 +12,22 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Pencil, ClockCounterClockwise, Plus, Image } from '@phosphor-icons/react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pencil, ClockCounterClockwise, Plus, Image, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
-import { useVeiculos, useCreateVeiculo, useUpdateVeiculo } from '@/hooks/useVeiculos';
-import type { Veiculo, VehicleStatus, CreateVeiculoPayload } from '@/lib/types';
+import { useVeiculos, useCreateVeiculo, useUpdateVeiculo, useDeleteVeiculo } from '@/hooks/useVeiculos';
+import type { Veiculo, VehicleStatus, CreateVeiculoPayload, Jornada } from '@/lib/types';
 import api from '@/lib/api';
 
 export function VeiculosView() {
   const { data: veiculos = [], isLoading } = useVeiculos();
   const createMutation = useCreateVeiculo();
   const updateMutation = useUpdateVeiculo();
+  const deleteMutation = useDeleteVeiculo();
 
   const [openCreate, setOpenCreate] = useState(false);
   const [editVeiculo, setEditVeiculo] = useState<Veiculo | null>(null);
+  const [historyVeiculo, setHistoryVeiculo] = useState<Veiculo | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const emptyCreate: CreateVeiculoPayload = {
@@ -93,6 +97,40 @@ export function VeiculosView() {
       toast.error('Erro ao atualizar veículo.');
     }
   };
+
+  const handleDeleteVeiculo = async (vehicle: Veiculo) => {
+    if (!confirm(`Deseja realmente EXCLUIR o veículo de placa ${vehicle.id} (${vehicle.marca_modelo})?`)) return;
+    try {
+      await deleteMutation.mutateAsync(vehicle.id);
+      toast.success(`Veículo ${vehicle.id} excluído com sucesso!`);
+    } catch {
+      toast.error('Erro ao excluir veículo.');
+    }
+  };
+
+  const { data: jornadasVeiculo = [] } = useQuery({
+    queryKey: ['historico-jornadas-veiculo', historyVeiculo?.id],
+    queryFn: async () => {
+      if (!historyVeiculo) return [];
+      const { data } = await api.get<Jornada[]>('/jornadas', {
+        params: { veiculo_id: historyVeiculo.id, limit: 100 },
+      });
+      return data;
+    },
+    enabled: !!historyVeiculo,
+  });
+
+  const { data: manutencoesVeiculo = [] } = useQuery({
+    queryKey: ['historico-manutencoes-veiculo', historyVeiculo?.id],
+    queryFn: async () => {
+      if (!historyVeiculo) return [];
+      const { data } = await api.get<any[]>('/manutencoes', {
+        params: { veiculo_id: historyVeiculo.id },
+      });
+      return data;
+    },
+    enabled: !!historyVeiculo,
+  });
 
   return (
     <div className="space-y-6">
@@ -179,8 +217,24 @@ export function VeiculosView() {
                     >
                       <Pencil size={16} className="mr-1" /> Editar
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setHistoryVeiculo(vehicle)}
+                    >
                       <ClockCounterClockwise size={16} className="mr-1" /> Histórico
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 px-2"
+                      title="Excluir Veículo"
+                      onClick={() => handleDeleteVeiculo(vehicle)}
+                    >
+                      <Trash size={16} />
                     </Button>
                   </div>
                 </div>
@@ -400,6 +454,149 @@ export function VeiculosView() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Histórico Completo do Veículo */}
+      <Dialog open={!!historyVeiculo} onOpenChange={(o) => !o && setHistoryVeiculo(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <ClockCounterClockwise size={24} className="text-sky-500" />
+              Histórico Completo — Veículo Placa {historyVeiculo?.id} ({historyVeiculo?.marca_modelo})
+            </DialogTitle>
+          </DialogHeader>
+
+          {historyVeiculo && (
+            <div className="space-y-6 pt-2">
+              {/* Card Resumo do Veículo */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card className="p-3 bg-slate-900 text-white border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-mono block">KM Atual</span>
+                  <span className="text-lg font-bold font-mono">{historyVeiculo.km_atual?.toLocaleString('pt-BR')} km</span>
+                </Card>
+                <Card className="p-3 bg-slate-900 text-white border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-mono block">Jornadas Registradas</span>
+                  <span className="text-lg font-bold font-mono">{jornadasVeiculo.length}</span>
+                </Card>
+                <Card className="p-3 bg-slate-900 text-white border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-mono block">Total Manutenções</span>
+                  <span className="text-lg font-bold font-mono">{manutencoesVeiculo.length}</span>
+                </Card>
+                <Card className="p-3 bg-slate-900 text-white border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-mono block">Faturamento Gerado</span>
+                  <span className="text-lg font-bold font-mono text-emerald-400">
+                    R$ {jornadasVeiculo.reduce((acc, j) => acc + (j.faturamento?.total_dia ?? 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </Card>
+              </div>
+
+              {/* Tabela de Jornadas do Veículo */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <span>🚗 Jornadas Realizadas ({jornadasVeiculo.length})</span>
+                </h3>
+                <div className="border rounded-xl overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Motorista</TableHead>
+                        <TableHead>KM Inicial / Final</TableHead>
+                        <TableHead>KM Rodados</TableHead>
+                        <TableHead>Faturamento</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jornadasVeiculo.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-6 text-slate-500 text-xs">
+                            Nenhuma jornada registrada para este veículo.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        jornadasVeiculo.map((j) => (
+                          <TableRow key={j.id}>
+                            <TableCell className="font-mono text-xs font-semibold">{j.data}</TableCell>
+                            <TableCell className="font-medium text-xs">{j.motorista_nome || j.motorista_id}</TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {j.km?.inicial ?? '—'} / {j.km?.final ?? '—'}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs font-bold text-sky-600">
+                              {j.km?.rodados ?? 0} km
+                            </TableCell>
+                            <TableCell className="font-mono text-xs font-bold text-emerald-600">
+                              R$ {(j.faturamento?.total_dia ?? 0).toFixed(2)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={j.status === 'ENCERRADA' ? 'outline' : 'default'}>
+                                {j.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Tabela de Manutenções do Veículo */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <span>🔧 Histórico de Manutenções ({manutencoesVeiculo.length})</span>
+                </h3>
+                <div className="border rounded-xl overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead>Entrada</TableHead>
+                        <TableHead>Serviço / Oficina</TableHead>
+                        <TableHead>KM na Entrada</TableHead>
+                        <TableHead>Custo (R$)</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {manutencoesVeiculo.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-6 text-slate-500 text-xs">
+                            Nenhuma manutenção registrada para este veículo.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        manutencoesVeiculo.map((m) => (
+                          <TableRow key={m.id || m._id}>
+                            <TableCell className="font-mono text-xs">{m.entrada ? new Date(m.entrada).toLocaleDateString('pt-BR') : '—'}</TableCell>
+                            <TableCell className="text-xs">
+                              <span className="font-bold block">{m.servico}</span>
+                              <span className="text-slate-500">{m.oficina}</span>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">{m.km ? `${m.km} km` : '—'}</TableCell>
+                            <TableCell className="font-mono text-xs font-bold text-rose-600">
+                              R$ {(m.custo ?? 0).toFixed(2)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={m.status === 'CONCLUIDA' ? 'default' : 'secondary'}>
+                                {m.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryVeiculo(null)}>
+              Fechar Histórico
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

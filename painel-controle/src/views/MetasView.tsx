@@ -29,6 +29,7 @@ const goalTypeLabel: Record<GoalType, string> = {
   FATURAMENTO_DIA: 'Faturamento Diário',
   KM_MES: 'KM Mensal',
   HORAS_MES: 'Horas Mensais',
+  CORRIDAS_PARTICULARES: 'Corridas Particulares (R$ ou Qtd)',
 };
 
 export function MetasView() {
@@ -266,6 +267,7 @@ export function MetasView() {
                   <SelectItem value="FATURAMENTO_DIA">Faturamento Diário</SelectItem>
                   <SelectItem value="KM_MES">KM Mensal</SelectItem>
                   <SelectItem value="HORAS_MES">Horas Mensais</SelectItem>
+                  <SelectItem value="CORRIDAS_PARTICULARES">Corridas Particulares (R$ ou Qtd)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
