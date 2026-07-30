@@ -222,6 +222,29 @@ async def registrar_ponto_gps(
             criado = await db["historico_gps"].find_one({"_id": mesclado_id})
             return HistoricoGPS(**criado)
 
+    # Atualiza localizacao_atual da jornada ativa e envia evento SSE
+    if len(coords) >= 2:
+        lon, lat = coords[0], coords[1]
+        try:
+            await db["jornadas"].update_one(
+                {"_id": j_id},
+                {"$set": {
+                    "localizacao_atual": {"lat": lat, "lon": lon},
+                    "telemetria_status": dados.status or "CONDUZINDO",
+                    "telemetria_ultima_atualizacao": ts.isoformat() if hasattr(ts, 'isoformat') else str(ts)
+                }}
+            )
+            from app.routers.events import event_manager
+            await event_manager.broadcast("gps_atualizado", {
+                "jornada_id": j_id,
+                "motorista_id": str(mot_id),
+                "lat": lat,
+                "lon": lon,
+                "status": dados.status
+            })
+        except Exception as e:
+            print("Erro ao atualizar localizacao_atual:", e)
+
     doc = dados.model_dump()
     doc["motorista_id"] = mot_id
     doc["timestamp"] = ts

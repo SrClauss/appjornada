@@ -157,6 +157,12 @@ def _normalizar_jornada(d: dict) -> dict:
             "total_horas_segundos": None
         }
         
+    if "localizacao_atual" not in d or not d["localizacao_atual"]:
+        if "localizacao_inicial" in d and d["localizacao_inicial"]:
+            d["localizacao_atual"] = d["localizacao_inicial"]
+        elif "localizacao_inicio" in d and d["localizacao_inicio"]:
+            d["localizacao_atual"] = d["localizacao_inicio"]
+
     res_audit = calcular_score_auditoria(d)
     d["auditoria_status"] = res_audit["nivel_risco"]
     d["score_auditoria"] = res_audit

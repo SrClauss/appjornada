@@ -47,14 +47,21 @@ export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
         // Tenta pegar última posição da polilinha se houver
       }
 
-      // Se tiver localizacao_lat em telemetria ou similar no objeto
-      const locObj = (j as any).localizacao_atual || (j as any).localizacao_inicio;
-      if (locObj?.lat && locObj?.lon) {
-        lat = locObj.lat;
-        lon = locObj.lon;
+      const locObj =
+        (j as any).localizacao_atual ||
+        (j as any).localizacao_inicial ||
+        (j as any).localizacao_inicio ||
+        (j as any).localizacao;
+
+      if (locObj?.lat !== undefined && locObj?.lon !== undefined && Number(locObj.lat) !== 0 && Number(locObj.lon) !== 0) {
+        lat = Number(locObj.lat);
+        lon = Number(locObj.lon);
+      } else if (locObj?.latitude !== undefined && locObj?.longitude !== undefined) {
+        lat = Number(locObj.latitude);
+        lon = Number(locObj.longitude);
       }
 
-      // Se não tiver lat/lon direta, gera posições fictícias espalhadas se for mock, ou usa default
+      // Se não tiver lat/lon direta, ignora exibição deste marcador no mapa
       if (!lat || !lon) {
         return;
       }
