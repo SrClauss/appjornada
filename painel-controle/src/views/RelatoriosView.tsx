@@ -35,11 +35,8 @@ function normalize(value: number, min: number, max: number) {
 export function RelatoriosView() {
   const [activeTab, setActiveTab] = useState('comparativo');
   const [dataFiltro, setDataFiltro] = useState('');
-  const [plataforma, setPlataforma] = useState<'uber' | '99'>('uber');
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: comparativo = [], isLoading: loadingComp } = useComparativo(dataFiltro || undefined);
-  const importarMutation = useImportarCSV();
 
   // Dados de desempenho mensal
   const mesAtual = format(startOfMonth(new Date()), 'yyyy-MM-dd');
@@ -102,18 +99,6 @@ export function RelatoriosView() {
     Km: item.total_km ?? 0,
   }));
 
-  const handleImport = async () => {
-    const file = fileRef.current?.files?.[0];
-    if (!file) { toast.error('Selecione um arquivo CSV.'); return; }
-    try {
-      const res = await importarMutation.mutateAsync({ tipo: plataforma, file });
-      toast.success(`Importado: ${res.inseridos ?? 0} registros.`);
-      if (fileRef.current) fileRef.current.value = '';
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail ?? 'Erro ao importar CSV.');
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div>
@@ -128,9 +113,6 @@ export function RelatoriosView() {
           </TabsTrigger>
           <TabsTrigger value="desempenho">
             <Medal size={16} className="mr-1" /> Desempenho
-          </TabsTrigger>
-          <TabsTrigger value="importar">
-            <Upload size={16} className="mr-1" /> Importar CSV
           </TabsTrigger>
         </TabsList>
 
@@ -331,49 +313,6 @@ export function RelatoriosView() {
               </Card>
             </>
           )}
-        </TabsContent>
-
-        {/* Tab Importar CSV */}
-        <TabsContent value="importar" className="mt-4">          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText size={20} />
-                Importar Relatório CSV
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 max-w-md">
-              <div className="space-y-2">
-                <Label>Plataforma</Label>
-                <Select
-                  value={plataforma}
-                  onValueChange={(v) => setPlataforma(v as 'uber' | '99')}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="uber">Uber</SelectItem>
-                    <SelectItem value="99">99</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Arquivo CSV</Label>
-                <Input ref={fileRef} type="file" accept=".csv" />
-                <p className="text-xs text-muted-foreground">
-                  Use o formato exportado pela plataforma.
-                </p>
-              </div>
-
-              <Button
-                onClick={handleImport}
-                disabled={importarMutation.isPending}
-                className="w-full"
-              >
-                <Upload size={16} className="mr-2" />
-                {importarMutation.isPending ? 'Importando...' : 'Importar'}
-              </Button>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
