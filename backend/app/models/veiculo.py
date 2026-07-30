@@ -1,12 +1,12 @@
 from datetime import date
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 from bson import ObjectId
 from .base import PyObjectId
 
 
 class VeiculoBase(BaseModel):
-    id_placa: str = Field(..., description="Placa do veículo, usada como _id")
+    id_placa: str = Field(..., description="Placa do veículo, usada como _id", validation_alias=AliasChoices("id_placa", "id"))
     marca_modelo: Optional[str] = None
     ano_modelo: Optional[str] = None
     cor: Optional[str] = None

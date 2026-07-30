@@ -18,13 +18,19 @@ async def criar_veiculo(
     _=Depends(require_roles(Role.ADMIN, Role.GESTOR)),
 ):
     doc = dados.model_dump(mode="json")
-    doc["_id"] = dados.id_placa
+    placa = dados.id_placa.strip().upper()
+    doc["_id"] = placa
+    doc["id_placa"] = placa
+
+    # Limpa documentos malformados antigos com _id vazio se houver
+    await db["veiculos"].delete_many({"$or": [{"_id": ""}, {"_id": None}, {"id_placa": ""}, {"id_placa": None}]})
+
     try:
         await db["veiculos"].insert_one(doc)
     except DuplicateKeyError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Veículo já cadastrado com esta placa",
+            detail=f"Veículo com a placa '{placa}' já está cadastrado no sistema",
         )
     return Veiculo(**doc)
 

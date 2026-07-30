@@ -253,8 +253,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildMetricCard(
-                    title: 'Bônus Acumulado',
-                    value: 'R\$ 320,00',
+                    title: 'Faturamento',
+                    value: () {
+                      final fat = widget.jornada['faturamento']?['total_dia'];
+                      if (fat != null && fat is num && fat > 0) {
+                        return 'R\$ ${fat.toStringAsFixed(2).replaceAll('.', ',')}';
+                      }
+                      final uFat = double.tryParse('${widget.jornada['faturamento']?['uber']}') ?? 0.0;
+                      final nFat = double.tryParse('${widget.jornada['faturamento']?['noventa_nove']}') ?? 0.0;
+                      final oFat = double.tryParse('${widget.jornada['faturamento']?['outros']}') ?? 0.0;
+                      final sum = uFat + nFat + oFat;
+                      if (sum > 0) {
+                        return 'R\$ ${sum.toStringAsFixed(2).replaceAll('.', ',')}';
+                      }
+                      return 'R\$ 0,00';
+                    }(),
                     icon: Icons.monetization_on,
                     color: const Color(0xFF10B981),
                   ),

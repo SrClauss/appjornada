@@ -67,12 +67,18 @@ export function VeiculosView() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createMutation.mutateAsync(form);
-      toast.success('Veículo criado!');
+      const payload = {
+        ...form,
+        id_placa: form.id.trim().toUpperCase(),
+        id: form.id.trim().toUpperCase(),
+      };
+      await createMutation.mutateAsync(payload as any);
+      toast.success('Veículo criado com sucesso!');
       setOpenCreate(false);
       setForm(emptyCreate);
-    } catch {
-      toast.error('Erro ao criar veículo. Verifique se a placa já existe.');
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || 'Erro ao criar veículo. Verifique se a placa já existe.';
+      toast.error(msg);
     }
   };
 
