@@ -177,6 +177,23 @@ async def _populate_motorista_nome(doc: dict, db) -> dict:
         user = await db["users"].find_one({"_id": ObjectId(str(mid))})
         if user:
             doc["motorista_nome"] = user.get("nome")
+
+    # Popula a localização atual mais recente gravada na telemetria de GPS
+    jid = str(doc.get("_id") or doc.get("id") or "")
+    if jid:
+        try:
+            ultimo_ponto = await db["historico_gps"].find_one(
+                {"jornada_id": jid},
+                sort=[("timestamp", -1)]
+            )
+            if ultimo_ponto:
+                coords = ultimo_ponto.get("localizacao", {}).get("coordinates", [])
+                if len(coords) >= 2:
+                    doc["localizacao_atual"] = {"lat": coords[1], "lon": coords[0]}
+                    doc["telemetria_status"] = ultimo_ponto.get("status", "CONDUZINDO")
+        except Exception as e:
+            print("Erro ao popular ultima localizacao real no historico_gps:", e)
+
     return doc
 
 
@@ -314,18 +331,20 @@ async def listar_jornadas(
         d = _normalizar_jornada(d)
         d["motorista_nome"] = mot_map.get(str(d.get("motorista_id")), "Motorista Desconhecido")
         
-        # Obter último status de telemetria GPS para jornadas ativas
-        if d.get("status") in ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]:
-            try:
-                ponto_recente = await db["historico_gps"].find_one(
-                    {"jornada_id": str(d.get("_id"))},
-                    sort=[("timestamp", -1)]
-                )
-                if ponto_recente:
-                    d["telemetria_status"] = ponto_recente.get("status")
-                    d["telemetria_ultima_atualizacao"] = ponto_recente["timestamp"].isoformat() if isinstance(ponto_recente.get("timestamp"), datetime) else str(ponto_recente.get("timestamp"))
-            except Exception as e:
-                print("Erro ao obter telemetria em tempo real para monitor:", e)
+        # Obter último status e localização em tempo real de telemetria GPS
+        try:
+            ponto_recente = await db["historico_gps"].find_one(
+                {"jornada_id": str(d.get("_id"))},
+                sort=[("timestamp", -1)]
+            )
+            if ponto_recente:
+                d["telemetria_status"] = ponto_recente.get("status")
+                d["telemetria_ultima_atualizacao"] = ponto_recente["timestamp"].isoformat() if isinstance(ponto_recente.get("timestamp"), datetime) else str(ponto_recente.get("timestamp"))
+                coords = ponto_recente.get("localizacao", {}).get("coordinates", [])
+                if len(coords) >= 2:
+                    d["localizacao_atual"] = {"lat": coords[1], "lon": coords[0]}
+        except Exception as e:
+            print("Erro ao obter telemetria em tempo real para monitor:", e)
 
         normalized_docs.append(d)
 
