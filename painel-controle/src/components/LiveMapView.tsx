@@ -112,7 +112,10 @@ export function LiveMapView({ jornadas, onSelectJornada }: LiveMapViewProps) {
       bounds.extend([lat, lon]);
     });
 
-    if (markersRef.current.length > 0 && bounds.isValid()) {
+    if (markersRef.current.length === 1 && bounds.isValid()) {
+      const center = bounds.getCenter();
+      map.setView([center.lat, center.lng], 14);
+    } else if (markersRef.current.length > 1 && bounds.isValid()) {
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
   }, [jornadas]);

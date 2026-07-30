@@ -352,9 +352,27 @@ async def registrar_pontos_gps_batch(
         try:
             coords = ultimo.localizacao.coordinates
             if len(coords) >= 2:
-                rua = await obter_rua_por_coordenadas(coords[1], coords[0], db)
-        except Exception:
-            pass
+                lon, lat = coords[0], coords[1]
+                rua = await obter_rua_por_coordenadas(lat, lon, db)
+                
+                # Atualiza a localização em tempo real da jornada ativa
+                await db["jornadas"].update_one(
+                    {"_id": j_id},
+                    {"$set": {
+                        "localizacao_atual": {"lat": lat, "lon": lon},
+                        "telemetria_status": ultimo.status or "CONDUZINDO",
+                    }}
+                )
+                from app.routers.events import event_manager
+                await event_manager.broadcast("gps_atualizado", {
+                    "jornada_id": j_id,
+                    "motorista_id": str(mot_id),
+                    "lat": lat,
+                    "lon": lon,
+                    "status": ultimo.status
+                })
+        except Exception as e:
+            print("Erro ao atualizar localizacao_atual no batch:", e)
 
     contador_novos = 0
     contador_mesclados = 0
