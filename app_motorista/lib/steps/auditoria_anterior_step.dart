@@ -12,9 +12,6 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
   bool _loading = true;
   bool _hasPendencia = false;
   String _justificativa = '';
-  final List<Offset?> _points = [];
-  bool _assinado = false;
-  bool _recusouAssinar = false;
 
   @override
   void initState() {
@@ -39,17 +36,6 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
       );
       return;
     }
-    widget.onCompleted();
-  }
-
-  void _assinarAdvertencia() {
-    if (!_assinado && !_recusouAssinar) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, assine a advertência ou clique em recusar.')),
-      );
-      return;
-    }
-    // Envia advertência assinada/recusada e libera
     widget.onCompleted();
   }
 
@@ -119,7 +105,7 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Opção A: Enviar Justificativa / Atestado',
+            'Enviar Justificativa / Atestado',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 8),
@@ -164,132 +150,8 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          const Text(
-            'Opção B: Assinar Advertência Disciplinar',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            color: const Color(0xFF1E293B),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'ADVERTÊNCIA DISCIPLINAR',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.amber),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Por meio deste instrumento, fica formalmente ADVERTIDO(A) que em razão de sua ausência ao trabalho ontem, sem justificativa, fica sujeito(a) às regras disciplinares da CLT. A ausência não justificada prejudica a equipe. Solicitamos que tal conduta não se repita.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[300]),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Assine na tela abaixo:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[700]!),
-                    ),
-                    child: GestureDetector(
-                      onPanUpdate: (details) {
-                        RenderBox renderBox = context.findRenderObject() as RenderBox;
-                        setState(() {
-                          _points.add(renderBox.globalToLocal(details.globalPosition));
-                          _assinado = true;
-                          _recusouAssinar = false;
-                        });
-                      },
-                      onPanEnd: (details) => _points.add(null),
-                      child: CustomPaint(
-                        painter: SignaturePainter(_points),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _points.clear();
-                            _assinado = false;
-                          });
-                        },
-                        child: const Text('Limpar'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _points.clear();
-                            _assinado = false;
-                            _recusouAssinar = true;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Registrada a recusa de assinatura.')),
-                          );
-                        },
-                        child: Text(
-                          'Recusar Assinatura',
-                          style: TextStyle(color: Colors.red[300]),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_recusouAssinar)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12.0),
-                      child: Text(
-                        '* O motorista recusou-se a assinar fisicamente. A advertência será gerada no sistema.',
-                        style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
-                      onPressed: _assinarAdvertencia,
-                      child: Text(
-                        _recusouAssinar ? 'PROSSEGUIR COM RECUSA' : 'PROSSEGUIR COM ASSINATURA',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          )
         ],
       ),
     );
   }
-}
-
-class SignaturePainter extends CustomPainter {
-  final List<Offset?> points;
-  SignaturePainter(this.points);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    Paint paint = Paint()
-      ..color = Colors.white
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 3.0;
-
-    for (int i = 0; i < points.length - 1; i++) {
-      if (points[i] != null && points[i + 1] != null) {
-        canvas.drawLine(points[i]!, points[i + 1]!, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(SignaturePainter oldDelegate) => true;
 }
