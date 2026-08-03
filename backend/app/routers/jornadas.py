@@ -1148,7 +1148,112 @@ async def resumo_clt_mensal(
     }
 
 
+@router.post("/aberta/extrato-video", status_code=201)
+async def upload_e_processar_extrato_video(
+    arquivo: UploadFile = File(...),
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """
+    Recebe uma gravação de tela em vídeo do extrato/histórico de corridas do motorista (Uber/99).
+    Extrai os frames via OpenCV, analisa via Gemini e insere todas as corridas lidas
+    no faturamento da jornada ativa.
+    """
+    jornada_doc = await db["jornadas"].find_one({
+        "motorista_id": ObjectId(str(current_user.id)),
+        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]}
+    })
+    if not jornada_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nenhuma jornada ativa encontrada para este motorista."
+        )
+
+    conteudo_bytes = await arquivo.read()
+    await arquivo.seek(0)
+
+    from app.routers.uploads import _salvar_arquivo
+    from app.routers.ocr import _extrair_frames_video, _chamar_gemini_extrato_video
+
+    video_url = await _salvar_arquivo(arquivo, "extrato_video")
+    frames = _extrair_frames_video(conteudo_bytes, max_frames=6)
+    if not frames:
+        raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
+
+    res_ai = _chamar_gemini_extrato_video(frames)
+    corridas_lidas = res_ai.get("corridas", [])
+
+    if not corridas_lidas:
+        return {
+            "sucesso": False,
+            "mensagem": "Nenhuma corrida legível foi identificada no vídeo enviado.",
+            "corridas_adicionadas": 0,
+            "faturamento_total": 0.0,
+        }
+
+    fat = jornada_doc.get("faturamento", {}) or {}
+    if not isinstance(fat, dict):
+        fat = {}
+
+    comprovantes_existentes = fat.get("comprovantes_processados", []) or []
+    if not isinstance(comprovantes_existentes, list):
+        comprovantes_existentes = []
+
+    novos_comprovantes = []
+    adicionadas_count = 0
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    for c in corridas_lidas:
+        valor_c = float(c.get("valor_reais") or 0.0)
+        plat_c = str(c.get("plataforma") or "UBER").upper()
+        if valor_c <= 0:
+            continue
+
+        comp_dict = {
+            "id": str(uuid.uuid4()),
+            "url": video_url,
+            "valor": valor_c,
+            "plataforma": plat_c,
+            "categoria": c.get("categoria"),
+            "origem": c.get("origem"),
+            "destino": c.get("destino"),
+            "horario": c.get("horario"),
+            "distancia_km": c.get("distancia_km"),
+            "processado_via": "VIDEO_EXTRATO",
+            "created_at": now_iso,
+        }
+        novos_comprovantes.append(comp_dict)
+        adicionadas_count += 1
+
+    todos_comprovantes = comprovantes_existentes + novos_comprovantes
+
+    # Recalcula totais acumulados por plataforma
+    total_uber = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") == "UBER")
+    total_99 = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") in ("99", "NOVENTA_NOVEM"))
+    total_outros = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") not in ("UBER", "99", "NOVENTA_NOVEM"))
+
+    fat["uber"] = round(total_uber, 2)
+    fat["noventa_nove"] = round(total_99, 2)
+    fat["outros"] = round(total_outros, 2)
+    fat["total"] = round(total_uber + total_99 + total_outros, 2)
+    fat["comprovantes_processados"] = todos_comprovantes
+
+    await db["jornadas"].update_one(
+        {"_id": jornada_doc["_id"]},
+        {"$set": {"faturamento": fat}}
+    )
+
+    return {
+        "sucesso": True,
+        "mensagem": f"{adicionadas_count} corridas extraídas e computadas com sucesso!",
+        "corridas_adicionadas": adicionadas_count,
+        "faturamento_acumulado": fat["total"],
+        "corridas_detalhe": novos_comprovantes,
+    }
+
+
 @router.post("/aberta/comprovante", status_code=201)
+
 async def upload_e_processar_comprovante(
     arquivo: UploadFile = File(...),
     plataforma: Optional[str] = Form(None),

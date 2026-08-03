@@ -232,5 +232,32 @@ class ApiService {
     }
     return false;
   }
+
+  // Upload e processamento do vídeo de gravação do extrato de corridas
+  static Future<Map<String, dynamic>?> uploadExtratoVideo(String filePath) async {
+    try {
+      final uri = Uri.parse('$baseUrl/jornadas/aberta/extrato-video');
+      final request = http.MultipartRequest('POST', uri);
+      
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      request.files.add(await http.MultipartFile.fromPath('arquivo', filePath));
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('[ApiService] Erro ao enviar vídeo do extrato (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao enviar vídeo do extrato: $e');
+    }
+    return null;
+  }
 }
+
 
