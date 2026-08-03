@@ -484,8 +484,37 @@ async def rota_ajustada_motorista(
     except Exception:
         q_j = {"_id": jornada_id}
 
-    jornada = await db["jornadas"].find_one(q_j)
-    if jornada and (jornada.get("rota_polyline") or jornada.get("segmentos_rota") or jornada.get("status") == "ENCERRADA"):
+    # Busca os pontos reais gravados na telemetria (historico_gps)
+    try:
+        j_obj_id = ObjectId(jornada_id)
+        filtro_gps = {
+            "$or": [
+                {"jornada_id": jornada_id},
+                {"jornada_id": j_obj_id}
+            ]
+        }
+    except Exception:
+        filtro_gps = {"jornada_id": jornada_id}
+
+    pontos = await db["historico_gps"].find(filtro_gps).sort("timestamp", 1).to_list(10000)
+
+    if len(pontos) >= 2:
+        coords = []
+        for p in pontos:
+            loc = p.get("localizacao", {})
+            c = loc.get("coordinates")
+            if c and len(c) >= 2:
+                coords.append([c[0], c[1]]) # lon, lat
+        if len(coords) >= 2:
+            return {
+                "status": "ok",
+                "snapped": False,
+                "coordinates": coords,
+                "distance_m": (jornada.get("km", {}).get("rodados", 0.0) if jornada else 0.0) * 1000.0,
+                "duration_s": (jornada.get("horario", {}).get("total_horas_segundos", 0) if jornada else 0)
+            }
+
+    if jornada and (jornada.get("rota_polyline") or jornada.get("segmentos_rota")):
         segmentos = jornada.get("segmentos_rota")
         if segmentos:
             decoded_segments = []
@@ -516,6 +545,7 @@ async def rota_ajustada_motorista(
                 "distance_m": jornada.get("km", {}).get("rodados", 0.0) * 1000.0,
                 "duration_s": jornada.get("horario", {}).get("total_horas_segundos", 0.0)
             }
+
 
     filtro = {
         "motorista_id": ObjectId(motorista_id),

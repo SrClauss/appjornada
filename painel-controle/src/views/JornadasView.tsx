@@ -64,39 +64,13 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares }: MapVie
     });
   } else if (latLngs.length > 0) {
     base = latLngs[0];
-    let currentSegment: [number, number][] = [latLngs[0]];
-    let lastDir: 'away' | 'towards' | null = null;
-
-    for (let i = 1; i < latLngs.length; i++) {
-      const prev = latLngs[i - 1];
-      const curr = latLngs[i];
-
-      const d_prev = Math.sqrt((prev[0] - base[0])**2 + (prev[1] - base[1])**2);
-      const d_curr = Math.sqrt((curr[0] - base[0])**2 + (curr[1] - base[1])**2);
-
-      const dir = d_curr >= d_prev ? 'away' : 'towards';
-
-      if (lastDir !== null && dir !== lastDir) {
-        currentSegment.push(curr);
-        finalSegments.push({ 
-          coords: currentSegment, 
-          color: lastDir === 'away' ? '#3b82f6' : '#8b5cf6',
-          label: lastDir === 'away' ? 'Afastando-se da Base (Outbound)' : 'Aproximando-se da Base (Inbound)'
-        });
-        currentSegment = [prev, curr];
-      } else {
-        currentSegment.push(curr);
-      }
-      lastDir = dir;
-    }
-    if (currentSegment.length > 1) {
-      finalSegments.push({ 
-        coords: currentSegment, 
-        color: lastDir === 'away' ? '#3b82f6' : '#8b5cf6',
-        label: lastDir === 'away' ? 'Afastando-se da Base (Outbound)' : 'Aproximando-se da Base (Inbound)'
-      });
-    }
+    finalSegments.push({
+      coords: latLngs,
+      color: '#3b82f6',
+      label: 'Deslocamento Contínuo e Direção da Rota'
+    });
   }
+
 
   useEffect(() => {
     if (!mapContainerRef.current) return;

@@ -316,20 +316,29 @@ async def abrir_jornada(
 
 @router.get("/aberta", response_model=Optional[Jornada])
 async def jornada_aberta(
+    dispositivo_id: Optional[str] = None,
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
-    """Retorna a jornada aberta do motorista autenticado (ou null)."""
+    """Retorna a jornada aberta do motorista autenticado vinculada ao dispositivo (ou null)."""
     motorista_id = ObjectId(str(current_user.id))
-    doc = await db["jornadas"].find_one({
+    filtro = {
         "motorista_id": motorista_id,
         "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]},
-    })
+    }
+    
+    doc = None
+    if dispositivo_id:
+        doc = await db["jornadas"].find_one({**filtro, "dispositivo_id": dispositivo_id})
+    if not doc:
+        doc = await db["jornadas"].find_one(filtro)
+
     if doc:
         normalized = _normalizar_jornada(doc)
         await _populate_motorista_nome(normalized, db)
         return Jornada(**normalized)
     return None
+
 
 
 @router.get("", response_model=List[Jornada])

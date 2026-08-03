@@ -126,7 +126,9 @@ class JornadaBase(BaseModel):
     motorista_id: Optional[PyObjectId] = None
     motorista_nome: Optional[str] = None
     veiculo_id: str
+    dispositivo_id: Optional[str] = None
     status: str = "ABERTA"
+
     km: Optional[KmJornada] = None
     vistoria: Optional[VistoriaVeiculo] = None
     localizacao_inicial: Optional[Localizacao] = None
