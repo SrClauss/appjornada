@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Simulador de Extratos — Uber & 99</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #000000;
+      color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* Top Mode Switcher Bar */
+    .app-mode-bar {
+      display: flex;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      padding: 10px 16px;
+      gap: 12px;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .app-mode-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      color: #94a3b8;
+      background: #1e293b;
+    }
+
+    .app-mode-btn.active.uber {
+      background: #000000;
+      color: #ffffff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+    }
+
+    .app-mode-btn.active.noventanove {
+      background: #ffc107;
+      color: #000000;
+      border-color: #ffd54f;
+      box-shadow: 0 0 12px rgba(255, 193, 7, 0.3);
+    }
+
+    /* Screen Views */
+    .screen-view {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      background: #000000;
+      padding-bottom: 24px;
+    }
+
+    .screen-view.active {
+      display: flex;
+    }
+
+    /* Uber Screen Styles */
+    .uber-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1c1c1e;
+    }
+
+    .uber-title {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .uber-filter-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #0d0d0e;
+    }
+
+    .uber-pill {
+      background: #1c1c1e;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .uber-date-group {
+      background: #111113;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #a1a1aa;
+    }
+
+    .uber-card {
+      background: #121214;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      margin: 12px 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.15s ease;
+    }
+
+    .uber-card:active {
+      transform: scale(0.98);
+    }
+
+    .uber-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .uber-price {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .uber-meta {
+      font-size: 13px;
+      color: #a1a1aa;
+      margin-top: 4px;
+    }
+
+    .uber-time {
+      font-size: 13px;
+      font-weight: 600;
+      color: #71717a;
+    }
+
+    .uber-route-box {
+      background: #18181b;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .route-node {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dot-green {
+      width: 10px;
+      height: 10px;
+      background: #10b981;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-red {
+      width: 10px;
+      height: 10px;
+      background: #ef4444;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .route-text {
+      font-size: 12px;
+      color: #d4d4d8;
+      line-height: 1.3;
+    }
+
+    .dynamic-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      width: fit-content;
+    }
+
+    /* 99 Screen Styles */
+    .n99-view {
+      background: #18181c;
+    }
+
+    .n99-header {
+      background: #23232a;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .n99-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .n99-date-header {
+      background: #1e1e24;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #9ca3af;
+      border-bottom: 1px solid #2d2d38;
+    }
+
+    .n99-card {
+      background: #23232a;
+      border-bottom: 1px solid #2d2d38;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .n99-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .n99-tag-pop {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .n99-tag-pop svg {
+      fill: #ffc107;
+    }
+
+    .n99-price {
+      font-size: 20px;
+      font-weight: 800;
+      color: #3b82f6;
+    }
+
+    .n99-status {
+      font-size: 12px;
+      color: #10b981;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .summary-banner {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      margin: 16px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .summary-label {
+      font-size: 12px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .summary-val {
+      font-size: 26px;
+      font-weight: 800;
+      color: #ffffff;
+      font-family: 'Outfit', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Mode Switcher -->
+  <div class="app-mode-bar">
+    <button class="app-mode-btn active uber" onclick="switchApp('uber')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      Uber Driver
+    </button>
+    <button class="app-mode-btn noventanove" onclick="switchApp('noventanove')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4H8v-2h2V9h2v2h2v2h-2v4z"/></svg>
+      99 Motorista
+    </button>
+  </div>
+
+  <!-- UBER VIEW -->
+  <div id="uber-view" class="screen-view active">
+    <div class="uber-header">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size: 20px;">‹</span>
+        <span class="uber-title">Histórico de ganhos</span>
+      </div>
+      <div style="font-size: 18px;">📅</div>
+    </div>
+
+    <div class="summary-banner">
+      <div>
+        <div class="summary-label">Total Extraído do Dia</div>
+        <div class="summary-val">R$ 204,66</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="summary-label">Corridas</div>
+        <div class="summary-val" style="color:#38bdf8;">15</div>
+      </div>
+    </div>
+
+    <div class="uber-filter-row">
+      <div class="uber-pill">Tipo ▼</div>
+      <div class="uber-pill">Recurso ▼</div>
+      <div class="uber-pill" style="margin-left:auto;">📅 29/07</div>
+    </div>
+
+    <div class="uber-date-group">qua., 29 de jul.</div>
+
+    <!-- Corrida 1 -->
+    <div class="uber-card">
+      <div class="uber-card-top">
+        <div>
+          <div class="uber-price">R$ 8,99</div>
+          <div class="uber-meta">Comfort · 7 min 42 segundos · 2.93 km</div>
+        </div>
+        <div class="uber-time">11:18</div>
+      </div>
+      <div class="uber-route-box">
+        <div class="route-node">
+          <div class="dot-green"></div>
+          <div class="route-text">R. Eugênio Netto, Praia do Canto - Vitória - ES, 29055-270, BR</div>
+        </div>
+        <div class="route-node">
+          <div class="dot-red"></div>
+          <div class="route-text">Av. Doutor Pedro Feu Rosa, Jardim da Penha - Vitória - ES, 29060-730, BR</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corrida 2 -->
+    <div class="uber-card">
+      <div class="uber-card-top">
+        <div>
+          <div class="uber-price">R$ 11,45</div>
+          <div class="uber-meta">Uber X · 12 min 9 segundos · 4.80 km</div>
+        </div>
+        <div class="uber-time">10:51</div>
+      </div>
+      <div class="uber-route-box">
+        <div class="route-node">
+          <div class="dot-green"></div>
+          <div class="route-text">R. Jose Martins Da Cunha, República - Vitória - ES, 29070-025, BR</div>
+        </div>
+        <div class="route-node">
+          <div class="dot-red"></div>
+          <div class="route-text">Rua Agrimensor Adolpho Oliveira, Praia do Canto - Vitória - ES, 29055-330, BR</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corrida 3 -->
+    <div class="uber-card">
+      <div class="uber-card-top">
+        <div>
+          <div class="uber-price">R$ 11,88</div>
+          <div class="uber-meta">Comfort · 8 min 15 segundos · 2.97 km</div>
+        </div>
+        <div class="uber-time">15:33</div>
+      </div>
+      <div class="uber-route-box">
+        <div class="route-node">
+          <div class="dot-green"></div>
+          <div class="route-text">Rua Graça Aranha, Chácara Parreiral - Serra - ES</div>
+        </div>
+        <div class="route-node">
+          <div class="dot-red"></div>
+          <div class="route-text">Rua da Aldeia, Parque Res. Laranjeiras - Serra - ES</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corrida 4 -->
+    <div class="uber-card">
+      <div class="uber-card-top">
+        <div>
+          <div class="uber-price">R$ 18,85</div>
+          <div class="uber-meta">Uber X · 22 min 28 segundos · 10.75 km</div>
+        </div>
+        <div class="uber-time">14:25</div>
+      </div>
+      <div class="uber-route-box">
+        <div class="route-node">
+          <div class="dot-green"></div>
+          <div class="route-text">Av. Desembargador Dermeval Lyrio, Mata da Praia - Vitória</div>
+        </div>
+        <div class="route-node">
+          <div class="dot-red"></div>
+          <div class="route-text">Avenida Brasil, Novo Horizonte - Serra - ES</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corrida 5 -->
+    <div class="uber-card">
+      <div class="uber-card-top">
+        <div>
+          <div class="uber-price">R$ 34,05</div>
+          <div class="uber-meta">Comfort · 35 min 0 segundos · 13.81 km</div>
+        </div>
+        <div class="uber-time">17:57</div>
+      </div>
+      <div class="uber-route-box">
+        <div class="route-node">
+          <div class="dot-green"></div>
+          <div class="route-text">Av. Olinda, Barcelona - Serra - ES</div>
+        </div>
+        <div class="route-node">
+          <div class="dot-red"></div>
+          <div class="route-text">R. Dom Pedro II, Colina de Laranjeiras - Serra - ES</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corrida 6 -->
+    <div class="uber-card">
+      <div class="uber-card-top">
+        <div>
+          <div class="uber-price">R$ 31,31</div>
+          <div class="uber-meta">Comfort · 20 min 32 segundos · 10.49 km</div>
+          <div class="dynamic-tag" style="margin-top: 6px;">⚡ R$ 9,00 Preço dinâmico</div>
+        </div>
+        <div class="uber-time">08:44</div>
+      </div>
+      <div class="uber-route-box">
+        <div class="route-node">
+          <div class="dot-green"></div>
+          <div class="route-text">Avenida Anísio Coelho, Jardim da Penha - Vitória - ES</div>
+        </div>
+        <div class="route-node">
+          <div class="dot-red"></div>
+          <div class="route-text">Avenida Nivaldo von Schilgen, Praia do Canto - Vitória</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 99 VIEW -->
+  <div id="noventanove-view" class="screen-view n99-view">
+    <div class="n99-header">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size: 20px;">‹</span>
+        <span class="n99-title">Histórico de corridas</span>
+      </div>
+    </div>
+
+    <div class="summary-banner" style="background: linear-gradient(135deg, #2a2208, #18181c); border-color: #d97706;">
+      <div>
+        <div class="summary-label" style="color:#fcd34d;">Faturamento 99 Pop</div>
+        <div class="summary-val" style="color:#fbbf24;">R$ 155,32</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="summary-label" style="color:#fcd34d;">Corridas</div>
+        <div class="summary-val" style="color:#fbbf24;">7</div>
+      </div>
+    </div>
+
+    <div class="n99-date-header">02/06/2026 18:45</div>
+
+    <!-- 99 Card 1 -->
+    <div class="n99-card">
+      <div class="n99-card-header">
+        <div class="n99-tag-pop">
+          <span>🚗 Pop Expresso</span>
+        </div>
+        <div class="n99-price">R$ 16,86</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-green"></div>
+        <div class="route-text">Condomínio Parque São Pedro, Colina de Laranjeiras, Serra - ES</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-red"></div>
+        <div class="route-text">Rua Castro Alves, São Diogo II, Serra - ES</div>
+      </div>
+      <div class="n99-status">✓ Pago</div>
+    </div>
+
+    <!-- 99 Card 2 -->
+    <div class="n99-card">
+      <div class="n99-card-header">
+        <div class="n99-tag-pop">
+          <span>🚗 Pop</span>
+        </div>
+        <div class="n99-price">R$ 10,50</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-green"></div>
+        <div class="route-text">2162 - Serra - ES, 0</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-red"></div>
+        <div class="route-text">Rua Herman Stern, Colina de Laranjeiras, Serra - ES</div>
+      </div>
+      <div class="n99-status">✓ Pago</div>
+    </div>
+
+    <!-- 99 Card 3 -->
+    <div class="n99-card">
+      <div class="n99-card-header">
+        <div class="n99-tag-pop">
+          <span>🚗 Pop</span>
+        </div>
+        <div class="n99-price">R$ 12,20</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-green"></div>
+        <div class="route-text">Avenida Eldes Scherrer Souza, Serra - ES</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-red"></div>
+        <div class="route-text">2162 - Serra - ES</div>
+      </div>
+      <div class="n99-status">✓ Pago</div>
+    </div>
+
+    <!-- 99 Card 4 -->
+    <div class="n99-card">
+      <div class="n99-card-header">
+        <div class="n99-tag-pop">
+          <span>🚗 Pop</span>
+        </div>
+        <div class="n99-price">R$ 23,80</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-green"></div>
+        <div class="route-text">Avenida Eldes Scherrer Souza, Res. Laranjeiras</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-red"></div>
+        <div class="route-text">Cidade Pomar, Serra - ES</div>
+      </div>
+      <div class="n99-status">✓ Pago</div>
+    </div>
+
+    <!-- 99 Card 5 -->
+    <div class="n99-card">
+      <div class="n99-card-header">
+        <div class="n99-tag-pop">
+          <span>🚗 Pop Expresso</span>
+        </div>
+        <div class="n99-price">R$ 28,36</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-green"></div>
+        <div class="route-text">Rua Augusto dos Anjos, Chácara Parreiral - Serra</div>
+      </div>
+      <div class="route-node">
+        <div class="dot-red"></div>
+        <div class="route-text">Praia do Canto, Vitória - ES</div>
+      </div>
+      <div class="n99-status">✓ Pago</div>
+    </div>
+  </div>
+
+  <script>
+    function switchApp(appName) {
+      document.querySelectorAll('.app-mode-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.screen-view').forEach(view => view.classList.remove('active'));
+
+      if (appName === 'uber') {
+        document.querySelector('.app-mode-btn.uber').classList.add('active');
+        document.getElementById('uber-view').classList.add('active');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000000');
+      } else {
+        document.querySelector('.app-mode-btn.noventanove').classList.add('active');
+        document.getElementById('noventanove-view').classList.add('active');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#18181c');
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration error:', err));
+    }
+  </script>
+</body>
+</html>

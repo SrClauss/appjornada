@@ -151,9 +151,12 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
     prompt = (
         "Analise esta sequência de capturas de tela (frames) gravadas do histórico de corridas/ganhos de aplicativo de motorista (Uber / 99). "
         "Extraia a lista COMPLETA de corridas visíveis nas imagens, eliminando itens duplicados entre os frames. "
+        "AVALIE TAMBÉM se os frames fornecidos foram suficientes para cobrir toda a rolagem de tela sem lacunas de imagens ou cortes entre uma corrida e outra. "
         "Responda EXCLUSIVAMENTE em formato JSON com a estrutura:\n"
         "{\n"
         '  "sucesso": true,\n'
+        '  "historico_completo": true,\n'
+        '  "necessita_mais_frames": false,\n'
         '  "total_corridas": 2,\n'
         '  "faturamento_total": 45.80,\n'
         '  "corridas": [\n'
@@ -209,11 +212,22 @@ async def processar_extrato_video(
     file.file.seek(0)
     video_url = await _salvar_arquivo(file, "extrato_video")
 
-    frames = _extrair_frames_video(video_bytes, max_frames=6)
+    # 1ª tentativa: amostragem inicial leve com 6 frames
+    max_f = 6
+    frames = _extrair_frames_video(video_bytes, max_frames=max_f)
     if not frames:
-        raise HTTPException(status_code=400, detail="Não foi possível extrair frames do vídeo enviado.")
+        raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
 
     res_gemini = _chamar_gemini_extrato_video(frames)
+
+    # Re-amostragem adaptativa: se a IA indicar que faltam frames ou lacunas de imagem, refaz com amostragem mais densa (12 frames)
+    if (res_gemini.get("necessita_mais_frames") is True or res_gemini.get("historico_completo") is False) and max_f < 12:
+        print("[OCR Video] IA solicitou mais frames. Refazendo amostragem densa com 12 frames...")
+        frames_densos = _extrair_frames_video(video_bytes, max_frames=12)
+        if frames_densos:
+            res_densos = _chamar_gemini_extrato_video(frames_densos)
+            if res_densos.get("sucesso") and res_densos.get("corridas"):
+                res_gemini = res_densos
+
     res_gemini["video_url"] = video_url
     return res_gemini
-
