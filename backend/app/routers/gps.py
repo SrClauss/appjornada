@@ -496,14 +496,28 @@ async def rota_ajustada_motorista(
     except Exception:
         pass
 
-    if jornada and jornada.get("data"):
-        try:
-            filtro_or.append({
-                "motorista_id": ObjectId(motorista_id),
-                "timestamp": {"$regex": f"^{jornada['data']}"}
-            })
-        except Exception:
-            pass
+    if jornada:
+        j_date_str = jornada.get("data")
+        m_id_str = str(jornada.get("motorista_id") or motorista_id)
+        if j_date_str:
+            try:
+                dt_start = datetime.fromisoformat(f"{j_date_str}T00:00:00+00:00")
+                dt_end = datetime.fromisoformat(f"{j_date_str}T23:59:59+00:00")
+                m_obj = ObjectId(m_id_str)
+                filtro_or.append({
+                    "motorista_id": m_obj,
+                    "timestamp": {"$gte": dt_start, "$lte": dt_end}
+                })
+                filtro_or.append({
+                    "motorista_id": m_id_str,
+                    "timestamp": {"$gte": dt_start, "$lte": dt_end}
+                })
+                filtro_or.append({
+                    "motorista_id": m_obj,
+                    "timestamp": {"$gte": f"{j_date_str}T00:00:00", "$lte": f"{j_date_str}T23:59:59"}
+                })
+            except Exception as e:
+                print("[rota-ajustada] Erro ao montar filtro por data:", e)
 
     pontos = await db["historico_gps"].find({"$or": filtro_or}).sort("timestamp", 1).to_list(10000)
 
@@ -522,6 +536,7 @@ async def rota_ajustada_motorista(
                 "distance_m": (jornada.get("km", {}).get("rodados", 0.0) if jornada else 0.0) * 1000.0,
                 "duration_s": (jornada.get("horario", {}).get("total_horas_segundos", 0) if jornada else 0)
             }
+
 
     # Fallback para polylines salvas na jornada caso não haja historico_gps
     if jornada and (jornada.get("rota_polyline") or jornada.get("segmentos_rota")):
