@@ -1,5 +1,5 @@
 from .base import PyObjectId
-from .motorista import CNH, DadosBancarios, PerfilMotorista
+from .motorista import CNH, DadosBancarios, PerfilMotorista, Advertencia, AdvertenciaCreate
 from .user import Role, User, UserCreate, UserUpdate, UserPublic
 from .token import Token, TokenData
 from .veiculo import Veiculo, VeiculoCreate, VeiculoUpdate
@@ -17,6 +17,7 @@ __all__ = [
     "PyObjectId",
     # motorista (subdocumentos)
     "CNH", "DadosBancarios", "PerfilMotorista",
+    "Advertencia", "AdvertenciaCreate",
     # user + auth
     "Role", "User", "UserCreate", "UserUpdate", "UserPublic",
     "Token", "TokenData",
