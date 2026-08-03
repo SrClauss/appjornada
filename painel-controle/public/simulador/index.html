@@ -645,6 +645,41 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Error:', err));
     }
+
+    // Widget Flutuante de Gravação de Tela (Simulação do Botão REC)
+    let isRecording = false;
+    function toggleFloatingRecord() {
+      const btn = document.getElementById('rec-floating-btn');
+      const statusText = document.getElementById('rec-status-text');
+      
+      if (!isRecording) {
+        isRecording = true;
+        btn.style.background = '#ef4444';
+        btn.style.boxShadow = '0 0 16px rgba(239, 68, 68, 0.8)';
+        statusText.innerHTML = '🔴 GRAVANDO (Role a tela agora)';
+      } else {
+        isRecording = false;
+        btn.style.background = '#10b981';
+        btn.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.4)';
+        statusText.innerHTML = '⚡ Enviando Vídeo para IA...';
+        
+        setTimeout(() => {
+          alert('🚀 Vídeo de Extrato enviado ao servidor!\n\nIA extraiu 55 corridas e computou o faturamento acumulado com sucesso.');
+          statusText.innerHTML = '📹 REC (Gravar Extrato)';
+        }, 1500);
+      }
+    }
   </script>
+
+  <!-- Widget da Janelinha Flutuante (Simulação do Botão REC no PWA) -->
+  <div id="rec-floating-widget" style="position: fixed; bottom: 24px; right: 20px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+    <div id="rec-status-text" style="background: rgba(15, 23, 42, 0.9); color: #ffffff; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1px solid #334155; backdrop-filter: blur(8px);">
+      📹 REC (Gravar Extrato)
+    </div>
+    <button id="rec-floating-btn" onclick="toggleFloatingRecord()" style="width: 56px; height: 56px; border-radius: 28px; background: #10b981; border: 3px solid #ffffff; color: #ffffff; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: all 0.2s ease;">
+      📹
+    </button>
+  </div>
 </body>
 </html>
+
