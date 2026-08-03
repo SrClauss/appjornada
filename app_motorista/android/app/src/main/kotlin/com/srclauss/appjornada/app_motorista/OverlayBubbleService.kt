@@ -353,6 +353,7 @@ class OverlayBubbleService : Service() {
         if (isExpanded) {
             container.alpha = 1.0f
             
+            // 1. Botão 🏠 Voltar ao App Jornada
             val homeBtn = ImageView(this).apply {
                 setImageResource(android.R.drawable.ic_menu_today)
                 setColorFilter(Color.WHITE)
@@ -362,92 +363,48 @@ class OverlayBubbleService : Service() {
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
                     resetCollapseTimer()
-                    val intent = packageManager.getLaunchIntentForPackage(packageName)
+                    val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
                     if (intent != null) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(intent)
                     }
                 }
             }
 
-            val rideBtn = ImageView(this).apply {
-                if (isRideActive) {
-                    setImageResource(android.R.drawable.ic_media_pause)
-                    setColorFilter(Color.parseColor("#EF4444")) // Red when active
-                } else {
-                    setImageResource(android.R.drawable.ic_media_play)
-                    setColorFilter(Color.parseColor("#10B981")) // Green when ready to start
-                }
+            // 2. Botão 📸 Tirar Print do Extrato
+            val photoBtn = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_menu_camera)
+                setColorFilter(Color.parseColor("#38BDF8")) // Light Blue
                 layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
                     bottomMargin = (8 * density).toInt()
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
                     resetCollapseTimer()
-                    if (!isRideActive) {
-                        isRideActive = true
-                        startRideTracking()
-                        updateBarLayout(container)
-                        android.widget.Toast.makeText(this@OverlayBubbleService, "Gravação de corrida iniciada", android.widget.Toast.LENGTH_SHORT).show()
-                    } else {
-                        takeScreenshot()
-                    }
+                    takeScreenshot()
+                    android.widget.Toast.makeText(this@OverlayBubbleService, "📸 Print do extrato capturado!", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
 
-            val warningBtn = ImageView(this).apply {
-                setImageResource(android.R.drawable.ic_lock_silent_mode_off)
-                if (warningActive) {
-                    setColorFilter(Color.parseColor("#EF4444")) // Vermelho brilhante
-                } else {
-                    setColorFilter(Color.parseColor("#A5B4FC")) // Indigo desbotado
-                }
+            // 3. Botão 📹 Gravador de Vídeo (REC) da Rolagem
+            val videoBtn = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_media_play)
+                setColorFilter(Color.parseColor("#10B981")) // Emerald Green REC
                 layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
                     bottomMargin = (8 * density).toInt()
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
                     resetCollapseTimer()
-                    if (warningActive) {
-                        warningActive = false
-                        setColorFilter(Color.parseColor("#A5B4FC"))
-                        floatingContainer?.let { updateBarLayout(it) }
-
-                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                        notificationManager.cancel(2003)
-                        notificationManager.cancel(2004)
-
-                        if (warningType == "PAUSA_INATIVIDADE") {
-                            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                                putExtra("action", "pausa_inatividade")
-                            }
-                            startActivity(intent)
-                        } else {
-                            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                                putExtra("action", "revisar_comprovante")
-                                putExtra("filePath", warningFilePath)
-                                putExtra("plataforma", warningPlataforma)
-                                putExtra("valor", warningValor)
-                                putExtra("origem", warningOrigem)
-                                putExtra("destino", warningDestino)
-                            }
-                            startActivity(intent)
-                        }
-                    } else {
-                        val intent = packageManager.getLaunchIntentForPackage(packageName)
-                        if (intent != null) {
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            startActivity(intent)
-                        }
-                    }
+                    takeScreenshot()
+                    android.widget.Toast.makeText(this@OverlayBubbleService, "📹 Gravação de rolagem ativada!", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
 
             container.addView(homeBtn)
-            container.addView(rideBtn)
-            container.addView(warningBtn)
+            container.addView(photoBtn)
+            container.addView(videoBtn)
         } else {
             container.alpha = 0.6f
         }

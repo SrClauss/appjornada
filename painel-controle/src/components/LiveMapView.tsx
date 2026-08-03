@@ -14,6 +14,8 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const isInitialFitRef = useRef<boolean>(false);
+  const prevBaseFocoRef = useRef<BaseOperacao | null | undefined>(baseFoco);
 
   const basePrincipal = bases.find((b) => b.is_principal) || bases[0];
   const targetBase = baseFoco || basePrincipal;
@@ -21,6 +23,24 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
   const fallbackLat = targetBase?.lat ?? -20.3155;
   const fallbackLon = targetBase?.lon ?? -40.3128;
   const fallbackZoom = targetBase?.zoom_padrao ?? 12;
+
+  const centralizarMapa = () => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    const bounds = L.latLngBounds([]);
+
+    markersRef.current.forEach((m) => {
+      bounds.extend(m.getLatLng());
+    });
+
+    if (baseFoco && baseFoco.lat && baseFoco.lon) {
+      map.setView([baseFoco.lat, baseFoco.lon], baseFoco.zoom_padrao || 13);
+    } else if (bounds.isValid() && markersRef.current.length > 0) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    } else if (targetBase && targetBase.lat && targetBase.lon) {
+      map.setView([targetBase.lat, targetBase.lon], targetBase.zoom_padrao || 13);
+    }
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -81,6 +101,7 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
           </div>
         `);
         markersRef.current.push(bMarker);
+        bounds.extend([b.lat, b.lon]);
       }
     });
 
@@ -160,15 +181,13 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
       bounds.extend([lat, lon]);
     });
 
-    if (baseFoco) {
-      map.setView([baseFoco.lat, baseFoco.lon], baseFoco.zoom_padrao || 13);
-    } else if (markersRef.current.length === 1 && bounds.isValid()) {
-      const center = bounds.getCenter();
-      map.setView([center.lat, center.lng], 14);
-    } else if (markersRef.current.length > 1 && bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
-    } else if (targetBase) {
-      map.setView([targetBase.lat, targetBase.lon], targetBase.zoom_padrao || 13);
+    // Centraliza o mapa APENAS no primeiro carregamento ou se a baseFoco mudar ativamente
+    const baseFocoMudou = prevBaseFocoRef.current !== baseFoco;
+    prevBaseFocoRef.current = baseFoco;
+
+    if (!isInitialFitRef.current || baseFocoMudou) {
+      centralizarMapa();
+      isInitialFitRef.current = true;
     }
   }, [jornadas, bases, baseFoco, fallbackLat, fallbackLon, fallbackZoom]);
 
@@ -176,8 +195,17 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
     <div className="relative w-full h-[380px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#0d1117]">
       <div ref={containerRef} className="w-full h-full z-10" />
 
+      {/* Botão para Re-centralizar Visão */}
+      <button
+        onClick={centralizarMapa}
+        className="absolute top-3 right-3 z-[400] bg-slate-900/90 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95"
+      >
+        🎯 Centralizar Visão
+      </button>
+
       {/* Overlay de Legenda */}
       <div className="absolute bottom-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 flex items-center gap-4 text-xs text-slate-300 flex-wrap">
+
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
           <span>Rodando</span>

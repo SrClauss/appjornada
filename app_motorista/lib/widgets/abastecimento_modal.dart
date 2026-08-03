@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:app_motorista/core/api_service.dart';
 
+import 'package:image_picker/image_picker.dart';
+
 class AbastecimentoModal extends StatefulWidget {
   final Map<String, dynamic> jornada;
   const AbastecimentoModal({super.key, required this.jornada});
@@ -17,7 +19,7 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
   final _gasolinaController = TextEditingController();
   final _gnvController = TextEditingController();
   final _etanolController = TextEditingController();
-  bool _fotoCupom = false;
+  String? _fotoCupomUrl;
   bool _loading = false;
   int _secondsLeft = 1800; // 30 minutos
   late Timer _timer;
@@ -52,6 +54,37 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
     super.dispose();
   }
 
+  Future<void> _tirarFotoCupom() async {
+    final picker = ImagePicker();
+    final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (img != null) {
+      setState(() {
+        _loading = true;
+      });
+      try {
+        final url = await ApiService.uploadFile(img.path, 'abastecimentos');
+        setState(() {
+          _fotoCupomUrl = url;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto do cupom enviada com sucesso!')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao enviar foto: $e')),
+          );
+        }
+      } finally {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
   Future<void> _confirmarAbastecimento() async {
     if (_loading) return;
     final km = double.tryParse(_kmController.text) ?? 0;
@@ -61,7 +94,7 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
       );
       return;
     }
-    if (!_fotoCupom) {
+    if (_fotoCupomUrl == null || _fotoCupomUrl!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, anexe a foto do cupom fiscal.')),
       );
@@ -83,7 +116,7 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
           'valor_gasolina': double.tryParse(_gasolinaController.text) ?? 0.0,
           'valor_gnv': double.tryParse(_gnvController.text) ?? 0.0,
           'valor_etanol': double.tryParse(_etanolController.text) ?? 0.0,
-          'foto_comprovante_url': 'http://mock/foto_cupom.png',
+          'foto_comprovante_url': _fotoCupomUrl,
         }),
       );
 
@@ -100,6 +133,7 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -182,37 +216,48 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
             ),
             const SizedBox(height: 24),
             InkWell(
-              onTap: () {
-                setState(() {
-                  _fotoCupom = true;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Foto do cupom fiscal anexada.')),
-                );
-              },
+              onTap: _loading ? null : _tirarFotoCupom,
               child: Container(
                 height: 100,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _fotoCupom ? Colors.green : Colors.grey[700]!),
+                  border: Border.all(
+                      color: (_fotoCupomUrl != null && _fotoCupomUrl!.isNotEmpty)
+                          ? Colors.green
+                          : Colors.grey[700]!),
                 ),
                 child: Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(_fotoCupom ? Icons.check_circle : Icons.camera_alt, color: _fotoCupom ? Colors.green : Colors.grey),
+                      Icon(
+                        (_fotoCupomUrl != null && _fotoCupomUrl!.isNotEmpty)
+                            ? Icons.check_circle
+                            : Icons.camera_alt,
+                        color: (_fotoCupomUrl != null && _fotoCupomUrl!.isNotEmpty)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        _fotoCupom ? 'Cupom anexado com sucesso!' : 'Fotografar Cupom Fiscal (Auditoria)',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: _fotoCupom ? Colors.green : Colors.grey),
+                        (_fotoCupomUrl != null && _fotoCupomUrl!.isNotEmpty)
+                            ? 'Cupom anexado com sucesso!'
+                            : 'Fotografar Cupom Fiscal (Câmera)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: (_fotoCupomUrl != null && _fotoCupomUrl!.isNotEmpty)
+                              ? Colors.green
+                              : Colors.grey,
+                        ),
                       )
                     ],
                   ),
                 ),
               ),
             ),
+
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
