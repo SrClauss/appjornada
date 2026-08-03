@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:app_motorista/core/api_service.dart';
+import 'package:app_motorista/core/overlay_service.dart';
 import 'package:geolocator/geolocator.dart';
+
 
 class FechamentoWizardScreen extends StatefulWidget {
   final Map<String, dynamic> jornada;
@@ -285,13 +287,18 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
   Widget _buildStepContent() {
     switch (_currentStep) {
       case 1:
-        return _buildFaturamentoForm(
-          title: 'Faturamento Uber',
-          subtitle: 'Declare as corridas e ganhos na Uber hoje',
-          imageAsset: 'assets/uber.png',
+        return _buildPlataformaGuiada(
+          title: 'Prestação de Contas — Uber',
+          subtitle: 'Minimize o app para tirar o print do extrato e gravar o vídeo do histórico Uber. A IA extrairá os faturamentos automaticamente.',
           platformColor: Colors.black,
-          valorCtrl: _uberValorCtrl,
-          corridasCtrl: _uberCorridasCtrl,
+          textColor: Colors.white,
+          faturamentoIa: widget.jornada['faturamento']?['uber'] ?? 0.0,
+          corridasIa: widget.jornada['faturamento']?['corridas_uber'] ?? 0,
+          onNaoRodei: () {
+            setState(() {
+              _currentStep = 2;
+            });
+          },
           onNext: () {
             setState(() {
               _currentStep = 2;
@@ -299,14 +306,18 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
           },
         );
       case 2:
-        return _buildFaturamentoForm(
-          title: 'Faturamento 99 Táxi',
-          subtitle: 'Declare as corridas e ganhos na 99 hoje',
-          imageAsset: 'assets/99.png',
+        return _buildPlataformaGuiada(
+          title: 'Prestação de Contas — 99',
+          subtitle: 'Minimize o app para tirar o print do extrato e gravar o vídeo do histórico 99. A IA extrairá os faturamentos automaticamente.',
           platformColor: const Color(0xFFFFCC00),
           textColor: Colors.black,
-          valorCtrl: _99ValorCtrl,
-          corridasCtrl: _99CorridasCtrl,
+          faturamentoIa: widget.jornada['faturamento']?['ninety_nine'] ?? 0.0,
+          corridasIa: widget.jornada['faturamento']?['corridas_99'] ?? 0,
+          onNaoRodei: () {
+            setState(() {
+              _currentStep = 3;
+            });
+          },
           onNext: () {
             setState(() {
               _currentStep = 3;
@@ -319,38 +330,26 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
           },
         );
       case 3:
-        return _buildFaturamentoForm(
-          title: 'Corridas Particulares / Outros',
-          subtitle: 'Declare outras corridas fora de plataformas',
-          imageAsset: 'assets/outros.png',
-          platformColor: Colors.indigo,
-          valorCtrl: _outrosValorCtrl,
-          corridasCtrl: _outrosCorridasCtrl,
-          onNext: _rodarAuditoria,
-          onBack: () {
-            setState(() {
-              _currentStep = 2;
-            });
-          },
-        );
-      case 4:
-        return _buildAuditoriaView();
+        return _buildHodometroFinalView();
       default:
         return const SizedBox();
     }
   }
 
-  Widget _buildFaturamentoForm({
+  Widget _buildPlataformaGuiada({
     required String title,
     required String subtitle,
-    required String imageAsset,
     required Color platformColor,
     Color textColor = Colors.white,
-    required TextEditingController valorCtrl,
-    required TextEditingController corridasCtrl,
+    required dynamic faturamentoIa,
+    required dynamic corridasIa,
+    required VoidCallback onNaoRodei,
     required VoidCallback onNext,
     VoidCallback? onBack,
   }) {
+    final double fatVal = (faturamentoIa is num) ? faturamentoIa.toDouble() : 0.0;
+    final int corrVal = (corridasIa is num) ? corridasIa.toInt() : 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -363,12 +362,12 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: textColor == Colors.black ? Colors.white : Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -376,34 +375,84 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        TextField(
-          controller: corridasCtrl,
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Quantidade de Corridas',
-            labelStyle: const TextStyle(color: Colors.grey),
-            filled: true,
-            fillColor: const Color(0xFF1E293B),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            prefixIcon: const Icon(Icons.directions_car, color: Colors.blueAccent),
+
+        // CARD RESULTADO DA IA
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: fatVal > 0 ? Colors.greenAccent : Colors.white12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Faturamento Detectado por IA', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'R\$ ${fatVal.toStringAsFixed(2).replaceAll('.', ',')}',
+                    style: const TextStyle(color: Colors.greenAccent, fontSize: 26, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('Corridas Lidas', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$corrVal corridas',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: valorCtrl,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Faturamento Total (R\$)',
-            labelStyle: const TextStyle(color: Colors.grey),
-            filled: true,
-            fillColor: const Color(0xFF1E293B),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            prefixIcon: const Icon(Icons.monetization_on, color: Colors.greenAccent),
+        const SizedBox(height: 24),
+
+        // BOTÃO MINIMIZAR E ABRIR BOLINHA FLUTUANTE
+        SizedBox(
+          height: 56,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF38BDF8),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            onPressed: () async {
+              final ok = await OverlayService.startOverlay();
+              if (ok) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Bolinha flutuante ativada! Abra o app da plataforma.')),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.screen_share_rounded),
+            label: const Text('MINIMIZAR E ABRIR BOLINHA (REC)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 12),
+
+        // BOTÃO NÃO RODEI NESTA PLATAFORMA
+        SizedBox(
+          height: 48,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+            ),
+            onPressed: onNaoRodei,
+            icon: const Icon(Icons.block_rounded, size: 18),
+            label: const Text('NÃO RODEI NESTA PLATAFORMA HOJE', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 32),
+
         Row(
           children: [
             if (onBack != null) ...[
@@ -443,64 +492,79 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
     );
   }
 
-  Widget _buildAuditoriaView() {
-    if (_auditoriaResult == null) return const SizedBox();
-    final comparativo = _auditoriaResult!['comparativo'] as Map<String, dynamic>;
-    final podeFechar = _auditoriaResult!['pode_fechar'] as bool;
+  Widget _buildHodometroFinalView() {
+    final double fatUber = ((widget.jornada['faturamento']?['uber'] ?? 0.0) as num).toDouble();
+    final double fat99 = ((widget.jornada['faturamento']?['ninety_nine'] ?? 0.0) as num).toDouble();
+    final double fatTotal = fatUber + fat99;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Relatório de Auditoria de Corridas',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          'Encerramento & Hodômetro Final',
+          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         const Text(
-          'Comparamos suas declarações com os prints processados hoje:',
-          style: TextStyle(color: Colors.grey, fontSize: 14),
+          'Confira os faturamentos extraídos pela IA e fotografe o hodômetro do veículo para finalizar o dia.',
+          style: TextStyle(color: Colors.grey, fontSize: 13),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
-        _buildAuditoriaCard('Uber', comparativo['uber'], Colors.black),
-        const SizedBox(height: 16),
-        _buildAuditoriaCard('99 Táxi', comparativo['noventa_nove'], const Color(0xFFFFCC00)),
-        const SizedBox(height: 24),
-        
-        if (!podeFechar) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.warning, color: Colors.orange),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Divergência detectada! O número de prints processados não bate com o declarado. Por favor, suba os prints restantes.',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
+
+        // CARD RESUMO FATURAMENTO IA
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.greenAccent),
           ),
-          const SizedBox(height: 24),
-        ],
+          child: Column(
+            children: [
+              const Text('Faturamento Total Extraído por IA', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text(
+                'R\$ ${fatTotal.toStringAsFixed(2).replaceAll('.', ',')}',
+                style: const TextStyle(color: Colors.greenAccent, fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Text('Uber: R\$ ${fatUber.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                  Text('99: R\$ ${fat99.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Color(0xFFFFCC00), fontSize: 14, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
 
         // DADOS DO FECHAMENTO HODOMETRO
         const Text(
-          'Dados Finais do Veículo',
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          'Hodômetro Final do Veículo (Foto Obrigatória)',
+          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 56,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _fotoKmFinalUrl != null ? Colors.green : const Color(0xFF1E293B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            onPressed: _tirarFotoHodometro,
+            icon: Icon(_fotoKmFinalUrl != null ? Icons.check_circle : Icons.camera_alt, color: _fotoKmFinalUrl != null ? Colors.white : Colors.blueAccent),
+            label: Text(_fotoKmFinalUrl != null ? 'FOTO DO HODÔMETRO SALVA ✓' : 'FOTOGRAFAR HODÔMETRO (CÂMERA)'),
+          ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _kmFinalCtrl,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             labelText: 'KM Final do Hodômetro',
@@ -510,26 +574,6 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             prefixIcon: const Icon(Icons.speed, color: Colors.blueAccent),
           ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 56,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E293B),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  onPressed: _tirarFotoHodometro,
-                  icon: const Icon(Icons.camera_alt, color: Colors.blueAccent),
-                  label: Text(_fotoKmFinalUrl != null ? 'FOTO ENVIADA ✓' : 'FOTO HODÔMETRO'),
-                ),
-              ),
-            ),
-          ],
         ),
         const SizedBox(height: 40),
         Row(
@@ -545,7 +589,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
                   ),
                   onPressed: () {
                     setState(() {
-                      _currentStep = 3;
+                      _currentStep = 2;
                     });
                   },
                   child: const Text('VOLTAR'),
@@ -558,101 +602,21 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
                 height: 56,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: podeFechar ? Colors.green : Colors.redAccent,
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  onPressed: _finalizarJornada,
-                  child: Text(
-                    podeFechar ? 'ENCERRAR JORNADA' : 'FORÇAR ENCERRAMENTO',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
-                  ),
+                  onPressed: _loading ? null : _finalizarJornada,
+                  child: _loading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('ENCERRAR JORNADA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 24),
+        )
       ],
     );
   }
-
-  Widget _buildAuditoriaCard(String platformName, Map<String, dynamic> data, Color headerColor) {
-    final status = data['status'];
-    final declarado = data['declarado'];
-    final detectado = data['detectado'];
-    final diff = data['diferenca'] as int;
-
-    return Card(
-      color: const Color(0xFF1E293B),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: headerColor),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      platformName,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: status == 'OK' ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      color: status == 'OK' ? Colors.greenAccent : Colors.redAccent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                )
-              ],
-            ),
-            const Divider(color: Colors.white10, height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
-                    const Text('Declarado', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text('$declarado', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                Column(
-                  children: [
-                    const Text('Lido p/ IA', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text('$detectado', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ],
-            ),
-            if (status != 'OK') ...[
-              const Divider(color: Colors.white10, height: 24),
-              Text(
-                diff < 0 ? 'Faltam ${diff.abs()} comprovantes' : 'Sobraram ${diff.abs()} comprovantes',
-                style: const TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-            ]
-          ],
-        ),
-      ),
-    );
-  }
 }
+
