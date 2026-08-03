@@ -1,5 +1,5 @@
 from .base import PyObjectId
-from .motorista import CNH, DadosBancarios, PerfilMotorista, Advertencia, AdvertenciaCreate
+from .motorista import CNH, DadosBancarios, PerfilMotorista, Advertencia, AdvertenciaCreate, PendenciaAuditoria, ResolverPendenciaRequest
 from .user import Role, User, UserCreate, UserUpdate, UserPublic
 from .token import Token, TokenData
 from .veiculo import Veiculo, VeiculoCreate, VeiculoUpdate

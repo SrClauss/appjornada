@@ -272,8 +272,43 @@ async def abrir_jornada(
     ts = datetime.now().strftime("%d%m%Y%H%M%S")
     doc["_id"] = f"{current_user.nome}-{dados.veiculo_id}-{ts}"
 
+    # Verificação de KM Morta em relação à última jornada encerrada deste veículo
+    try:
+        ultima_jornada_veiculo = await db["jornadas"].find_one(
+            {"veiculo_id": dados.veiculo_id, "status": "ENCERRADA"},
+            sort=[("_id", -1)]
+        )
+        if ultima_jornada_veiculo:
+            km_final_anterior = (ultima_jornada_veiculo.get("km") or {}).get("final") or ultima_jornada_veiculo.get("km_final")
+            km_inicial_atual = (dados.km or {}).get("inicial") if isinstance(dados.km, dict) else None
+            if km_inicial_atual is None:
+                km_inicial_atual = getattr(dados, "km_inicial", None)
+            
+            if km_final_anterior is not None and km_inicial_atual is not None and km_inicial_atual > km_final_anterior:
+                km_morta = round(km_inicial_atual - km_final_anterior, 1)
+                motorista_anterior_id = ultima_jornada_veiculo.get("motorista_id")
+                if km_morta > 0 and motorista_anterior_id:
+                    pendencia_doc = {
+                        "_id": ObjectId(),
+                        "data_criacao": datetime.utcnow(),
+                        "veiculo_id": str(dados.veiculo_id),
+                        "veiculo_placa": str(dados.veiculo_id),
+                        "jornada_origem_id": str(ultima_jornada_veiculo["_id"]),
+                        "km_morta": km_morta,
+                        "status": "PENDENTE",
+                        "tipo": "KM_MORTA",
+                        "descricao": f"Divergência de {km_morta} KM em relação ao fechamento da jornada anterior",
+                    }
+                    await db["users"].update_one(
+                        {"_id": ObjectId(str(motorista_anterior_id))},
+                        {"$push": {"perfil_motorista.pendencias_auditoria": pendencia_doc}}
+                    )
+    except Exception as err_km:
+        print("Erro ao verificar KM morta entre jornadas:", err_km)
+
     await db["jornadas"].insert_one(doc)
     criado = await db["jornadas"].find_one({"_id": doc["_id"]})
+
     normalized = _normalizar_jornada(criado)
     await _populate_motorista_nome(normalized, db)
     return Jornada(**normalized)

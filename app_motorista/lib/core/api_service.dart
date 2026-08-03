@@ -201,4 +201,36 @@ class ApiService {
     }
     return null;
   }
+
+  // Busca pendências de auditoria/KM morta do motorista logado
+  static Future<List<dynamic>> getPendenciasMotorista() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/users/me/pendencias'),
+        headers: headers,
+      );
+      if (res.statusCode == 200) {
+        return json.decode(res.body) as List<dynamic>;
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao buscar pendências do motorista: $e');
+    }
+    return [];
+  }
+
+  // Resolve pendência de auditoria/KM morta
+  static Future<bool> resolverPendenciaMotorista(String pendenciaId, Map<String, dynamic> dados) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/users/me/pendencias/$pendenciaId/resolver'),
+        headers: headers,
+        body: json.encode(dados),
+      );
+      return res.statusCode == 200;
+    } catch (e) {
+      print('[ApiService] Erro ao resolver pendência do motorista: $e');
+    }
+    return false;
+  }
 }
+

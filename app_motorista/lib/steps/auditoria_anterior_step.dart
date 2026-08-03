@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:app_motorista/core/api_service.dart';
 
 class AuditoriaAnteriorStep extends StatefulWidget {
   final VoidCallback onCompleted;
@@ -11,6 +12,7 @@ class AuditoriaAnteriorStep extends StatefulWidget {
 class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
   bool _loading = true;
   bool _hasPendencia = false;
+  Map<String, dynamic>? _pendenciaAtual;
   String _justificativa = '';
   final List<Offset?> _points = [];
   bool _assinado = false;
@@ -23,35 +25,67 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
   }
 
   Future<void> _checkPendencia() async {
-    // Simula auditoria do dia anterior no BD
-    await Future.delayed(const Duration(seconds: 1));
-    // Sem pendências no primeiro uso / estado limpo
     setState(() {
-      _hasPendencia = false;
-      _loading = false;
+      _loading = true;
     });
+    final pendencias = await ApiService.getPendenciasMotorista();
+    if (pendencias.isNotEmpty && pendencias.first is Map<String, dynamic>) {
+      setState(() {
+        _hasPendencia = true;
+        _pendenciaAtual = pendencias.first as Map<String, dynamic>;
+        _loading = false;
+      });
+    } else {
+      setState(() {
+        _hasPendencia = false;
+        _pendenciaAtual = null;
+        _loading = false;
+      });
+    }
   }
 
-  void _salvarJustificativa() {
-    if (_justificativa.isEmpty) {
+  Future<void> _salvarJustificativa() async {
+    if (_justificativa.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, digite sua justificativa ou envie um atestado.')),
       );
       return;
     }
+    
+    final pendenciaId = _pendenciaAtual?['_id'] ?? _pendenciaAtual?['id'];
+    if (pendenciaId != null) {
+      final ok = await ApiService.resolverPendenciaMotorista(pendenciaId.toString(), {
+        'tipo_resolucao': 'JUSTIFICATIVA',
+        'foto_justificativa_url': _justificativa,
+      });
+      if (ok) {
+        widget.onCompleted();
+        return;
+      }
+    }
     widget.onCompleted();
   }
 
-  void _assinarAdvertencia() {
+  Future<void> _assinarAdvertencia() async {
     if (!_assinado && !_recusouAssinar) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, assine a advertência ou clique em recusar.')),
       );
       return;
     }
-    // Envia advertência assinada/recusada e libera
+
+    final pendenciaId = _pendenciaAtual?['_id'] ?? _pendenciaAtual?['id'];
+    if (pendenciaId != null) {
+      await ApiService.resolverPendenciaMotorista(pendenciaId.toString(), {
+        'tipo_resolucao': 'ADVERTENCIA',
+        'recusou_assinar': _recusouAssinar,
+        'assinatura_url': _recusouAssinar ? null : 'assinatura_digital_app',
+      });
+    }
+
     widget.onCompleted();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -105,12 +139,15 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Jornada Anterior Pendente',
+                    children: [
+                      const Text(
+                        'Divergência / Pendência Identificada',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red),
                       ),
-                      Text('Identificamos que você faltou ou não registrou jornada ontem.'),
+                      Text(
+                        _pendenciaAtual?['descricao'] ??
+                        'Identificamos uma divergência de KM morta em jornada anterior vinculada a você.',
+                      ),
                     ],
                   ),
                 ),

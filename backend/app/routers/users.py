@@ -98,3 +98,76 @@ async def deletar_user(
         user_dict = current_user.model_dump()
         user_dict["id"] = str(user_dict["id"])
         await registrar_auditoria(db, user_dict, "INATIVAR_USER", {"target_user_id": user_id})
+
+
+@router.get("/me/pendencias", status_code=200)
+async def listar_minhas_pendencias(
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Retorna as pendências de auditoria/KM morta do motorista logado."""
+    doc = await db["users"].find_one({"_id": ObjectId(str(current_user.id))})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    perfil = doc.get("perfil_motorista") or {}
+    pendencias = perfil.get("pendencias_auditoria") or []
+    # Filtra apenas pendências ativas PENDENTEs
+    ativas = [p for p in pendencias if isinstance(p, dict) and p.get("status") == "PENDENTE"]
+    return ativas
+
+
+@router.post("/me/pendencias/{pendencia_id}/resolver", status_code=200)
+async def resolver_minha_pendencia(
+    pendencia_id: str,
+    dados: dict,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Resolve a pendência de KM morta (com justificativa com foto ou assinatura/recusa de advertência)."""
+    user_id = str(current_user.id)
+    doc = await db["users"].find_one({"_id": ObjectId(user_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    perfil = doc.get("perfil_motorista") or {}
+    pendencias = perfil.get("pendencias_auditoria") or []
+    advertencias = perfil.get("advertencias") or []
+    
+    encontrada = False
+    now = datetime.utcnow()
+    for p in pendencias:
+        if str(p.get("_id") or p.get("id")) == pendencia_id:
+            encontrada = True
+            tipo_resolucao = dados.get("tipo_resolucao", "JUSTIFICATIVA")
+            if tipo_resolucao == "ADVERTENCIA":
+                p["status"] = "ADVERTIDO"
+                p["assinatura_url"] = dados.get("assinatura_url")
+                p["recusou_assinar"] = bool(dados.get("recusou_assinar", False))
+                # Adiciona advertência oficial no perfil
+                advertencias.append({
+                    "_id": ObjectId(),
+                    "data": now,
+                    "descricao": f"Advertência disciplinar por KM Morta ({p.get('km_morta', 0)} KM) no veículo {p.get('veiculo_placa', '')}",
+                    "registrado_por": "SISTEMA",
+                    "observacao": "Recusou assinatura" if p["recusou_assinar"] else "Assinada digitalmente no app",
+                })
+            else:
+                p["status"] = "JUSTIFICADO"
+                p["foto_justificativa_url"] = dados.get("foto_justificativa_url")
+            
+            p["data_resolucao"] = now
+            break
+            
+    if not encontrada:
+        raise HTTPException(status_code=404, detail="Pendência não encontrada")
+        
+    await db["users"].update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {
+            "perfil_motorista.pendencias_auditoria": pendencias,
+            "perfil_motorista.advertencias": advertencias,
+        }}
+    )
+    return {"status": "sucesso", "mensagem": "Pendência resolvida com sucesso"}
+
