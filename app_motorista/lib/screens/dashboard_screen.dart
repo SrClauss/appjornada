@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:app_motorista/core/api_service.dart';
+import 'package:app_motorista/core/overlay_service.dart';
 import 'package:app_motorista/widgets/abastecimento_modal.dart';
+
 import 'package:app_motorista/widgets/manutencao_dialog.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
@@ -232,10 +234,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _getSubtitleText(),
                       style: const TextStyle(color: Colors.grey),
                     ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.lightBlueAccent,
+                        side: const BorderSide(color: Colors.lightBlueAccent),
+                      ),
+                      onPressed: () async {
+                        final ok = await OverlayService.startOverlay();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(ok
+                                  ? 'Bolinha flutuante ativada com sucesso!'
+                                  : 'Conceda a permissão Exibir sobre outros apps na tela do Android.'),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.picture_in_picture_alt_rounded),
+                      label: const Text('ATIVAR BOTÃO FLUTUANTE (REC)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
                   ],
                 ),
               ),
             ),
+
             const SizedBox(height: 24),
             // CARDS ACUMULADOS
             Row(

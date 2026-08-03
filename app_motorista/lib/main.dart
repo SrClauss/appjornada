@@ -242,10 +242,13 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
                 _currentScreen = 'dashboard';
               }
               GpsService.startTracking(j['_id'] ?? j['id']);
+              OverlayService.startOverlay();
             }
           } else {
             // Se a jornada não está mais ativa ou se o app está iniciando, envia o motorista para o trilho
             GpsService.stopTracking();
+            OverlayService.stopOverlay();
+
             if (_currentScreen == 'dashboard' || _currentScreen == 'pausa' || _currentScreen == 'manutencao' || _currentScreen == 'splash') {
               _currentScreen = 'trilho';
               _trilhoStep = 'auditoria';
