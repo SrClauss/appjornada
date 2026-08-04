@@ -1476,6 +1476,25 @@ async def upload_e_processar_comprovante(
                         print(f"[COM COMPROVANTE REGISTRADO] Inseridos {len(docs_to_insert)} pontos produtivos na jornada {doc['_id']}")
             except Exception as e:
                 print(f"Erro ao inserir route_points: {e}")
+        else:
+            # Fallback: traçar rota via Google Directions API
+            if background_tasks:
+                from app.services.route_tracer import tracar_rota_produtiva
+                background_tasks.add_task(
+                    tracar_rota_produtiva,
+                    jornada_id=str(doc["_id"]),
+                    motorista_id=str(current_user.id),
+                    start_lat=start_lat,
+                    start_lon=start_lon,
+                    end_lat=end_lat,
+                    end_lon=end_lon,
+                    start_time_ms=start_time,
+                    end_time_ms=end_time,
+                    origem_texto=origem,
+                    destino_texto=destino,
+                    comprovante_url=url_comprovante,
+                )
+                print(f"[ROUTE_TRACER] Tarefa de traçado de rota agendada em background para jornada {doc['_id']}")
 
     # 4. Atualiza os faturamentos da jornada ativa
     faturamento_existente = doc.get("faturamento") or {}
