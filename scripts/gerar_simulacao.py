@@ -25,78 +25,68 @@ def rand_int(min_v, max_v):
 def rand_elem(lst):
     return random.choice(lst)
 
-# Gerar 50 Corridas Uber
-uber_rides = []
-uber_total_minutes = 18 * 60 + 50
-for i in range(50):
-    val = round(rand_float(8.50, 48.90), 2)
+# Gerar 100 Corridas não sobrepostas
+all_rides = []
+current_time = datetime(2026, 8, 7, 6, 10, 0) # Começa as 06:10
+
+uber_count = 0
+n99_count = 0
+
+while (uber_count + n99_count) < 100:
+    val = round(rand_float(9.00, 48.90), 2)
     km = round(rand_float(1.5, 22.0), 1)
     mins = rand_int(5, 35)
     sec = rand_int(10, 58)
     
-    current_h = uber_total_minutes // 60
-    current_m = uber_total_minutes % 60
+    start_t = current_time
+    end_t = start_t + timedelta(minutes=mins, seconds=sec)
     
-    end_hm = f"{current_h:02d}:{current_m:02d}"
+    start_hm = start_t.strftime("%H:%M")
+    end_hm = end_t.strftime("%H:%M")
     
-    uber_total_minutes = max(6 * 60 + 10, uber_total_minutes - rand_int(12, 25))
-    start_h = uber_total_minutes // 60
-    start_m = uber_total_minutes % 60
-    start_hm = f"{start_h:02d}:{start_m:02d}"
+    # Decide if Uber or 99
+    # If we need exactly 50/50, we can bias it
+    remaining_uber = 50 - uber_count
+    remaining_n99 = 50 - n99_count
     
-    cat = 'UberX' if random.random() > 0.4 else ('Comfort' if random.random() > 0.3 else 'Uber Black')
-    is_dyn = random.random() < 0.25
-    dyn_val = round(rand_float(3.50, 14.20), 2)
-    
+    if remaining_uber == 0:
+        is_uber = False
+    elif remaining_n99 == 0:
+        is_uber = True
+    else:
+        is_uber = random.random() > 0.5
+        
     loc_o = rand_elem(LOCAIS)
     loc_d = rand_elem(LOCAIS)
     
-    uber_rides.append({
-        "app": "uber",
-        "start_hm": start_hm,
-        "end_hm": end_hm,
-        "valor": val,
-        "km": km,
-        "cat": cat,
-        "is_dyn": is_dyn,
-        "dyn_val": dyn_val,
-        "mins": mins,
-        "sec": sec,
-        "origem": loc_o,
-        "destino": loc_d
-    })
+    if is_uber:
+        uber_count += 1
+        cat = 'UberX' if random.random() > 0.4 else ('Comfort' if random.random() > 0.3 else 'Uber Black')
+        is_dyn = random.random() < 0.25
+        dyn_val = round(rand_float(3.50, 14.20), 2)
+        all_rides.append({
+            "app": "uber", "start_hm": start_hm, "end_hm": end_hm, "valor": val, "km": km,
+            "cat": cat, "is_dyn": is_dyn, "dyn_val": dyn_val, "mins": mins, "sec": sec,
+            "origem": loc_o, "destino": loc_d
+        })
+    else:
+        n99_count += 1
+        cat = 'Pop' if random.random() > 0.5 else 'Pop Expresso'
+        all_rides.append({
+            "app": "n99", "start_hm": start_hm, "end_hm": end_hm, "valor": val, "cat": cat,
+            "origem": loc_o, "destino": loc_d
+        })
+        
+    # Salto para próxima corrida (batendo lata/deslocamento) entre 2 e 15 minutos
+    current_time = end_t + timedelta(minutes=rand_int(2, 15))
 
-# Gerar 50 Corridas 99
-n99_rides = []
-n99_total_minutes = 18 * 60 + 40
-for i in range(50):
-    val = round(rand_float(9.00, 52.00), 2)
-    
-    current_h = n99_total_minutes // 60
-    current_m = n99_total_minutes % 60
-    end_hm = f"{current_h:02d}:{current_m:02d}"
-    
-    n99_total_minutes = max(6 * 60 + 15, n99_total_minutes - rand_int(14, 28))
-    start_h = n99_total_minutes // 60
-    start_m = n99_total_minutes % 60
-    start_hm = f"{start_h:02d}:{start_m:02d}"
-    
-    cat = 'Pop' if random.random() > 0.5 else 'Pop Expresso'
-    
-    loc_o = rand_elem(LOCAIS)
-    loc_d = rand_elem(LOCAIS)
-    
-    n99_rides.append({
-        "app": "n99",
-        "start_hm": start_hm,
-        "end_hm": end_hm,
-        "valor": val,
-        "cat": cat,
-        "origem": loc_o,
-        "destino": loc_d
-    })
+# Separar rides
+uber_rides = [r for r in all_rides if r['app'] == 'uber']
+n99_rides = [r for r in all_rides if r['app'] == 'n99']
 
-all_rides = uber_rides + n99_rides
+# Sort para exibição no HTML (inverso, do mais recente pro mais antigo, igual original)
+uber_rides.reverse()
+n99_rides.reverse()
 
 # Gerar HTML
 uber_html = ""
@@ -246,10 +236,11 @@ import asyncio
 from datetime import datetime, timezone
 import json
 from motor.motor_asyncio import AsyncIOMotorClient
+from app.core.config import settings
 
 async def run():
-    client = AsyncIOMotorClient("mongodb://root:Opa1919@@127.0.0.1:27017/?authSource=admin")
-    db = client.get_database("app_jornada")
+    client = AsyncIOMotorClient(settings.MONGO_URL)
+    db = client.get_database()
     j_id = "Clausemberg Rodrigues de Olvierira-TEST-1234-07082026150119"
     await db["historico_gps"].delete_many({{"jornada_id": j_id}})
     
