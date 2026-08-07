@@ -507,121 +507,1718 @@
     // Gerar exatamente 50 Corridas para Uber
     function generateUberRides() {
       const container = document.getElementById('uber-list-container');
-      let html = '';
-      let currentDate = "sex., 7 de ago.";
-
-      html += `<div class="uber-section-date">${currentDate}</div>`;
-
-      let totalMinutes = 18 * 60 + 50; // Inicia às 18:50
-
-      for (let i = 1; i <= 50; i++) {
-        const val = randFloat(8.50, 48.90).replace('.', ',');
-        const km = randFloat(1.5, 22.0);
-        const min = randInt(5, 35);
-        const sec = randInt(10, 58);
-        
-        const currentH = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
-        const currentM = String(totalMinutes % 60).padStart(2, '0');
-        
-        // Regride entre 12 e 25 minutos a cada corrida no histórico
-        totalMinutes = Math.max(6 * 60 + 10, totalMinutes - randInt(12, 25));
-
-        const cat = Math.random() > 0.4 ? 'UberX' : (Math.random() > 0.3 ? 'Comfort' : 'Uber Black');
-        const isDynamic = Math.random() < 0.25;
-        const dynVal = randFloat(3.50, 14.20).replace('.', ',');
-
-        const ruaOrigem = randElem(ruasES);
-        const bairroOrigem = randElem(bairrosES);
-        const ruaDestino = randElem(ruasES);
-        const bairroDestino = randElem(bairrosES);
-
-        html += `
+      let html = '<div class="uber-section-date">sex., 7 de ago.</div>';
+      html += `
           <div class="uber-trip-card">
             <div class="uber-trip-header">
               <div>
-                <div class="uber-price-main">R$ ${val}</div>
-                <div class="uber-category-meta">${cat} · ${min} min ${sec} segundos · ${km} km</div>
-                ${isDynamic ? `<div class="uber-dynamic-pill">⚡ R$ ${dynVal} Preço dinâmico</div>` : ''}
+                <div class="uber-price-main">R$ 34,33</div>
+                <div class="uber-category-meta">Uber Black &middot; 13 min 25 segundos &middot; 2.0 km</div>
+                
               </div>
-              <div class="uber-time-badge">${currentH}:${currentM}</div>
+              <div class="uber-time-badge">18:50</div>
             </div>
-
             <div class="uber-map-thumb">
               <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
-                <path d="M 20 80 Q 150 ${randInt(10, 90)} 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+                <path d="M 20 80 Q 150 34 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
               </svg>
             </div>
-
             <div class="uber-route-addresses">
-              <div class="uber-addr-item">
-                <div class="pin-circle-green"></div>
-                <div class="uber-addr-text">${ruaOrigem}, ${bairroOrigem}</div>
-              </div>
-              <div class="uber-addr-item">
-                <div class="pin-square-red"></div>
-                <div class="uber-addr-text">${ruaDestino}, ${bairroDestino}</div>
-              </div>
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
             </div>
           </div>
-        `;
-      }
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 9,78</div>
+                <div class="uber-category-meta">Uber Black &middot; 12 min 42 segundos &middot; 3.4 km</div>
+                
+              </div>
+              <div class="uber-time-badge">18:35</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 37 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 32,31</div>
+                <div class="uber-category-meta">Comfort &middot; 5 min 58 segundos &middot; 18.1 km</div>
+                
+              </div>
+              <div class="uber-time-badge">18:14</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 71 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 12,25</div>
+                <div class="uber-category-meta">Uber Black &middot; 32 min 32 segundos &middot; 3.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">17:50</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 45 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 30,8</div>
+                <div class="uber-category-meta">Uber Black &middot; 24 min 33 segundos &middot; 18.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">17:29</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 85 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 43,51</div>
+                <div class="uber-category-meta">Comfort &middot; 19 min 50 segundos &middot; 9.3 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 6,36 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">17:08</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 77 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 11,38</div>
+                <div class="uber-category-meta">Comfort &middot; 22 min 56 segundos &middot; 14.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">16:43</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 86 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 36,16</div>
+                <div class="uber-category-meta">UberX &middot; 29 min 13 segundos &middot; 18.8 km</div>
+                
+              </div>
+              <div class="uber-time-badge">16:28</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 46 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 45,39</div>
+                <div class="uber-category-meta">UberX &middot; 27 min 30 segundos &middot; 13.1 km</div>
+                
+              </div>
+              <div class="uber-time-badge">16:13</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 22 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 19,2</div>
+                <div class="uber-category-meta">UberX &middot; 22 min 44 segundos &middot; 6.6 km</div>
+                
+              </div>
+              <div class="uber-time-badge">15:58</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 34 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 48,79</div>
+                <div class="uber-category-meta">Uber Black &middot; 20 min 15 segundos &middot; 4.3 km</div>
+                
+              </div>
+              <div class="uber-time-badge">15:42</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 47 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 11,07</div>
+                <div class="uber-category-meta">UberX &middot; 19 min 43 segundos &middot; 9.3 km</div>
+                
+              </div>
+              <div class="uber-time-badge">15:18</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 39 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 36,04</div>
+                <div class="uber-category-meta">Comfort &middot; 13 min 51 segundos &middot; 12.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">15:02</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 56 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 47,76</div>
+                <div class="uber-category-meta">UberX &middot; 21 min 16 segundos &middot; 17.1 km</div>
+                
+              </div>
+              <div class="uber-time-badge">14:45</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 32 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 23,61</div>
+                <div class="uber-category-meta">UberX &middot; 35 min 43 segundos &middot; 4.8 km</div>
+                
+              </div>
+              <div class="uber-time-badge">14:20</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 48 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 18,17</div>
+                <div class="uber-category-meta">UberX &middot; 23 min 15 segundos &middot; 6.4 km</div>
+                
+              </div>
+              <div class="uber-time-badge">14:08</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 11 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 13,69</div>
+                <div class="uber-category-meta">UberX &middot; 22 min 20 segundos &middot; 11.2 km</div>
+                
+              </div>
+              <div class="uber-time-badge">13:55</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 78 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 36,37</div>
+                <div class="uber-category-meta">Comfort &middot; 17 min 52 segundos &middot; 16.1 km</div>
+                
+              </div>
+              <div class="uber-time-badge">13:39</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 26 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 9,35</div>
+                <div class="uber-category-meta">Comfort &middot; 23 min 24 segundos &middot; 12.9 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 13,19 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">13:17</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 45 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 29,27</div>
+                <div class="uber-category-meta">Comfort &middot; 20 min 23 segundos &middot; 7.2 km</div>
+                
+              </div>
+              <div class="uber-time-badge">13:05</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 15 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 16,19</div>
+                <div class="uber-category-meta">UberX &middot; 18 min 32 segundos &middot; 3.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">12:45</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 16 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 12,48</div>
+                <div class="uber-category-meta">Comfort &middot; 15 min 16 segundos &middot; 9.8 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 5,46 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">12:27</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 80 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 43,83</div>
+                <div class="uber-category-meta">Comfort &middot; 30 min 45 segundos &middot; 3.0 km</div>
+                
+              </div>
+              <div class="uber-time-badge">12:12</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 47 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 24,92</div>
+                <div class="uber-category-meta">Uber Black &middot; 32 min 35 segundos &middot; 11.4 km</div>
+                
+              </div>
+              <div class="uber-time-badge">11:59</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 26 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 25,59</div>
+                <div class="uber-category-meta">UberX &middot; 30 min 45 segundos &middot; 21.1 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 6,67 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">11:47</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 72 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 38,22</div>
+                <div class="uber-category-meta">UberX &middot; 15 min 13 segundos &middot; 2.7 km</div>
+                
+              </div>
+              <div class="uber-time-badge">11:25</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 23 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 47,32</div>
+                <div class="uber-category-meta">Comfort &middot; 10 min 14 segundos &middot; 3.1 km</div>
+                
+              </div>
+              <div class="uber-time-badge">11:13</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 11 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 31,89</div>
+                <div class="uber-category-meta">UberX &middot; 7 min 36 segundos &middot; 2.3 km</div>
+                
+              </div>
+              <div class="uber-time-badge">10:52</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 83 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 37,43</div>
+                <div class="uber-category-meta">UberX &middot; 17 min 18 segundos &middot; 6.4 km</div>
+                
+              </div>
+              <div class="uber-time-badge">10:30</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 46 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 27,01</div>
+                <div class="uber-category-meta">Uber Black &middot; 8 min 14 segundos &middot; 22.0 km</div>
+                
+              </div>
+              <div class="uber-time-badge">10:08</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 70 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 20,01</div>
+                <div class="uber-category-meta">UberX &middot; 22 min 55 segundos &middot; 10.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">09:48</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 71 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 41,51</div>
+                <div class="uber-category-meta">Comfort &middot; 26 min 16 segundos &middot; 7.6 km</div>
+                
+              </div>
+              <div class="uber-time-badge">09:32</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 66 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 17,01</div>
+                <div class="uber-category-meta">Comfort &middot; 26 min 50 segundos &middot; 8.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">09:18</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 53 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 25,61</div>
+                <div class="uber-category-meta">Comfort &middot; 5 min 31 segundos &middot; 7.2 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 8,23 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">08:53</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 33 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 31,16</div>
+                <div class="uber-category-meta">UberX &middot; 35 min 54 segundos &middot; 3.8 km</div>
+                
+              </div>
+              <div class="uber-time-badge">08:29</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 16 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 13,65</div>
+                <div class="uber-category-meta">Uber Black &middot; 33 min 12 segundos &middot; 7.8 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 11,85 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">08:15</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 42 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 38,78</div>
+                <div class="uber-category-meta">UberX &middot; 12 min 20 segundos &middot; 20.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">07:58</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 71 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 40,11</div>
+                <div class="uber-category-meta">Uber Black &middot; 26 min 57 segundos &middot; 9.9 km</div>
+                
+              </div>
+              <div class="uber-time-badge">07:34</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 24 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 17,49</div>
+                <div class="uber-category-meta">UberX &middot; 19 min 32 segundos &middot; 18.2 km</div>
+                
+              </div>
+              <div class="uber-time-badge">07:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 18 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Oceânica, Guriri</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 24,6</div>
+                <div class="uber-category-meta">UberX &middot; 7 min 27 segundos &middot; 7.2 km</div>
+                
+              </div>
+              <div class="uber-time-badge">06:54</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 61 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 46,45</div>
+                <div class="uber-category-meta">UberX &middot; 13 min 21 segundos &middot; 3.9 km</div>
+                
+              </div>
+              <div class="uber-time-badge">06:37</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 72 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 37,93</div>
+                <div class="uber-category-meta">Comfort &middot; 24 min 42 segundos &middot; 7.9 km</div>
+                
+              </div>
+              <div class="uber-time-badge">06:16</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 19 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 45,89</div>
+                <div class="uber-category-meta">UberX &middot; 28 min 57 segundos &middot; 12.5 km</div>
+                
+              </div>
+              <div class="uber-time-badge">06:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 83 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 33,68</div>
+                <div class="uber-category-meta">UberX &middot; 8 min 56 segundos &middot; 15.1 km</div>
+                
+              </div>
+              <div class="uber-time-badge">06:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 90 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 30,9</div>
+                <div class="uber-category-meta">UberX &middot; 26 min 34 segundos &middot; 5.4 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 9,59 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">06:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 16 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 42,18</div>
+                <div class="uber-category-meta">UberX &middot; 11 min 37 segundos &middot; 7.7 km</div>
+                
+              </div>
+              <div class="uber-time-badge">06:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 29 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 17,13</div>
+                <div class="uber-category-meta">UberX &middot; 33 min 57 segundos &middot; 11.2 km</div>
+                
+              </div>
+              <div class="uber-time-badge">06:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 29 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Praça São Benedito, Sernamby</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 12,27</div>
+                <div class="uber-category-meta">Uber Black &middot; 12 min 53 segundos &middot; 21.0 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 6,12 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">06:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 82 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 42,83</div>
+                <div class="uber-category-meta">Comfort &middot; 18 min 50 segundos &middot; 3.0 km</div>
+                
+              </div>
+              <div class="uber-time-badge">06:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 48 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            </div>
+          </div>
+
+          <div class="uber-trip-card">
+            <div class="uber-trip-header">
+              <div>
+                <div class="uber-price-main">R$ 8,72</div>
+                <div class="uber-category-meta">UberX &middot; 29 min 16 segundos &middot; 16.9 km</div>
+                <div class="uber-dynamic-pill">⚡ R$ 13,75 Preço dinâmico</div>
+              </div>
+              <div class="uber-time-badge">06:10</div>
+            </div>
+            <div class="uber-map-thumb">
+              <svg class="uber-map-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M 20 80 Q 150 20 280 20" stroke="#000000" stroke-width="4" fill="none" stroke-dasharray="6,4"/>
+              </svg>
+            </div>
+            <div class="uber-route-addresses">
+              <div class="uber-addr-item"><div class="pin-circle-green"></div><div class="uber-addr-text">Rua 10, Guriri Sul</div></div>
+              <div class="uber-addr-item"><div class="pin-square-red"></div><div class="uber-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            </div>
+          </div>
+`;
       container.innerHTML = html;
     }
-
-    // Gerar exatamente 50 Corridas para 99
+    
     function generate99Rides() {
       const container = document.getElementById('n99-list-container');
-      let html = '';
-
-      html += `<div class="n99-date-bar">07/08/2026</div>`;
-      
-      let totalMinutes = 18 * 60 + 40; // Inicia às 18:40
-
-      for (let i = 1; i <= 50; i++) {
-        const val = randFloat(9.00, 52.00).replace('.', ',');
-        
-        const currentH = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
-        const currentM = String(totalMinutes % 60).padStart(2, '0');
-        
-        totalMinutes = Math.max(6 * 60 + 15, totalMinutes - randInt(14, 28));
-
-        const cat = Math.random() > 0.5 ? 'Pop' : 'Pop Expresso';
-
-        const ruaOrigem = randElem(ruasES);
-        const bairroOrigem = randElem(bairrosES);
-        const ruaDestino = randElem(ruasES);
-        const bairroDestino = randElem(bairrosES);
-
-        html += `
+      let html = '<div class="n99-date-bar">07/08/2026</div>';
+      html += `
           <div class="n99-card">
             <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
               <span>Ganhos pagos no app</span>
-              <span>${currentH}:${currentM}</span>
+              <span>18:40</span>
             </div>
             <div class="n99-card-top">
-              <div class="n99-product">
-                <div class="n99-product-icon">99</div>
-                <span>${cat}</span>
-              </div>
-              <div class="n99-price">R$ ${val} ›</div>
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 11,16 &rsaquo;</div>
             </div>
-            <div class="n99-route-node">
-              <div class="n99-dot"></div>
-              <div class="n99-addr-text">${ruaOrigem}, ${bairroOrigem}</div>
-            </div>
-            <div class="n99-route-node">
-              <div class="n99-dot dest"></div>
-              <div class="n99-addr-text">${ruaDestino}, ${bairroDestino}</div>
-            </div>
-            <div class="n99-status-pago">
-              <span>✓ Pago</span>
-            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
           </div>
-        `;
-      }
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>18:23</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 14,73 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>18:02</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 22,64 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>17:36</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 47,36 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>17:16</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 47,58 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>16:51</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 41,33 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>16:24</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 35,95 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>16:06</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 19,08 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>15:47</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 14,95 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>15:30</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 18,2 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>15:10</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 26,88 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>14:53</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 49,68 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>14:39</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 29,51 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>14:20</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 32,14 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>13:55</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 29,99 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>13:37</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 23,45 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>13:13</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 45,14 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>12:45</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 10,16 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>12:25</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 12,61 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>12:05</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 11,16 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>11:45</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 23,51 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>11:17</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 44,9 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>10:56</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 52,0 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>10:37</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 10,73 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>10:23</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 35,72 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>10:06</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 33,25 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>09:49</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 16,21 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>09:26</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 42,45 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>09:10</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 10,1 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>08:52</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 49,48 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>08:35</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 19,44 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>08:10</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 43,64 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>07:44</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 31,91 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>07:20</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 23,67 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:53</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 27,64 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:34</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 15,58 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:18</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 35,48 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 27,73 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 44,72 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 41,27 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 10,23 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 24,26 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Rua 10, Guriri Sul</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 46,84 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 19,38 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 29,47 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Jones dos Santos Neves, Centro</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 21,65 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 34,01 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Praça São Benedito, Sernamby</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 51,86 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. José Tozzi, Boa Vista</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop Expresso</span></div>
+              <div class="n99-price">R$ 20,65 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+
+          <div class="n99-card">
+            <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
+              <span>Ganhos pagos no app</span>
+              <span>06:15</span>
+            </div>
+            <div class="n99-card-top">
+              <div class="n99-product"><div class="n99-product-icon">99</div><span>Pop</span></div>
+              <div class="n99-price">R$ 22,57 &rsaquo;</div>
+            </div>
+            <div class="n99-route-node"><div class="n99-dot"></div><div class="n99-addr-text">Av. Governador Eurico Soares, Litorâneo</div></div>
+            <div class="n99-route-node"><div class="n99-dot dest"></div><div class="n99-addr-text">Av. Oceânica, Guriri</div></div>
+            <div class="n99-status-pago"><span>&checkmark; Pago</span></div>
+          </div>
+`;
       container.innerHTML = html;
     }
-
+    
     function switchMode(mode) {
       document.querySelectorAll('.switch-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.app-screen').forEach(scr => scr.classList.remove('active'));
