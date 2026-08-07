@@ -657,7 +657,7 @@ export function JornadasView() {
   // Estados dos eventos em tempo real
   const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [realtimePage, setRealtimePage] = useState(1);
-  const realtimePageSize = 100;
+  const [realtimePageSize, setRealtimePageSize] = useState(50);
   const [filtroTipoEvento, setFiltroTipoEvento] = useState('');
   const [filtroIntervalo, setFiltroIntervalo] = useState('all');
   const [selectedMotoristaId, setSelectedMotoristaId] = useState<string>('');
