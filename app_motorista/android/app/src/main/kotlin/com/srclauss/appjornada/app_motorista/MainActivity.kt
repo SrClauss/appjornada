@@ -195,8 +195,8 @@ class MainActivity : FlutterActivity() {
                 "startNativeVideoRecorder" -> {
                     methodChannelResult = result
                     val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.U) {
-                        val config = MediaProjectionConfig.createConfigForDefaultDisplay()
+                    val intent = if (Build.VERSION.SDK_INT >= 34) {
+                        val config = MediaProjectionConfig.createConfigForUserChoice()
                         mediaProjectionManager.createScreenCaptureIntent(config)
                     } else {
                         mediaProjectionManager.createScreenCaptureIntent()

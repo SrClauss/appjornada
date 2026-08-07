@@ -1183,12 +1183,17 @@ async def upload_e_processar_extrato_video(
     """
     jornada_doc = await db["jornadas"].find_one({
         "motorista_id": ObjectId(str(current_user.id)),
-        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]}
+        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA", "EM_FECHAMENTO", "FECHAMENTO"]}
     })
+    if not jornada_doc:
+        jornada_doc = await db["jornadas"].find_one(
+            {"motorista_id": ObjectId(str(current_user.id))},
+            sort=[("created_at", -1)]
+        )
     if not jornada_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhuma jornada ativa encontrada para este motorista."
+            detail="Nenhuma jornada encontrada para este motorista."
         )
 
     conteudo_bytes = await arquivo.read()
