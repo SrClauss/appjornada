@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
@@ -194,7 +195,13 @@ class MainActivity : FlutterActivity() {
                 "startNativeVideoRecorder" -> {
                     methodChannelResult = result
                     val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_VIDEO_RECORD_CAPTURE)
+                    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.U) {
+                        val config = MediaProjectionConfig.createConfigForDefaultDisplay()
+                        mediaProjectionManager.createScreenCaptureIntent(config)
+                    } else {
+                        mediaProjectionManager.createScreenCaptureIntent()
+                    }
+                    startActivityForResult(intent, REQUEST_VIDEO_RECORD_CAPTURE)
                 }
                 "stopNativeVideoRecorder" -> {
                     val serviceIntent = Intent(this, NativeVideoRecorderService::class.java).apply {

@@ -1260,9 +1260,22 @@ async def upload_e_processar_extrato_video(
     fat["total"] = round(total_uber + total_99 + total_outros, 2)
     fat["comprovantes_processados"] = todos_comprovantes
 
+    auditoria_entry = {
+        "id": str(uuid.uuid4()),
+        "evento": "GRAVACAO_EXTRATO_VIDEO",
+        "modo_captura": "APLICATIVO_UNICO_ANDROID_14",
+        "timestamp": now_iso,
+        "video_url": video_url,
+        "corridas_extraidas": adicionadas_count,
+        "status": "CONFORME",
+    }
+
     await db["jornadas"].update_one(
         {"_id": jornada_doc["_id"]},
-        {"$set": {"faturamento": fat}}
+        {
+            "$push": {"logs_auditoria": auditoria_entry},
+            "$set": {"faturamento": fat, "atualizado_em": now_iso}
+        }
     )
 
     return {
