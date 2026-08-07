@@ -34,27 +34,29 @@ class StepperLayout extends StatelessWidget {
           )
         ] : null,
       ),
-      body: Column(
-        children: [
-          // INDICADOR DE PASSO
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-            color: const Color(0xFF1E293B),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStepDot(1, 'Auditoria', currentIdx >= 0),
-                _buildLine(currentIdx >= 1),
-                _buildStepDot(2, 'Veículo', currentIdx >= 1),
-                _buildLine(currentIdx >= 2),
-                _buildStepDot(3, 'Vistoria', currentIdx >= 2),
-                _buildLine(currentIdx >= 3),
-                _buildStepDot(4, 'KM & Hodôm.', currentIdx >= 3),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // INDICADOR DE PASSO
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              color: const Color(0xFF1E293B),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildStepDot(1, 'Auditoria', currentIdx >= 0),
+                  _buildLine(currentIdx >= 1),
+                  _buildStepDot(2, 'Veículo', currentIdx >= 1),
+                  _buildLine(currentIdx >= 2),
+                  _buildStepDot(3, 'Vistoria', currentIdx >= 2),
+                  _buildLine(currentIdx >= 3),
+                  _buildStepDot(4, 'KM & Hodôm.', currentIdx >= 3),
+                ],
+              ),
             ),
-          ),
-          Expanded(child: child),
-        ],
+            Expanded(child: child),
+          ],
+        ),
       ),
     );
   }

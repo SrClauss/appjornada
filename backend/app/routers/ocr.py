@@ -9,6 +9,14 @@ from pydantic import BaseModel
 from app.core.config import settings
 from app.routers.uploads import _salvar_arquivo
 
+from app.services.ia_tokens import (
+    registrar_consumo_ia,
+    obter_resumo_saldo,
+    recarregar_ajustar_saldo,
+    obter_tabela_precos_ia,
+    salvar_tabela_precos_ia
+)
+
 router = APIRouter(prefix="/ocr", tags=["ocr"])
 
 
@@ -51,6 +59,12 @@ def _chamar_gemini_odometro(img_bytes: bytes, mime_type: str) -> dict:
         try:
             with urllib.request.urlopen(req, timeout=12) as resp:
                 data = json.loads(resp.read().decode())
+                
+                # Extração e registro de consumo de tokens IA
+                usage = data.get("usageMetadata", {})
+                in_tok = usage.get("promptTokenCount", 0)
+                out_tok = usage.get("candidatesTokenCount", 0)
+                
                 raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                 
                 cleaned = re.sub(r"^```json\s*", "", raw_text.strip(), flags=re.IGNORECASE)
@@ -61,6 +75,8 @@ def _chamar_gemini_odometro(img_bytes: bytes, mime_type: str) -> dict:
                 km_val = parsed.get("km")
                 if km_val is not None:
                     try:
+                        import asyncio
+                        asyncio.create_task(registrar_consumo_ia("OCR Hodômetro", model, in_tok, out_tok))
                         km_float = float(km_val)
                         return {
                             "sucesso": True,
@@ -202,6 +218,147 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
             continue
 
     return {"sucesso": False, "mensagem": "Não foi possível processar o vídeo do extrato", "corridas": []}
+
+
+class RespostaOcrNotaFiscal(BaseModel):
+    sucesso: bool
+    valor_total: Optional[float] = None
+    litros: Optional[float] = None
+    preco_litro: Optional[float] = None
+    posto_combustivel: Optional[str] = None
+    tipo_combustivel: Optional[str] = None
+    foto_url: str
+    confianca: str = "BAIXA"
+    mensagem: str
+
+
+def _chamar_gemini_nota_fiscal(img_bytes: bytes, mime_type: str) -> dict:
+    api_key = settings.GEMINI_API_KEY
+    if not api_key:
+        return {"sucesso": False, "mensagem": "GEMINI_API_KEY não configurada no backend"}
+
+    img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+
+    prompt = (
+        "Analise este cupom fiscal ou nota fiscal de abastecimento de combustível em posto de gasolina. "
+        "Identifique e extraia com precisão os seguintes campos numéricos e informativos:\n"
+        "1. valor_total (valor total pago em R$ como número de ponto flutuante)\n"
+        "2. litros (quantidade total de litros abastecidos como número de ponto flutuante)\n"
+        "3. preco_litro (preço por litro do combustível em R$)\n"
+        "4. posto_combustivel (nome fantasia ou razão social do posto/estação de serviço)\n"
+        "5. tipo_combustivel (GASOLINA, ETANOL, DIESEL ou GNV)\n"
+        "Responda EXCLUSIVAMENTE em formato JSON estruturado com o seguinte esquema:\n"
+        "{\n"
+        '  "valor_total": 250.00,\n'
+        '  "litros": 42.51,\n'
+        '  "preco_litro": 5.88,\n'
+        '  "posto_combustivel": "Posto Shell - Auto Posto Vitoria",\n'
+        '  "tipo_combustivel": "GASOLINA",\n'
+        '  "confianca": "ALTA"|"MEDIA"|"BAIXA",\n'
+        '  "observacao": "Cupom fiscal perfeitamente legível"\n'
+        "}"
+    )
+
+    modelos = ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite"]
+    for model in modelos:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        payload = json.dumps({
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": mime_type, "data": img_b64}}
+                ]
+            }]
+        }).encode("utf-8")
+
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode())
+
+                usage = data.get("usageMetadata", {})
+                in_tok = usage.get("promptTokenCount", 0)
+                out_tok = usage.get("candidatesTokenCount", 0)
+
+                raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+
+                cleaned = re.sub(r"^```json\s*", "", raw_text.strip(), flags=re.IGNORECASE)
+                cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.IGNORECASE)
+                cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.IGNORECASE).strip()
+
+                parsed = json.loads(cleaned)
+                if isinstance(parsed, dict):
+                    parsed["sucesso"] = True
+                    try:
+                        import asyncio
+                        asyncio.create_task(registrar_consumo_ia("OCR Nota Fiscal", model, in_tok, out_tok))
+                    except Exception as e_tok:
+                        print("[IA Tokens] Erro ao registrar log:", e_tok)
+                    return parsed
+        except Exception as e:
+            print(f"[OCR Nota Fiscal] Erro no modelo {model}:", e)
+            continue
+
+    return {"sucesso": False, "mensagem": "Não foi possível extrair dados da nota fiscal de abastecimento."}
+
+
+class ModeloAjusteSaldo(BaseModel):
+    novo_saldo_brl: float
+    motivo: Optional[str] = "Ajuste Manual do Administrador"
+
+
+@router.get("/saldo-ia")
+async def consultar_saldo_ia():
+    """Consulta a situação financeira atual dos créditos da IA (Google Cloud)."""
+    return await obter_resumo_saldo()
+
+
+@router.post("/saldo-ia/ajustar")
+async def ajustar_saldo_ia(dados: ModeloAjusteSaldo):
+    """Permite ao administrador ajustar ou recarregar manualmente o saldo em R$ disponível no Painel."""
+    return await recarregar_ajustar_saldo(dados.novo_saldo_brl, dados.motivo)
+
+
+@router.get("/precos-ia")
+async def consultar_tabela_precos_ia():
+    """Retorna a cotação do dólar e os valores por 1M de tokens cadastrados no Banco de Dados."""
+    return await obter_tabela_precos_ia()
+
+
+@router.post("/precos-ia")
+async def atualizar_tabela_precos_ia(dados: dict):
+    """Permite ao Administrador atualizar no banco de dados a cotação do dólar e os valores em USD dos modelos Gemini."""
+    return await salvar_tabela_precos_ia(dados)
+
+
+@router.post("/nota-fiscal", response_model=RespostaOcrNotaFiscal)
+async def processar_ocr_nota_fiscal(
+    file: UploadFile = File(...),
+):
+    """
+    Recebe imagem de nota/cupom fiscal de abastecimento, faz upload para o MinIO/Armazenamento
+    e extrai os dados via IA Gemini para autopreenchimento no aplicativo.
+    """
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="O arquivo enviado precisa ser uma imagem (JPEG/PNG).")
+
+    img_bytes = await file.read()
+    file.file.seek(0)
+
+    foto_url = await _salvar_arquivo(file, "abastecimento")
+    res_ai = _chamar_gemini_nota_fiscal(img_bytes, file.content_type)
+
+    return RespostaOcrNotaFiscal(
+        sucesso=res_ai.get("sucesso", False),
+        valor_total=res_ai.get("valor_total"),
+        litros=res_ai.get("litros"),
+        preco_litro=res_ai.get("preco_litro"),
+        posto_combustivel=res_ai.get("posto_combustivel"),
+        tipo_combustivel=res_ai.get("tipo_combustivel"),
+        foto_url=foto_url,
+        confianca=res_ai.get("confianca", "BAIXA"),
+        mensagem=res_ai.get("observacao") or ("Dados extraídos com sucesso!" if res_ai.get("sucesso") else "Falha ao ler nota fiscal.")
+    )
 
 
 @router.post("/extrato-video")

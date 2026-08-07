@@ -23,21 +23,33 @@ class _VeiculoStepState extends State<VeiculoStep> {
 
   Future<void> _fetchVeiculos() async {
     try {
-      final res = await http.get(
-        Uri.parse('${ApiService.baseUrl}/veiculos'),
-        headers: ApiService.headers,
-      );
+      final res = await http
+          .get(
+            Uri.parse('${ApiService.baseUrl}/veiculos'),
+            headers: ApiService.headers,
+          )
+          .timeout(const Duration(seconds: 8));
+
       if (res.statusCode == 200) {
-        setState(() {
-          _veiculos = json.decode(res.body);
-          _loading = false;
-        });
+        final data = json.decode(res.body);
+        if (data is List && data.isNotEmpty) {
+          setState(() {
+            _veiculos = data;
+          });
+        } else {
+          _setMockVeiculos();
+        }
       } else {
-        // Mock se falhar
         _setMockVeiculos();
       }
     } catch (_) {
       _setMockVeiculos();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 

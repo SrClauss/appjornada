@@ -1023,9 +1023,22 @@ async def registrar_abastecimento(
     if any(a.get("id") == dados.id for a in abastecimentos):
         return Jornada(**_normalizar_jornada(doc))
 
+    # Valida se possui foto de comprovante enviada
+    has_nota = bool(dados.foto_comprovante_url and dados.foto_comprovante_url.strip())
+    agora = datetime.now(timezone.utc)
+
+    update_payload = {"$push": {"abastecimentos": dados.model_dump()}}
+    
+    # Se possui Nota Fiscal/Cupom, reseta a inatividade garantindo isenção da pausa por ociosidade
+    if has_nota:
+        update_payload["$set"] = {
+            "ultima_atividade_timestamp": agora,
+            "abastecimento_comprovado": True
+        }
+
     await db["jornadas"].update_one(
         {"_id": jornada_id},
-        {"$push": {"abastecimentos": dados.model_dump()}},
+        update_payload,
     )
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
     return Jornada(**_normalizar_jornada(atualizado))

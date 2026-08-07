@@ -165,7 +165,8 @@ class _VistoriaStepState extends State<VistoriaStep> {
               onPressed: _submitVistoria,
               child: const Text('CONCLUIR VISTORIA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
             ),
-          )
+          ),
+          const SizedBox(height: 48), // Espaçamento extra para nao ser cortado no rodape
         ],
       ),
     );

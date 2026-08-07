@@ -175,8 +175,8 @@ class _KmInicialStepState extends State<KmInicialStep> {
   Widget build(BuildContext context) {
     final kmDigitado = double.tryParse(_kmController.text) ?? 0.0;
 
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 48.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -343,7 +343,7 @@ class _KmInicialStepState extends State<KmInicialStep> {
               style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             )
           ],
-          const Spacer(),
+          const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             height: 52,

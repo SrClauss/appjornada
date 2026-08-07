@@ -43,6 +43,7 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares }: MapVie
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  const hasFittedBoundsRef = useRef<boolean>(false);
 
   const latLngs = coordinates.map((c) => [c[1], c[0]] as [number, number]);
   let base: [number, number] | null = null;
@@ -227,8 +228,9 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares }: MapVie
       });
     }
 
-    if (mainBounds) {
+    if (mainBounds && !hasFittedBoundsRef.current) {
       map.fitBounds(mainBounds, { padding: [30, 30], maxZoom: 16 });
+      hasFittedBoundsRef.current = true;
     }
   }, [coordinates, corridasParticulares]);
 
@@ -1309,6 +1311,7 @@ export function JornadasView() {
                     ) : (
                       <div className="w-full h-full relative">
                         <JourneyMap 
+                          key={selectedJornada._id || selectedJornada.id}
                           coordinates={routeCoordinates} 
                           routeSegments={routeSegments}
                           corridasParticulares={(selectedJornada as any).corridas_particulares}

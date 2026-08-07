@@ -132,6 +132,7 @@ class JornadaBase(BaseModel):
     km: Optional[KmJornada] = None
     vistoria: Optional[VistoriaVeiculo] = None
     localizacao_inicial: Optional[Localizacao] = None
+    localizacao_atual: Optional[Localizacao] = None
     localizacao_final: Optional[Localizacao] = None
     horario: Optional[HorarioJornada] = None
     fotos: Optional[FotosJornada] = None

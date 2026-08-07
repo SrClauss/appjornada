@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:app_motorista/core/api_service.dart';
+import 'package:app_motorista/core/gps_service.dart';
 
 import 'package:image_picker/image_picker.dart';
 
@@ -62,14 +63,45 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
         _loading = true;
       });
       try {
-        final url = await ApiService.uploadFile(img.path, 'abastecimentos');
-        setState(() {
-          _fotoCupomUrl = url;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Foto do cupom enviada com sucesso!')),
-          );
+        final res = await ApiService.processarOcrNotaFiscal(img.path);
+        if (res != null && res['sucesso'] == true) {
+          setState(() {
+            _fotoCupomUrl = res['foto_url'];
+            
+            // Autopreenchimento com os dados extraidos pela IA Gemini
+            final valorTotal = (res['valor_total'] as num?)?.toDouble();
+            final tipoCombustivel = '${res['tipo_combustivel']}'.toUpperCase();
+
+            if (valorTotal != null && valorTotal > 0) {
+              if (tipoCombustivel.contains('ETANOL')) {
+                _etanolController.text = valorTotal.toStringAsFixed(2);
+              } else if (tipoCombustivel.contains('GNV')) {
+                _gnvController.text = valorTotal.toStringAsFixed(2);
+              } else {
+                // Padrão: Gasolina/Diesel
+                _gasolinaController.text = valorTotal.toStringAsFixed(2);
+              }
+            }
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: const Color(0xFF10B981),
+                content: Text('✨ Nota fiscal lida com sucesso pela IA! Faturamento de R\$ ${res['valor_total'] ?? 0} preenchido.'),
+              ),
+            );
+          }
+        } else {
+          // Fallback para upload simples caso a leitura falhe
+          final url = await ApiService.uploadFile(img.path, 'abastecimentos');
+          setState(() {
+            _fotoCupomUrl = url;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Foto salva! Por favor, confira ou informe os valores.')),
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -121,10 +153,18 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
       );
 
       if (res.statusCode == 201) {
+        // Reseta o timer de inatividade no rastreamento de background por causa da Nota Fiscal comprovada
+        if (_fotoCupomUrl != null && _fotoCupomUrl!.isNotEmpty) {
+          GpsService.resetInactivityTimer();
+        }
+
         if (!mounted) return;
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Abastecimento registrado com sucesso!')),
+          const SnackBar(
+            backgroundColor: Color(0xFF10B981),
+            content: Text('✅ Abastecimento registrado e inatividade isentada por Nota Fiscal!'),
+          ),
         );
       }
     } catch (_) {} finally {
@@ -140,18 +180,19 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
     final min = (_secondsLeft ~/ 60).toString().padLeft(2, '0');
     final sec = (_secondsLeft % 60).toString().padLeft(2, '0');
 
-    return Padding(
-      padding: EdgeInsets.only(
-        top: 24,
-        left: 24,
-        right: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: 24,
+          left: 24,
+          right: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 48,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -269,10 +310,11 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('SALVAR ABASTECIMENTO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               ),
-            )
+            ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

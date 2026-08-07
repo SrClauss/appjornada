@@ -16,8 +16,22 @@ const formatCurrency = (v: number) =>
 const DAY_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 const WEEK_DAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
 
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
+
 export function DashboardView() {
   const { isLoading, kpis } = useDashboard();
+  const [saldoIa, setSaldoIa] = useState<number | null>(null);
+
+  useEffect(() => {
+    api.get('/ocr/saldo-ia')
+      .then((res) => {
+        if (res.data && res.data.saldo_atual_brl !== undefined) {
+          setSaldoIa(res.data.saldo_atual_brl);
+        }
+      })
+      .catch((e) => console.error('Erro ao buscar saldo IA na Dashboard:', e));
+  }, []);
 
   if (isLoading) {
     return (
@@ -62,16 +76,16 @@ export function DashboardView() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <KPICard
           icon={<Users size={24} className="text-success" />}
-          label="Motoristas em Jornada Hoje"
+          label="Motoristas em Jornada"
           value={kpis.motoristasAtivos}
           status="success"
         />
         <KPICard
           icon={<Car size={24} className="text-accent" />}
-          label="Km Rodados Hoje (frota total)"
+          label="Km Rodados Hoje"
           value={kpis.totalKmHoje}
           status="default"
         />
@@ -83,9 +97,15 @@ export function DashboardView() {
         />
         <KPICard
           icon={<ClipboardText size={24} className="text-primary" />}
-          label="Total de Jornadas Hoje"
+          label="Jornadas Hoje"
           value={kpis.jornadasStatus.reduce((sum, j) => sum + j.value, 0)} 
           status="default"
+        />
+        <KPICard
+          icon={<span className="text-xl">🤖</span>}
+          label="Saldo IA (Créditos)"
+          value={saldoIa !== null ? formatCurrency(saldoIa) : 'R$ 150,00'}
+          status={saldoIa !== null && saldoIa < 20 ? 'warning' : 'success'}
         />
       </div>
 

@@ -124,6 +124,58 @@ class ApiService {
     return null;
   }
 
+  // Envia vídeo gravado da tela do extrato para a IA analisar frames no backend
+  static Future<Map<String, dynamic>?> processarVideoExtrato(String videoPath) async {
+    try {
+      final uri = Uri.parse('$baseUrl/jornadas/processar-video-extrato');
+      final request = http.MultipartRequest('POST', uri);
+
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.files.add(await http.MultipartFile.fromPath('arquivo', videoPath));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        print('[ApiService] Erro no vídeo extrato (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao enviar vídeo de extrato: $e');
+    }
+    return null;
+  }
+
+  // Envia foto da nota/cupom fiscal de abastecimento para OCR com IA Gemini
+  static Future<Map<String, dynamic>?> processarOcrNotaFiscal(String imagePath) async {
+    try {
+      final uri = Uri.parse('$baseUrl/ocr/nota-fiscal');
+      final request = http.MultipartRequest('POST', uri);
+
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.files.add(await http.MultipartFile.fromPath('file', imagePath));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        print('[ApiService] Erro no OCR Nota Fiscal (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao enviar nota fiscal para OCR: $e');
+    }
+    return null;
+  }
+
   // Salva correção manual de comprovante
   static Future<Map<String, dynamic>?> revisarComprovante({
     required String urlComprovante,
@@ -202,11 +254,16 @@ class ApiService {
     return null;
   }
 
+  static bool useMockPendencias = false;
+
   // Busca pendências de auditoria/KM morta do motorista logado
   static Future<List<dynamic>> getPendenciasMotorista() async {
     try {
+      final url = useMockPendencias 
+          ? '$baseUrl/users/me/pendencias?mock=true' 
+          : '$baseUrl/users/me/pendencias';
       final res = await http.get(
-        Uri.parse('$baseUrl/users/me/pendencias'),
+        Uri.parse(url),
         headers: headers,
       );
       if (res.statusCode == 200) {

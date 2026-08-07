@@ -102,10 +102,27 @@ async def deletar_user(
 
 @router.get("/me/pendencias", status_code=200)
 async def listar_minhas_pendencias(
+    mock: bool = False,
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
     """Retorna as pendências de auditoria/KM morta do motorista logado."""
+    if mock:
+        return [{
+            "id": "mock_pendencia_123",
+            "_id": "mock_pendencia_123",
+            "status": "PENDENTE",
+            "tipo_pendencia": "KM_MORTA",
+            "km_morta": 42.5,
+            "veiculo_placa": "ABC-1234",
+            "veiculo_modelo": "Volvo FH 540",
+            "data_jornada": "2026-08-06",
+            "tolerancia_km": 10.0,
+            "diferenca_excedente": 32.5,
+            "mensagem": "Identificada divergência de 32.5 KM em relação à rota padrão. Justifique o deslocamento ou assine o termo.",
+            "requer_assinatura": True
+        }]
+
     doc = await db["users"].find_one({"_id": ObjectId(str(current_user.id))})
     if not doc:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -115,6 +132,7 @@ async def listar_minhas_pendencias(
     # Filtra apenas pendências ativas PENDENTEs
     ativas = [p for p in pendencias if isinstance(p, dict) and p.get("status") == "PENDENTE"]
     return ativas
+
 
 
 @router.post("/me/pendencias/{pendencia_id}/resolver", status_code=200)

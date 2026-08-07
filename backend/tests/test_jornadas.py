@@ -273,7 +273,7 @@ class TestFecharJornada:
         assert data["faturamento"]["comprovante_uber_url"] == "http://minio/uber.png"
         assert data["faturamento"]["comprovante_99_url"] == "http://minio/99.png"
 
-    async def test_fechar_jornada_ja_encerrada_retorna_409(
+    async def test_fechar_jornada_ja_encerrada_idempotente(
         self, client, jornada_encerrada, motorista_headers
     ):
         jid = jornada_encerrada["_id"]
@@ -281,7 +281,7 @@ class TestFecharJornada:
             f"/jornadas/{jid}/fechar?km_final=50300.0",
             headers=motorista_headers,
         )
-        assert resp.status_code == 409
+        assert resp.status_code == 200
 
     async def test_fechar_jornada_inexistente_retorna_404(
         self, client, admin_headers

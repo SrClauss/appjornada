@@ -257,3 +257,28 @@ class TestAuthService:
         with pytest.raises(HTTPException) as exc_info:
             await buscar_usuario_por_id(db, uid_inexistente)
         assert exc_info.value.status_code == 404
+
+
+class TestListarMotoristas:
+    async def test_listar_motoristas_retorna_apenas_motoristas_ativos(self, client, motorista_user, db):
+        """Endpoint /auth/motoristas deve retornar lista de motoristas com perfil ativo."""
+        # Criar motorista inativo para testar filtro
+        await client.post("/auth/registrar", json={
+            "nome": "Motorista Inativo",
+            "email": "inativo_list@test.com",
+            "pin": "9999",
+            "role": "MOTORISTA",
+        })
+        await db["users"].update_one(
+            {"email": "inativo_list@test.com"},
+            {"$set": {"situacao": "Inativo"}}
+        )
+
+        resp = await client.get("/auth/motoristas")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        emails = [m["email"] for m in data]
+        assert motorista_user["email"] in emails
+        assert "inativo_list@test.com" not in emails
+

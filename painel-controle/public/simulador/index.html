@@ -470,33 +470,30 @@
   </div>
 
   <script>
-    // Gerador de Dados Realistas de Corridas Espírito Santo (Vitória, Vila Velha, Serra, Cariacica)
+    // Gerador de Dados Realistas de Corridas em São Mateus e Guriri - ES
     const bairrosES = [
-      "Jardim da Penha, Vitória - ES",
-      "Praia do Canto, Vitória - ES",
-      "Jardim Camburi, Vitória - ES",
-      "Mata da Praia, Vitória - ES",
-      "Colina de Laranjeiras, Serra - ES",
-      "São Diogo II, Serra - ES",
-      "Chácara Parreiral, Serra - ES",
-      "Parque Res. Laranjeiras, Serra - ES",
-      "Barcelona, Serra - ES",
-      "Taquara I, Serra - ES",
-      "República, Vitória - ES",
-      "Enseada do Suá, Vitória - ES",
-      "Praia da Costa, Vila Velha - ES",
-      "Itapuã, Vila Velha - ES",
-      "Coqueiral de Itaparica, Vila Velha - ES",
-      "Campo Grande, Cariacica - ES"
+      "Centro, São Mateus - ES",
+      "Sítio Histórico, São Mateus - ES",
+      "Praia de Guriri, São Mateus - ES",
+      "Praia de Barra Nova, São Mateus - ES",
+      "Praia do Caramujo, Guriri - ES",
+      "Bosque da Praia, Guriri - ES",
+      "Feirinha da Ilha, Guriri - ES",
+      "Projeto Tamar, Guriri - ES",
+      "Guriri Beach, São Mateus - ES",
+      "Porto de São Mateus - ES",
+      "Bairro Chácara, São Mateus - ES",
+      "Bairro Ideal, São Mateus - ES"
     ];
 
     const ruasES = [
-      "R. Eugênio Netto", "Av. Doutor Pedro Feu Rosa", "R. Jose Martins Da Cunha",
-      "Av. Agrimensor Adolpho Oliveira", "Rua Graça Aranha", "Rua da Aldeia",
-      "Av. Desembargador Dermeval Lyrio", "Avenida Brasil", "Av. Olinda",
-      "R. Dom Pedro II", "Av. Anísio Coelho", "Av. Nivaldo von Schilgen",
-      "Rua Elesbão Linhares", "Rua Curitiba", "Av. Eudes Scherrer Souza",
-      "Rua Herman Stern", "Av. Braúna", "Rua Augusto dos Anjos"
+      "Rua da Igreja Velha", "Av. Catedral de São Mateus", "Alameda do Sítio Histórico",
+      "Rua do Museu Municipal", "Av. Praça Mesquita Neto", "Rua Igreja São Benedito",
+      "Av. Mercado Municipal", "Rua Praça São Benedito", "Av. Shopping São Mateus",
+      "Beira do Rio Cricaré", "Av. Beira Mar - Praia de Guriri", "Rua do Projeto Tamar",
+      "Av. Guriri Beach Acqua Park", "Estrada para Barra Nova", "Av. Bosque da Praia",
+      "Rua da Feirinha da Ilha", "Av. Casa de Cabeça p/ Baixo", "Av. Espaço Beira Rio",
+      "Rua Praça Vinícius C. Mileri", "Av. Praia do Caramujo"
     ];
 
     function randElem(arr) {
@@ -511,29 +508,24 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    // Gerar 55 Corridas para Uber
+    // Gerar exatamente 50 Corridas para Uber
     function generateUberRides() {
       const container = document.getElementById('uber-list-container');
       let html = '';
-      let currentDate = "qua., 29 de jul.";
+      let currentDate = "sex., 7 de ago.";
 
       html += `<div class="uber-section-date">${currentDate}</div>`;
 
-      for (let i = 1; i <= 55; i++) {
-        if (i === 28) {
-          currentDate = "qui., 30 de jul.";
-          html += `<div class="uber-section-date">${currentDate}</div>`;
-        }
-
-        const val = randFloat(7.50, 42.80).replace('.', ',');
-        const km = randFloat(1.2, 18.5);
-        const min = randInt(4, 38);
+      for (let i = 1; i <= 50; i++) {
+        const val = randFloat(8.50, 48.90).replace('.', ',');
+        const km = randFloat(1.5, 22.0);
+        const min = randInt(5, 42);
         const sec = randInt(10, 58);
-        const hora = String(randInt(6, 23)).padStart(2, '0');
+        const hora = String(randInt(6, 22)).padStart(2, '0');
         const minuto = String(randInt(0, 59)).padStart(2, '0');
-        const cat = Math.random() > 0.4 ? 'Comfort' : (Math.random() > 0.3 ? 'Uber X' : 'Business Comfort');
-        const isDynamic = Math.random() < 0.2;
-        const dynVal = randFloat(3.00, 12.50).replace('.', ',');
+        const cat = Math.random() > 0.4 ? 'UberX' : (Math.random() > 0.3 ? 'Comfort' : 'Uber Black');
+        const isDynamic = Math.random() < 0.25;
+        const dynVal = randFloat(3.50, 14.20).replace('.', ',');
 
         const ruaOrigem = randElem(ruasES);
         const bairroOrigem = randElem(bairrosES);
@@ -573,22 +565,18 @@
       container.innerHTML = html;
     }
 
-    // Gerar 55 Corridas para 99
+    // Gerar exatamente 50 Corridas para 99
     function generate99Rides() {
       const container = document.getElementById('n99-list-container');
       let html = '';
 
-      html += `<div class="n99-date-bar">02/06/2026</div>`;
+      html += `<div class="n99-date-bar">07/08/2026</div>`;
 
-      for (let i = 1; i <= 55; i++) {
-        if (i === 30) {
-          html += `<div class="n99-date-bar">01/06/2026</div>`;
-        }
-
-        const val = randFloat(8.20, 45.00).replace('.', ',');
-        const hora = String(randInt(6, 23)).padStart(2, '0');
+      for (let i = 1; i <= 50; i++) {
+        const val = randFloat(9.00, 52.00).replace('.', ',');
+        const hora = String(randInt(6, 22)).padStart(2, '0');
         const minuto = String(randInt(0, 59)).padStart(2, '0');
-        const cat = Math.random() > 0.5 ? 'Pop Expresso' : 'Pop';
+        const cat = Math.random() > 0.5 ? 'Pop' : 'Pop Expresso';
 
         const ruaOrigem = randElem(ruasES);
         const bairroOrigem = randElem(bairrosES);

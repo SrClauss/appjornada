@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:app_motorista/core/api_service.dart';
 
 class AuditoriaAnteriorStep extends StatefulWidget {
@@ -14,9 +15,85 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
   bool _hasPendencia = false;
   Map<String, dynamic>? _pendenciaAtual;
   String _justificativa = '';
+  String? _midiaUrl;
+  bool _uploadingMidia = false;
   final List<Offset?> _points = [];
   bool _assinado = false;
   bool _recusouAssinar = false;
+
+  Future<void> _selecionarEUploadMidia() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Selecionar Origem da Mídia',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF818CF8)),
+              title: const Text('Tirar Foto pela Câmera', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFF818CF8)),
+              title: const Text('Escolher da Galeria de Fotos', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+      if (image == null) return;
+
+      setState(() {
+        _uploadingMidia = true;
+      });
+
+      // Faz o upload direto no endpoint /uploads/comprovante do backend
+      final url = await ApiService.uploadFile(image.path, 'comprovante');
+      if (url != null) {
+        setState(() {
+          _midiaUrl = url;
+          _uploadingMidia = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mídia enviada ao servidor com sucesso!')),
+        );
+      } else {
+        setState(() {
+          _uploadingMidia = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Falha ao enviar arquivo ao servidor.')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _uploadingMidia = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao selecionar mídia: $e')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -47,7 +124,7 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
   Future<void> _salvarJustificativa() async {
     if (_justificativa.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, digite sua justificativa ou envie um atestado.')),
+        const SnackBar(content: Text('Por favor, descreva o motivo da sua justificativa.')),
       );
       return;
     }
@@ -56,7 +133,8 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
     if (pendenciaId != null) {
       final ok = await ApiService.resolverPendenciaMotorista(pendenciaId.toString(), {
         'tipo_resolucao': 'JUSTIFICATIVA',
-        'foto_justificativa_url': _justificativa,
+        'justificativa_texto': _justificativa,
+        'foto_justificativa_url': _midiaUrl ?? _justificativa,
       });
       if (ok) {
         widget.onCompleted();
@@ -120,191 +198,246 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 36),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Divergência / Pendência Identificada',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red),
-                      ),
-                      Text(
-                        _pendenciaAtual?['descricao'] ??
-                        'Identificamos uma divergência de KM morta em jornada anterior vinculada a você.',
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Opção A: Enviar Justificativa / Atestado',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 48.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withOpacity(0.4)),
+              ),
+              child: Row(
                 children: [
-                  TextField(
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      hintText: 'Explique o motivo da ausência...',
-                      border: OutlineInputBorder(),
+                  const Icon(Icons.speed_rounded, color: Colors.amber, size: 36),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Pendência de Quilometragem (KM Morta)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.amber),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _pendenciaAtual?['mensagem'] ??
+                          _pendenciaAtual?['descricao'] ??
+                          'Identificada divergência de KM na jornada anterior. Você poderá prosseguir normalmente com sua jornada atual.',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
                     ),
-                    onChanged: (val) => _justificativa = val,
                   ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      // Simula upload de atestado
-                      setState(() {
-                        _justificativa = 'Atestado médico anexado em foto.';
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Atestado médico carregado com sucesso!')),
-                      );
-                    },
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Anexar Atestado / Autorização'),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-                      onPressed: _salvarJustificativa,
-                      child: const Text('ENVIAR JUSTIFICATIVA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                    ),
-                  )
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'Opção B: Assinar Advertência Disciplinar',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            color: const Color(0xFF1E293B),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'ADVERTÊNCIA DISCIPLINAR',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.amber),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Por meio deste instrumento, fica formalmente ADVERTIDO(A) que em razão de sua ausência ao trabalho ontem, sem justificativa, fica sujeito(a) às regras disciplinares da CLT. A ausência não justificada prejudica a equipe. Solicitamos que tal conduta não se repita.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[300]),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Assine na tela abaixo:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[700]!),
+            const SizedBox(height: 24),
+            const Text(
+              'Opção A: Enviar Justificativa / Mídias Agora',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              color: const Color(0xFF1E293B),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    TextField(
+                      maxLines: 2,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Descreva a ocorrência ou motivo do deslocamento...',
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        filled: true,
+                        fillColor: const Color(0xFF0F172A),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onChanged: (val) => _justificativa = val,
                     ),
-                    child: GestureDetector(
-                      onPanUpdate: (details) {
-                        RenderBox renderBox = context.findRenderObject() as RenderBox;
-                        setState(() {
-                          _points.add(renderBox.globalToLocal(details.globalPosition));
-                          _assinado = true;
-                          _recusouAssinar = false;
-                        });
-                      },
-                      onPanEnd: (details) => _points.add(null),
-                      child: CustomPaint(
-                        painter: SignaturePainter(_points),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _uploadingMidia ? null : _selecionarEUploadMidia,
+                      icon: _uploadingMidia
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : Icon(_midiaUrl != null ? Icons.check_circle : Icons.attach_file, color: _midiaUrl != null ? Colors.green : const Color(0xFF818CF8)),
+                      label: Text(
+                        _midiaUrl != null ? 'Mídia Anexada com Sucesso' : 'ANEXAR FOTO / MÍDIA DE JUSTIFICATIVA',
+                        style: TextStyle(color: _midiaUrl != null ? Colors.green : const Color(0xFF818CF8), fontWeight: FontWeight.bold),
                       ),
                     ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _points.clear();
-                            _assinado = false;
-                          });
-                        },
-                        child: const Text('Limpar'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _points.clear();
-                            _assinado = false;
-                            _recusouAssinar = true;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Registrada a recusa de assinatura.')),
-                          );
-                        },
+                    if (_midiaUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
-                          'Recusar Assinatura',
-                          style: TextStyle(color: Colors.red[300]),
+                          'Arquivo enviado ao servidor: ${_midiaUrl!.split('/').last}',
+                          style: const TextStyle(color: Colors.greenAccent, fontSize: 11),
                         ),
                       ),
-                    ],
-                  ),
-                  if (_recusouAssinar)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12.0),
-                      child: Text(
-                        '* O motorista recusou-se a assinar fisicamente. A advertência será gerada no sistema.',
-                        style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+                        onPressed: _salvarJustificativa,
+                        child: const Text('ENVIAR JUSTIFICATIVA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
-                    ),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
-                      onPressed: _assinarAdvertencia,
-                      child: Text(
-                        _recusouAssinar ? 'PROSSEGUIR COM RECUSA' : 'PROSSEGUIR COM ASSINATURA',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ),
-                  )
-                ],
+                    )
+                  ],
+                ),
               ),
             ),
-          )
-        ],
+            const SizedBox(height: 28),
+            const Text(
+              'Opção B: Declarar Ciência e Iniciar Jornada',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              color: const Color(0xFF1E293B),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'TERMO DE CIÊNCIA E LIBERAÇÃO DE JORNADA',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF818CF8)),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Declaro estar ciente da ocorrência de KM Morta registrada em minha jornada anterior. Comprometo-me a fornecer a devida justificativa por outros meios junto à gestão da frota posteriormente. Confirmo o início da minha jornada de trabalho hoje.',
+                      style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.4),
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () => _abrirModalAssinatura(context),
+                      icon: Icon(
+                        _assinado ? Icons.check_circle : Icons.draw,
+                        color: _assinado ? Colors.green : const Color(0xFF818CF8),
+                      ),
+                      label: Text(
+                        _assinado ? 'Assinatura Capturada (Clique para alterar)' : 'COLHER ASSINATURA DE CIÊNCIA',
+                        style: TextStyle(
+                          color: _assinado ? Colors.green : const Color(0xFF818CF8),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _assinarAdvertencia,
+                        child: const Text(
+                          'DECLARAR E INICIAR JORNADA',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 48),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _abrirModalAssinatura(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        final List<Offset?> tempPoints = List.from(_points);
+        return StatefulBuilder(
+          builder: (stContext, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E293B),
+              title: const Text('Assinatura Digital', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Desenhe sua assinatura dentro do quadro abaixo:', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  const SizedBox(height: 12),
+                  Builder(
+                    builder: (canvasCtx) {
+                      return Container(
+                        height: 220,
+                        width: double.maxFinite,
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF6366F1), width: 1.5),
+                        ),
+                        child: GestureDetector(
+                          onPanStart: (details) {
+                            final RenderBox renderBox = canvasCtx.findRenderObject() as RenderBox;
+                            final localPos = renderBox.globalToLocal(details.globalPosition);
+                            setDialogState(() {
+                              tempPoints.add(localPos);
+                            });
+                          },
+                          onPanUpdate: (details) {
+                            final RenderBox renderBox = canvasCtx.findRenderObject() as RenderBox;
+                            final localPos = renderBox.globalToLocal(details.globalPosition);
+                            setDialogState(() {
+                              tempPoints.add(localPos);
+                            });
+                          },
+                          onPanEnd: (details) => setDialogState(() => tempPoints.add(null)),
+                          child: CustomPaint(
+                            painter: SignaturePainter(tempPoints),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setDialogState(() {
+                      tempPoints.clear();
+                    });
+                  },
+                  child: const Text('Limpar', style: TextStyle(color: Colors.grey)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.redAccent)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+                  onPressed: () {
+                    setState(() {
+                      _points.clear();
+                      _points.addAll(tempPoints);
+                      _assinado = _points.where((p) => p != null).isNotEmpty;
+                      if (_assinado) _recusouAssinar = false;
+                    });
+                    Navigator.pop(dialogCtx);
+                  },
+                  child: const Text('SALVAR ASSINATURA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

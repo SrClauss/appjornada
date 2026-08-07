@@ -62,6 +62,27 @@ export function ConfiguracoesView() {
   });
   const [savingInatividade, setSavingInatividade] = useState(false);
 
+  // IA & Token Management State
+  const [saldoIa, setSaldoIa] = useState({
+    saldo_inicial_brl: 150.0,
+    saldo_atual_brl: 150.0,
+    total_gasto_brl: 0.0,
+    total_requisicoes: 0,
+    total_tokens_entrada: 0,
+    total_tokens_saida: 0,
+  });
+  const [precosIa, setPrecosIa] = useState({
+    cotacao_usd_brl: 5.70,
+    modelos: {
+      'gemini-3.6-flash': { usd_input_1m: 0.075, usd_output_1m: 0.30 },
+      'gemini-3.1-flash-lite': { usd_input_1m: 0.0375, usd_output_1m: 0.15 },
+    }
+  });
+  const [loadingIa, setLoadingIa] = useState(false);
+  const [openAjustarSaldo, setOpenAjustarSaldo] = useState(false);
+  const [novoSaldoInput, setNovoSaldoInput] = useState('150.00');
+  const [motivoSaldoInput, setMotivoSaldoInput] = useState('Recarga de Créditos Google Cloud');
+
   // Bases de Operações State
   const [bases, setBases] = useState<any[]>([]);
   const [loadingBases, setLoadingBases] = useState(false);
@@ -72,9 +93,9 @@ export function ConfiguracoesView() {
     nome: '',
     cidade: 'São Mateus',
     estado: 'ES',
-    lat: -18.716,
-    lon: -39.858,
-    zoom_padrao: 13,
+    lat: '-18.714392',
+    lon: '-39.828049',
+    zoom_padrao: 15,
     is_principal: false,
   };
   const [baseForm, setBaseForm] = useState(emptyBaseForm);
@@ -91,6 +112,25 @@ export function ConfiguracoesView() {
     }
   };
 
+  const fetchIaData = async () => {
+    try {
+      setLoadingIa(true);
+      const [resSaldo, resPrecos] = await Promise.all([
+        api.get('/ocr/saldo-ia'),
+        api.get('/ocr/precos-ia')
+      ]);
+      if (resSaldo.data) {
+        setSaldoIa(resSaldo.data);
+        setNovoSaldoInput(resSaldo.data.saldo_atual_brl.toString());
+      }
+      if (resPrecos.data) setPrecosIa(resPrecos.data);
+    } catch (e) {
+      console.error('Erro ao carregar dados de IA:', e);
+    } finally {
+      setLoadingIa(false);
+    }
+  };
+
   useEffect(() => {
     api.get('/config/inatividade')
       .then(res => {
@@ -104,7 +144,33 @@ export function ConfiguracoesView() {
       .catch(err => console.error('Erro ao carregar configurações de inatividade:', err));
 
     fetchBases();
+    fetchIaData();
   }, []);
+
+  const handleSaveSaldoIa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const val = parseFloat(novoSaldoInput);
+      if (isNaN(val)) return toast.error('Digite um valor numérico válido.');
+      await api.post('/ocr/saldo-ia/ajustar', { novo_saldo_brl: val, motivo: motivoSaldoInput });
+      toast.success('Saldo em R$ da IA atualizado com sucesso!');
+      setOpenAjustarSaldo(false);
+      fetchIaData();
+    } catch (err) {
+      toast.error('Erro ao ajustar saldo da IA.');
+    }
+  };
+
+  const handleSavePrecosIa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/ocr/precos-ia', precosIa);
+      toast.success('Tabela de preços e cotação de IA atualizadas!');
+      fetchIaData();
+    } catch (err) {
+      toast.error('Erro ao salvar preços de IA.');
+    }
+  };
 
   const handleSaveInatividade = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,11 +189,17 @@ export function ConfiguracoesView() {
   const handleSaveBase = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...baseForm,
+        lat: parseFloat(String(baseForm.lat)),
+        lon: parseFloat(String(baseForm.lon)),
+        zoom_padrao: Number(baseForm.zoom_padrao) || 15
+      };
       if (editingBase?.id) {
-        await api.put(`/config/bases/${editingBase.id}`, baseForm);
+        await api.put(`/config/bases/${editingBase.id}`, payload);
         toast.success('Base de operações atualizada com sucesso!');
       } else {
-        await api.post('/config/bases', baseForm);
+        await api.post('/config/bases', payload);
         toast.success('Base de operações cadastrada com sucesso!');
       }
       setOpenBaseDialog(false);
@@ -503,6 +575,191 @@ export function ConfiguracoesView() {
         </Card>
       )}
 
+      {/* Gestão Financeira de IA & Créditos Google Cloud */}
+      {(user?.role === 'ADMIN' || user?.role === 'GESTOR') && (
+        <Card className="mt-6 border-emerald-500/30 bg-emerald-950/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🤖</span>
+              <div>
+                <CardTitle className="text-emerald-400">Créditos de IA & Tokens Google Cloud (Gemini)</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Acompanhe em tempo real a dedução de créditos (R$), tokens de Visão Computacional e ajuste as tarifas por modelo.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setOpenAjustarSaldo(true)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 font-semibold"
+            >
+              Recarregar / Ajustar Saldo (R$)
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-background/60 p-4 rounded-xl border border-emerald-500/20 shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium">Saldo Disponível (R$)</p>
+                <p className="text-2xl font-bold text-emerald-400 mt-1">R$ {saldoIa.saldo_atual_brl.toFixed(2).replace('.', ',')}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Crédito inicial: R$ {saldoIa.saldo_inicial_brl.toFixed(2)}</p>
+              </div>
+              <div className="bg-background/60 p-4 rounded-xl border border-primary/20 shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium">Total Gasto em IA</p>
+                <p className="text-2xl font-bold text-primary mt-1">R$ {saldoIa.total_gasto_brl.toFixed(4).replace('.', ',')}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{saldoIa.total_requisicoes} leituras executadas</p>
+              </div>
+              <div className="bg-background/60 p-4 rounded-xl border border-primary/20 shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium">Tokens de Entrada (Prompt/Fotos)</p>
+                <p className="text-xl font-bold text-foreground mt-1">{saldoIa.total_tokens_entrada.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Imagens de hodômetro e cupons</p>
+              </div>
+              <div className="bg-background/60 p-4 rounded-xl border border-primary/20 shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium">Tokens de Saída (Respostas IA)</p>
+                <p className="text-xl font-bold text-foreground mt-1">{saldoIa.total_tokens_saida.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">JSON estruturados extraídos</p>
+              </div>
+            </div>
+
+            {/* Ajuste de Tarifas dos Modelos Gemini */}
+            <form onSubmit={handleSavePrecosIa} className="pt-2 border-t border-primary/10">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-foreground">Tarifas dos Modelos Gemini (USD por 1 Milhão de Tokens)</h4>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Cotação Dólar (R$):</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="w-24 h-8 text-xs font-bold"
+                    value={precosIa.cotacao_usd_brl}
+                    onChange={(e) => setPrecosIa({ ...precosIa, cotacao_usd_brl: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-muted/40 p-3 rounded-lg border text-xs space-y-2">
+                  <p className="font-bold text-primary">gemini-3.6-flash (Visão de Alta Precisão)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px]">USD Input / 1M:</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        className="h-7 text-xs"
+                        value={precosIa.modelos['gemini-3.6-flash']?.usd_input_1m ?? 0.075}
+                        onChange={(e) => setPrecosIa({
+                          ...precosIa,
+                          modelos: {
+                            ...precosIa.modelos,
+                            'gemini-3.6-flash': { ...precosIa.modelos['gemini-3.6-flash'], usd_input_1m: parseFloat(e.target.value) || 0 }
+                          }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">USD Output / 1M:</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        className="h-7 text-xs"
+                        value={precosIa.modelos['gemini-3.6-flash']?.usd_output_1m ?? 0.30}
+                        onChange={(e) => setPrecosIa({
+                          ...precosIa,
+                          modelos: {
+                            ...precosIa.modelos,
+                            'gemini-3.6-flash': { ...precosIa.modelos['gemini-3.6-flash'], usd_output_1m: parseFloat(e.target.value) || 0 }
+                          }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-muted/40 p-3 rounded-lg border text-xs space-y-2">
+                  <p className="font-bold text-primary">gemini-3.1-flash-lite (Ultra Rápido / Baixo Custo)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px]">USD Input / 1M:</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        className="h-7 text-xs"
+                        value={precosIa.modelos['gemini-3.1-flash-lite']?.usd_input_1m ?? 0.0375}
+                        onChange={(e) => setPrecosIa({
+                          ...precosIa,
+                          modelos: {
+                            ...precosIa.modelos,
+                            'gemini-3.1-flash-lite': { ...precosIa.modelos['gemini-3.1-flash-lite'], usd_input_1m: parseFloat(e.target.value) || 0 }
+                          }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">USD Output / 1M:</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        className="h-7 text-xs"
+                        value={precosIa.modelos['gemini-3.1-flash-lite']?.usd_output_1m ?? 0.15}
+                        onChange={(e) => setPrecosIa({
+                          ...precosIa,
+                          modelos: {
+                            ...precosIa.modelos,
+                            'gemini-3.1-flash-lite': { ...precosIa.modelos['gemini-3.1-flash-lite'], usd_output_1m: parseFloat(e.target.value) || 0 }
+                          }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <Button type="submit" size="sm" variant="outline" className="text-xs">
+                  Salvar Tarifas e Cotação
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modal Ajustar Saldo IA */}
+      <Dialog open={openAjustarSaldo} onOpenChange={setOpenAjustarSaldo}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recarregar / Ajustar Crédito de IA (R$)</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveSaldoIa} className="space-y-4 py-2">
+            <div>
+              <Label>Novo Saldo Disponível (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={novoSaldoInput}
+                onChange={(e) => setNovoSaldoInput(e.target.value)}
+                placeholder="150.00"
+                required
+              />
+            </div>
+            <div>
+              <Label>Motivo da Alteração / Observação</Label>
+              <Input
+                value={motivoSaldoInput}
+                onChange={(e) => setMotivoSaldoInput(e.target.value)}
+                placeholder="Recarga de Créditos Google Cloud"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setOpenAjustarSaldo(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white">
+                Confirmar Saldo
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Gestão de Bases de Operações (Garagens e Centrais) */}
       {(user?.role === 'ADMIN' || user?.role === 'GESTOR') && (
         <Card className="mt-6">
@@ -558,7 +815,7 @@ export function ConfiguracoesView() {
                         </TableCell>
                         <TableCell>{base.cidade || '—'} {base.estado ? `/ ${base.estado}` : ''}</TableCell>
                         <TableCell className="font-mono text-xs text-slate-600">
-                          {base.lat}, {base.lon}
+                          {typeof base.lat === 'number' ? base.lat.toFixed(8) : base.lat}, {typeof base.lon === 'number' ? base.lon.toFixed(8) : base.lon}
                         </TableCell>
                         <TableCell className="font-mono text-xs">{base.zoom_padrao ?? 13}x</TableCell>
                         <TableCell>
@@ -592,8 +849,8 @@ export function ConfiguracoesView() {
                                   nome: base.nome,
                                   cidade: base.cidade || '',
                                   estado: base.estado || 'ES',
-                                  lat: base.lat,
-                                  lon: base.lon,
+                                  lat: String(base.lat ?? ''),
+                                  lon: String(base.lon ?? ''),
                                   zoom_padrao: base.zoom_padrao ?? 13,
                                   is_principal: !!base.is_principal,
                                 });
@@ -665,22 +922,20 @@ export function ConfiguracoesView() {
                 <Label>Latitude *</Label>
                 <Input
                   required
-                  type="number"
-                  step="any"
-                  placeholder="-18.716"
+                  type="text"
+                  placeholder="-18.714392"
                   value={baseForm.lat}
-                  onChange={(e) => setBaseForm({ ...baseForm, lat: Number(e.target.value) })}
+                  onChange={(e) => setBaseForm({ ...baseForm, lat: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Longitude *</Label>
                 <Input
                   required
-                  type="number"
-                  step="any"
-                  placeholder="-39.858"
+                  type="text"
+                  placeholder="-39.828049"
                   value={baseForm.lon}
-                  onChange={(e) => setBaseForm({ ...baseForm, lon: Number(e.target.value) })}
+                  onChange={(e) => setBaseForm({ ...baseForm, lon: e.target.value })}
                 />
               </div>
             </div>

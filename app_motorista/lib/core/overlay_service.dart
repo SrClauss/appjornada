@@ -34,16 +34,7 @@ class OverlayService {
   }
 
   static Future<bool> startOverlay() async {
-    initialize();
-    try {
-      final result = await _channel.invokeMethod<bool>('startOverlay');
-      if (result == true) {
-        print("[OverlayService] Bolinha flutuante iniciada.");
-        return true;
-      }
-    } on PlatformException catch (e) {
-      print("[OverlayService] Erro ao iniciar bolinha flutuante: $e");
-    }
+    print("[OverlayService] Bolinha flutuante desativada para otimização de bateria.");
     return false;
   }
 

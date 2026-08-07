@@ -213,7 +213,10 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _checkSession();
+      // Nao reseta a sessão se o motorista estiver no meio do wizard de abertura
+      if (_currentScreen != 'trilho') {
+        _checkSession();
+      }
     }
   }
 
@@ -382,10 +385,6 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
               setState(() {
                 _currentScreen = 'corrida_particular';
               });
-            } else if (action == 'historico_prints') {
-              setState(() {
-                _currentScreen = 'historico_prints';
-              });
             } else if (action == 'close_wizard') {
               setState(() {
                 _currentScreen = 'fechamento_wizard';
@@ -468,20 +467,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             _checkSession();
           },
         );
-      case 'historico_prints':
-        return ComprovantesHistoryScreen(
-          jornada: _jornadaAberta!,
-          onJornadaUpdated: (updated) {
-            setState(() {
-              _jornadaAberta = updated;
-            });
-          },
-          onBack: () {
-            setState(() {
-              _currentScreen = 'dashboard';
-            });
-          },
-        );
+
       default:
         return const Scaffold(body: Center(child: Text('Erro de Navegação')));
     }

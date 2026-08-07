@@ -5,6 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:app_motorista/core/api_service.dart';
 import 'package:app_motorista/core/overlay_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:ed_screen_recorder/ed_screen_recorder.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 
 class FechamentoWizardScreen extends StatefulWidget {
@@ -26,6 +29,9 @@ class FechamentoWizardScreen extends StatefulWidget {
 class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
   int _currentStep = 1; // 1: Uber, 2: 99, 3: Outros, 4: Auditoria & Fechamento
   bool _loading = false;
+  
+  bool _isRecording = false;
+  final EdScreenRecorder _screenRecorder = EdScreenRecorder();
 
   // Controllers para faturamento declarado
   final _uberValorCtrl = TextEditingController(text: '0.0');
@@ -277,7 +283,12 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.only(
+                  top: 24.0,
+                  left: 24.0,
+                  right: 24.0,
+                  bottom: MediaQuery.of(context).padding.bottom + 48.0,
+                ),
                 child: _buildStepContent(),
               ),
       ),
@@ -414,27 +425,90 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
         ),
         const SizedBox(height: 24),
 
-        // BOTÃO MINIMIZAR E ABRIR BOLINHA FLUTUANTE
+        // BOTÃO GRAVAR VÍDEO
         SizedBox(
           height: 56,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF38BDF8),
-              foregroundColor: Colors.black,
+              backgroundColor: _isRecording ? Colors.redAccent : const Color(0xFF38BDF8),
+              foregroundColor: _isRecording ? Colors.white : Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
             onPressed: () async {
-              final ok = await OverlayService.startOverlay();
-              if (ok) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Bolinha flutuante ativada! Abra o app da plataforma.')),
+              if (_isRecording) {
+                // Para a gravação e envia o vídeo
+                setState(() => _loading = true);
+                try {
+                  final stopRes = await _screenRecorder.stopRecord();
+                  if (stopRes.file != null) {
+                    setState(() {
+                      _isRecording = false;
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Gravação finalizada! Enviando para IA analisar...')),
+                      );
+                    }
+                    final res = await ApiService.processarVideoExtrato(stopRes.file!.path);
+                    if (mounted) {
+                      if (res != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Vídeo processado com sucesso!'), backgroundColor: Colors.green),
+                        );
+                        await _rodarAuditoria(); // Atualiza a tela se necessário
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Erro ao processar o vídeo na IA.'), backgroundColor: Colors.red),
+                        );
+                      }
+                    }
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erro ao parar gravação: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                } finally {
+                  setState(() => _loading = false);
+                }
+              } else {
+                // Pede permissão e inicia a gravação
+                final statusStorage = await Permission.storage.request();
+                
+                final dir = await getTemporaryDirectory();
+                final size = MediaQuery.of(context).size;
+                
+                try {
+                  await _screenRecorder.startRecordScreen(
+                    fileName: 'extrato_${DateTime.now().millisecondsSinceEpoch}',
+                    audioEnable: false, // Sem áudio, apenas imagens!
+                    width: size.width.toInt(),
+                    height: size.height.toInt(),
+                    dirPathToSave: dir.path,
                   );
+                  setState(() {
+                    _isRecording = true;
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Gravação iniciada! Minimize e abra o app do extrato.'), backgroundColor: Colors.green),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erro ao iniciar gravação: $e'), backgroundColor: Colors.red),
+                    );
+                  }
                 }
               }
             },
-            icon: const Icon(Icons.screen_share_rounded),
-            label: const Text('MINIMIZAR E ABRIR BOLINHA (REC)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            icon: Icon(_isRecording ? Icons.stop_circle_rounded : Icons.fiber_manual_record_rounded),
+            label: Text(
+              _isRecording ? 'PARAR E ENVIAR VÍDEO' : 'GRAVAR VÍDEO DA TELA', 
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
+            ),
           ),
         ),
         const SizedBox(height: 12),

@@ -35,6 +35,13 @@ void onStart(ServiceInstance service) async {
     });
   }
 
+  service.on('resetInactivityTimer').listen((event) {
+    inactivityRefPosition = null;
+    inactivityRefTime = DateTime.now();
+    isAutoPaused = false;
+    print('[BackgroundService] Timer de inatividade resetado via Abastecimento com Nota Fiscal.');
+  });
+
   service.on('stopService').listen((event) {
     positionSubscription?.cancel();
     service.stopSelf();
@@ -107,23 +114,23 @@ void onStart(ServiceInstance service) async {
       );
     }
 
-    // Configuração de localização em segundo plano
+    // Configuração de localização em segundo plano otimizada para bateria
     LocationSettings locationSettings;
     if (defaultTargetPlatform == TargetPlatform.android) {
       locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-        intervalDuration: const Duration(seconds: 1), // Coleta a cada 1 segundo
+        accuracy: LocationAccuracy.medium,
+        distanceFilter: 15, // Só acorda CPU se deslocar 15 metros
+        intervalDuration: const Duration(seconds: 8), // Coleta a cada 8 segundos
         foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: "Rastreando localização da jornada em segundo plano.",
+          notificationText: "Rastreando localização da jornada de forma otimizada.",
           notificationTitle: "Jornada em Andamento",
-          enableWakeLock: true,
+          enableWakeLock: false, // Permite que a CPU entre em baixo consumo durante paradas
         ),
       );
     } else {
       locationSettings = const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
+        accuracy: LocationAccuracy.medium,
+        distanceFilter: 15,
       );
     }
 
@@ -404,5 +411,14 @@ class GpsService {
 
     print('[GpsService] Rastreamento parado.');
     OverlayService.stopOverlay();
+  }
+
+  // Reseta o timer de inatividade quando um abastecimento comprovado por nota fiscal é salvo
+  static Future<void> resetInactivityTimer() async {
+    final service = FlutterBackgroundService();
+    final serviceRunning = await service.isRunning();
+    if (serviceRunning) {
+      service.invoke('resetInactivityTimer');
+    }
   }
 }
