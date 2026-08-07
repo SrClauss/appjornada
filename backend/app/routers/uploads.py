@@ -25,15 +25,15 @@ from app.models.user import UserPublic, Role
 
 CONTEXTOS_VALIDOS = {
     "km_inicial", "km_final", "cnh", "clrv", "veiculo",
-    "comprovante", "sinistro", "nota_fiscal", "outros", "vistoria",
+    "comprovante", "sinistro", "nota_fiscal", "outros", "vistoria", "extrato_video",
 }
 
 CONTEXTOS_DELETAVEIS = {
     "km_inicial", "km_final", "vistoria", "sinistro", "comprovante"
 }
 
-EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".pdf", ".webp"}
-TAMANHO_MAXIMO_MB = 10
+EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".pdf", ".webp", ".mp4", ".mov", ".avi", ".mkv"}
+TAMANHO_MAXIMO_MB = 100
 
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/tmp/app_jornada_uploads"))
 

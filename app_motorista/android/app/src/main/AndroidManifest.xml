@@ -73,6 +73,15 @@
             android:name=".OverlayBubbleService"
             android:enabled="true"
             android:exported="false"
+            android:foregroundServiceType="specialUse|mediaProjection">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Floating overlay menu for driver screen recording" />
+        </service>
+        <service
+            android:name=".NativeVideoRecorderService"
+            android:enabled="true"
+            android:exported="false"
             android:foregroundServiceType="mediaProjection" />
     </application>
     <!-- Required to query activities that can process text, see:

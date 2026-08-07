@@ -42,7 +42,7 @@ def _chamar_gemini_odometro(img_bytes: bytes, mime_type: str) -> dict:
         '{"km": 123456.0, "confianca": "ALTA"|"MEDIA"|"BAIXA", "observacao": "leitura exata"}'
     )
 
-    modelos = ["gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
+    modelos = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro-preview"]
     
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -131,24 +131,23 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 6) -> list:
     frames_b64 = []
     try:
         cap = cv2.VideoCapture(tmp_path)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        if total_frames > 0:
-            step = max(1, total_frames // max_frames)
-            for i in range(0, total_frames, step):
-                cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-                ret, frame = cap.read()
-                if ret:
-                    # Redimensiona levemente se for muito grande para economizar payload
-                    h, w = frame.shape[:2]
-                    if w > 720:
-                        new_w = 720
-                        new_h = int(h * (720 / w))
-                        frame = cv2.resize(frame, (new_w, new_h))
-                    _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-                    img_b64 = base64.b64encode(buffer).decode("utf-8")
-                    frames_b64.append(img_b64)
-                    if len(frames_b64) >= max_frames:
-                        break
+        frame_idx = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            if frame_idx % 20 == 0:
+                h, w = frame.shape[:2]
+                if w > 720:
+                    new_w = 720
+                    new_h = int(h * (720 / w))
+                    frame = cv2.resize(frame, (new_w, new_h))
+                _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+                img_b64 = base64.b64encode(buffer).decode("utf-8")
+                frames_b64.append(img_b64)
+                if len(frames_b64) >= max_frames:
+                    break
+            frame_idx += 1
         cap.release()
     except Exception as e:
         print("[OCR] Erro ao extrair frames do vídeo:", e)
@@ -195,7 +194,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
     for b64_img in frames_b64_list:
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
-    modelos = ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite"]
+    modelos = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro-preview"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
@@ -259,7 +258,7 @@ def _chamar_gemini_nota_fiscal(img_bytes: bytes, mime_type: str) -> dict:
         "}"
     )
 
-    modelos = ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite"]
+    modelos = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro-preview"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({

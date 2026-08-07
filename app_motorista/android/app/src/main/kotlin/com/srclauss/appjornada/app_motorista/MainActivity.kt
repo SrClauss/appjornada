@@ -21,6 +21,7 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.srclauss.appjornada/overlay"
     private val REQUEST_OVERLAY_PERMISSION = 1001
     private val REQUEST_SCREEN_CAPTURE = 1002
+    private val REQUEST_VIDEO_RECORD_CAPTURE = 1003
     private var methodChannelResult: MethodChannel.Result? = null
 
     private val screenshotReceiver = object : BroadcastReceiver() {
@@ -110,6 +111,9 @@ class MainActivity : FlutterActivity() {
                 flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
                     MethodChannel(messenger, CHANNEL).invokeMethod("onNavigateToPausaInatividade", null)
                 }
+            } else if (action == "start_native_video") {
+                val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_VIDEO_RECORD_CAPTURE)
             }
         }
     }
@@ -187,6 +191,28 @@ class MainActivity : FlutterActivity() {
                     result.success(pendingPausaInatividade)
                     pendingPausaInatividade = false
                 }
+                "startNativeVideoRecorder" -> {
+                    methodChannelResult = result
+                    val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                    startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_VIDEO_RECORD_CAPTURE)
+                }
+                "stopNativeVideoRecorder" -> {
+                    val serviceIntent = Intent(this, NativeVideoRecorderService::class.java).apply {
+                        action = NativeVideoRecorderService.ACTION_STOP
+                    }
+                    startService(serviceIntent)
+                    stopOverlayService()
+                    val path = NativeVideoRecorderService.lastOutputFile
+                    result.success(path)
+                }
+                "getLastRecordedVideo" -> {
+                    val path = NativeVideoRecorderService.lastOutputFile
+                    result.success(path)
+                }
+                "clearLastRecordedVideo" -> {
+                    NativeVideoRecorderService.clearLastOutputFile()
+                    result.success(true)
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -226,9 +252,31 @@ class MainActivity : FlutterActivity() {
         if (requestCode == REQUEST_SCREEN_CAPTURE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
                 startOverlayService(resultCode, data)
+                moveTaskToBack(true)
                 methodChannelResult?.success(true)
             } else {
                 methodChannelResult?.error("CAPTURE_DENIED", "Screen capture permission not granted", null)
+            }
+            methodChannelResult = null
+        }
+
+        if (requestCode == REQUEST_VIDEO_RECORD_CAPTURE) {
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                val serviceIntent = Intent(this, NativeVideoRecorderService::class.java).apply {
+                    action = NativeVideoRecorderService.ACTION_START
+                    putExtra(NativeVideoRecorderService.EXTRA_RESULT_CODE, resultCode)
+                    putExtra(NativeVideoRecorderService.EXTRA_RESULT_DATA, data)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent)
+                } else {
+                    startService(serviceIntent)
+                }
+                startOverlayService(resultCode, data)
+                moveTaskToBack(true)
+                methodChannelResult?.success(true)
+            } else {
+                methodChannelResult?.error("CAPTURE_DENIED", "Permissão de gravação de tela negada", null)
             }
             methodChannelResult = null
         }

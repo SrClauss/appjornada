@@ -389,7 +389,6 @@ class GpsService {
     }
 
     print('[GpsService] Rastreamento em segundo plano iniciado para jornada $jornadaId.');
-    OverlayService.startOverlay();
   }
 
   // Para o rastreamento periódico e o serviço de background

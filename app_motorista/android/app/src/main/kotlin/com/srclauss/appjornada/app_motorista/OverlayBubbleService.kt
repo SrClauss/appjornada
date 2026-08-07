@@ -178,15 +178,14 @@ class OverlayBubbleService : Service() {
             return START_NOT_STICKY
         }
 
+        startForegroundServiceWithNotification()
+        setupFloatingButton()
+
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
         val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
 
         if (resultCode != 0 && resultData != null) {
-            startForegroundServiceWithNotification()
             setupMediaProjection(resultCode, resultData)
-            setupFloatingButton()
-        } else {
-            stopSelf()
         }
 
         return START_NOT_STICKY
@@ -353,57 +352,32 @@ class OverlayBubbleService : Service() {
         if (isExpanded) {
             container.alpha = 1.0f
             
-            // 1. Botão 🏠 Voltar ao App Jornada
-            val homeBtn = ImageView(this).apply {
-                setImageResource(android.R.drawable.ic_menu_today)
-                setColorFilter(Color.WHITE)
+            // Botão 🔴 PARAR GRAVAÇÃO DE TELA
+            val videoBtn = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_media_pause)
+                setColorFilter(Color.parseColor("#EF4444")) // Bright Red STOP
                 layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
                     bottomMargin = (8 * density).toInt()
                 }
                 setPadding(padding, padding, padding, padding)
                 setOnClickListener {
                     resetCollapseTimer()
+                    val serviceIntent = Intent(this@OverlayBubbleService, NativeVideoRecorderService::class.java).apply {
+                        action = NativeVideoRecorderService.ACTION_STOP
+                    }
+                    startService(serviceIntent)
+                    android.widget.Toast.makeText(this@OverlayBubbleService, "⏹️ Gravação finalizada! Retornando ao app...", android.widget.Toast.LENGTH_LONG).show()
+                    
                     val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     }
                     if (intent != null) {
                         startActivity(intent)
                     }
+                    stopSelf()
                 }
             }
 
-            // 2. Botão 📸 Tirar Print do Extrato
-            val photoBtn = ImageView(this).apply {
-                setImageResource(android.R.drawable.ic_menu_camera)
-                setColorFilter(Color.parseColor("#38BDF8")) // Light Blue
-                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
-                    bottomMargin = (8 * density).toInt()
-                }
-                setPadding(padding, padding, padding, padding)
-                setOnClickListener {
-                    resetCollapseTimer()
-                    takeScreenshot()
-                    android.widget.Toast.makeText(this@OverlayBubbleService, "📸 Print do extrato capturado!", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            // 3. Botão 📹 Gravador de Vídeo (REC) da Rolagem
-            val videoBtn = ImageView(this).apply {
-                setImageResource(android.R.drawable.ic_media_play)
-                setColorFilter(Color.parseColor("#10B981")) // Emerald Green REC
-                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
-                    bottomMargin = (8 * density).toInt()
-                }
-                setPadding(padding, padding, padding, padding)
-                setOnClickListener {
-                    resetCollapseTimer()
-                    takeScreenshot()
-                    android.widget.Toast.makeText(this@OverlayBubbleService, "📹 Gravação de rolagem ativada!", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            container.addView(homeBtn)
-            container.addView(photoBtn)
             container.addView(videoBtn)
         } else {
             container.alpha = 0.6f

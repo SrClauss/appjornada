@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:app_motorista/core/api_service.dart';
 import 'package:app_motorista/core/overlay_service.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:ed_screen_recorder/ed_screen_recorder.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -26,12 +26,12 @@ class FechamentoWizardScreen extends StatefulWidget {
   State<FechamentoWizardScreen> createState() => _FechamentoWizardScreenState();
 }
 
-class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
+class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with WidgetsBindingObserver {
   int _currentStep = 1; // 1: Uber, 2: 99, 3: Outros, 4: Auditoria & Fechamento
   bool _loading = false;
   
   bool _isRecording = false;
-  final EdScreenRecorder _screenRecorder = EdScreenRecorder();
+  String? _recordedVideoPath;
 
   // Controllers para faturamento declarado
   final _uberValorCtrl = TextEditingController(text: '0.0');
@@ -49,7 +49,15 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
   String? _fotoKmFinalUrl;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkRecordedVideo();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _uberValorCtrl.dispose();
     _uberCorridasCtrl.dispose();
     _99ValorCtrl.dispose();
@@ -58,6 +66,28 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
     _outrosCorridasCtrl.dispose();
     _kmFinalCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkRecordedVideo();
+    }
+  }
+
+  Future<void> _checkRecordedVideo() async {
+    try {
+      const channel = MethodChannel('com.srclauss.appjornada/overlay');
+      final String? path = await channel.invokeMethod<String>('getLastRecordedVideo');
+      if (path != null && path.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _recordedVideoPath = path;
+            _isRecording = false;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _rodarAuditoria() async {
@@ -425,92 +455,248 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> {
         ),
         const SizedBox(height: 24),
 
-        // BOTÃO GRAVAR VÍDEO
-        SizedBox(
-          height: 56,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isRecording ? Colors.redAccent : const Color(0xFF38BDF8),
-              foregroundColor: _isRecording ? Colors.white : Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        // BANNER INFORMATIVO
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
+          ),
+          child: Row(
+            children: const [
+              Icon(Icons.info_outline_rounded, color: Color(0xFF38BDF8), size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Grave o extrato da plataforma (ex: 99/Uber) usando o gravador de tela do seu celular e selecione o vídeo abaixo.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        if (_recordedVideoPath != null && _recordedVideoPath!.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
             ),
-            onPressed: () async {
-              if (_isRecording) {
-                // Para a gravação e envia o vídeo
-                setState(() => _loading = true);
-                try {
-                  final stopRes = await _screenRecorder.stopRecord();
-                  if (stopRes.file != null) {
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Vídeo de Extrato Gravado!',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'A gravação do seu extrato foi concluída. Escolha se deseja enviar o vídeo para a IA analisar ou gravar novamente:',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    // BOTAO 1: ENVIAR PARA IA
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () async {
+                          const channel = MethodChannel('com.srclauss.appjornada/overlay');
+                          setState(() => _loading = true);
+                          try {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Enviando vídeo para a IA analisar...')),
+                              );
+                            }
+                            final res = await ApiService.processarVideoExtrato(_recordedVideoPath!);
+                            if (mounted) {
+                              if (res != null && res['sucesso'] == true) {
+                                final int count = res['corridas_adicionadas'] ?? 0;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Vídeo processado com sucesso! $count corrida(s) extraída(s).'), backgroundColor: Colors.green),
+                                );
+                                await channel.invokeMethod('clearLastRecordedVideo');
+                                setState(() => _recordedVideoPath = null);
+                                await _rodarAuditoria();
+                              } else {
+                                final String msg = res?['mensagem'] ?? 'Nenhuma corrida legível foi identificada no vídeo.';
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(msg), backgroundColor: Colors.orange),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro ao enviar vídeo: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _loading = false);
+                          }
+                        },
+                        icon: const Icon(Icons.send_rounded, size: 18),
+                        label: const Text('ENVIAR PARA IA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // BOTAO 2: REFAZER GRAVACAO
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.amber,
+                          side: const BorderSide(color: Colors.amber),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () async {
+                          const channel = MethodChannel('com.srclauss.appjornada/overlay');
+                          await channel.invokeMethod('clearLastRecordedVideo');
+                          setState(() => _recordedVideoPath = null);
+                          try {
+                            final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
+                            if (ok == true) {
+                              setState(() => _isRecording = true);
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro ao reiniciar gravação: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('REFAZER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ] else ...[
+          // BOTÃO 1: GRAVAR VÍDEO DA TELA (NATIVO E COMPATÍVEL COM ANDROID 14)
+          SizedBox(
+            height: 56,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isRecording ? Colors.redAccent : const Color(0xFF38BDF8),
+                foregroundColor: _isRecording ? Colors.white : Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: () async {
+                const channel = MethodChannel('com.srclauss.appjornada/overlay');
+                if (_isRecording) {
+                  // PARAR E RECARREGAR VÍDEO
+                  try {
+                    final String? videoPath = await channel.invokeMethod<String>('stopNativeVideoRecorder');
                     setState(() {
                       _isRecording = false;
+                      _recordedVideoPath = videoPath;
                     });
+                  } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Gravação finalizada! Enviando para IA analisar...')),
+                        SnackBar(content: Text('Erro ao parar gravação: $e'), backgroundColor: Colors.red),
                       );
                     }
-                    final res = await ApiService.processarVideoExtrato(stopRes.file!.path);
+                  }
+                } else {
+                  // CHAMA O PEDIDO DE PERMISSÃO DE GRAVAÇÃO DIRETO NO ANDROID
+                  try {
+                    final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
+                    if (ok == true) {
+                      setState(() => _isRecording = true);
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erro ao solicitar gravação de tela: $e'), backgroundColor: Colors.red),
+                      );
+                    }
+                  }
+                }
+              },
+              icon: Icon(_isRecording ? Icons.stop_circle_rounded : Icons.fiber_manual_record_rounded),
+              label: Text(
+                _isRecording ? 'PARAR GRAVAÇÃO DE TELA' : 'GRAVAR VÍDEO DA TELA AGORA',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // BOTÃO 2: SELECIONAR VÍDEO DA GALERIA
+        if (!_isRecording)
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: () async {
+                final ImagePicker picker = ImagePicker();
+                final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+                if (video != null) {
+                  setState(() => _loading = true);
+                  try {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Enviando vídeo da galeria...')),
+                      );
+                    }
+                    final res = await ApiService.processarVideoExtrato(video.path);
                     if (mounted) {
                       if (res != null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Vídeo processado com sucesso!'), backgroundColor: Colors.green),
                         );
-                        await _rodarAuditoria(); // Atualiza a tela se necessário
+                        await _rodarAuditoria();
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Erro ao processar o vídeo na IA.'), backgroundColor: Colors.red),
+                          const SnackBar(content: Text('Erro ao processar vídeo da galeria.'), backgroundColor: Colors.red),
                         );
                       }
                     }
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao parar gravação: $e'), backgroundColor: Colors.red),
-                    );
-                  }
-                } finally {
-                  setState(() => _loading = false);
-                }
-              } else {
-                // Pede permissão e inicia a gravação
-                final statusStorage = await Permission.storage.request();
-                
-                final dir = await getTemporaryDirectory();
-                final size = MediaQuery.of(context).size;
-                
-                try {
-                  await _screenRecorder.startRecordScreen(
-                    fileName: 'extrato_${DateTime.now().millisecondsSinceEpoch}',
-                    audioEnable: false, // Sem áudio, apenas imagens!
-                    width: size.width.toInt(),
-                    height: size.height.toInt(),
-                    dirPathToSave: dir.path,
-                  );
-                  setState(() {
-                    _isRecording = true;
-                  });
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Gravação iniciada! Minimize e abra o app do extrato.'), backgroundColor: Colors.green),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao iniciar gravação: $e'), backgroundColor: Colors.red),
-                    );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erro ao enviar vídeo: $e'), backgroundColor: Colors.red),
+                      );
+                    }
+                  } finally {
+                    setState(() => _loading = false);
                   }
                 }
-              }
-            },
-            icon: Icon(_isRecording ? Icons.stop_circle_rounded : Icons.fiber_manual_record_rounded),
-            label: Text(
-              _isRecording ? 'PARAR E ENVIAR VÍDEO' : 'GRAVAR VÍDEO DA TELA', 
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
+              },
+              icon: const Icon(Icons.video_library_rounded, size: 20),
+              label: const Text('ENVIAR VÍDEO DA GALERIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ),
-        ),
         const SizedBox(height: 12),
 
         // BOTÃO NÃO RODEI NESTA PLATAFORMA
