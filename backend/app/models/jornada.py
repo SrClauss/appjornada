@@ -1,5 +1,5 @@
 from datetime import date, time
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field
 from bson import ObjectId
 from .base import PyObjectId
@@ -35,8 +35,8 @@ class ComprovanteProcessado(BaseModel):
     valor: float
     origem: Optional[str] = None
     destino: Optional[str] = None
-    url_comprovante: str
-    data_processamento: str
+    url_comprovante: Optional[str] = None
+    data_processamento: Optional[str] = None
 
 
 class Faturamento(BaseModel):
@@ -140,7 +140,7 @@ class JornadaBase(BaseModel):
     dre: Optional[DREJornada] = None
     corridas_particulares: List[CorridaParticular] = []
     # ─── CLT ────────────────────────────────────────────────────
-    jornada_diaria_clt: float = 8.0      # horas de referência diária
+    jornada_diaria_clt: Optional[Any] = 8.0      # horas de referência diária
     jornada_semanal_clt: float = 44.0   # horas de referência semanal
     jornada_mensal_clt: float = 220.0   # horas de referência mensal
     saldo_horas_dia: Optional[float] = None  # diferença em horas (negativo = devendo)

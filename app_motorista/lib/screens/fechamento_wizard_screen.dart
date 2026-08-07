@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -32,6 +33,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
   
   bool _isRecording = false;
   String? _recordedVideoPath;
+  Map<String, dynamic>? _faturamentoLocal;
 
   // Controllers para faturamento declarado
   final _uberValorCtrl = TextEditingController(text: '0.0');
@@ -48,6 +50,55 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
   final _kmFinalCtrl = TextEditingController();
   String? _fotoKmFinalUrl;
 
+  bool _isAiProcessing = false;
+  final List<String> _terminalLogs = [];
+  Timer? _terminalTimer;
+
+  void _startTerminalSimulation() {
+    _terminalTimer?.cancel();
+    setState(() {
+      _isAiProcessing = true;
+      _terminalLogs.clear();
+      _terminalLogs.add(' > [SYS] Conectando ao terminal de IA Gemini 3.6...');
+    });
+    final messages = [
+      ' > [NET] Uploading gravação de tela (.mp4) para o servidor...',
+      ' > [CV2] Servidor extraindo quadros (frames) do vídeo...',
+      ' > [AI] Enviando imagens para Google Gemini 3.6 Flash Engine...',
+      ' > [VISION] Analisando extratos, valores e corridas...',
+      ' > [DATA] Agrupando faturamento acumulado por plataforma...',
+      ' > [AUDIT] Executando validações e reconciliação de dados...',
+    ];
+    int idx = 0;
+    _terminalTimer = Timer.periodic(const Duration(milliseconds: 650), (t) {
+      if (idx < messages.length) {
+        if (mounted) {
+          setState(() {
+            _terminalLogs.add(messages[idx]);
+          });
+        }
+        idx++;
+      } else {
+        t.cancel();
+      }
+    });
+  }
+
+  void _stopTerminalSimulation(bool success, String detailMessage) {
+    _terminalTimer?.cancel();
+    if (mounted) {
+      setState(() {
+        _isAiProcessing = false;
+        if (success) {
+          _terminalLogs.add(' > [OK] Processamento concluído com sucesso!');
+          _terminalLogs.add(' > [RES] $detailMessage');
+        } else {
+          _terminalLogs.add(' > [ERR] $detailMessage');
+        }
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +108,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
 
   @override
   void dispose() {
+    _terminalTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _uberValorCtrl.dispose();
     _uberCorridasCtrl.dispose();
@@ -333,7 +385,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
           subtitle: 'Minimize o app para tirar o print do extrato e gravar o vídeo do histórico Uber. A IA extrairá os faturamentos automaticamente.',
           platformColor: Colors.black,
           textColor: Colors.white,
-          faturamentoIa: widget.jornada['faturamento']?['uber'] ?? 0.0,
+          faturamentoIa: _faturamentoLocal?['uber'] ?? widget.jornada['faturamento']?['uber'] ?? 0.0,
           corridasIa: widget.jornada['faturamento']?['corridas_uber'] ?? 0,
           onNaoRodei: () {
             setState(() {
@@ -352,7 +404,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
           subtitle: 'Minimize o app para tirar o print do extrato e gravar o vídeo do histórico 99. A IA extrairá os faturamentos automaticamente.',
           platformColor: const Color(0xFFFFCC00),
           textColor: Colors.black,
-          faturamentoIa: widget.jornada['faturamento']?['ninety_nine'] ?? 0.0,
+          faturamentoIa: _faturamentoLocal?['noventa_nove'] ?? widget.jornada['faturamento']?['noventa_nove'] ?? 0.0,
           corridasIa: widget.jornada['faturamento']?['corridas_99'] ?? 0,
           onNaoRodei: () {
             setState(() {
@@ -373,7 +425,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
       case 3:
         return _buildHodometroFinalView();
       default:
-        return const SizedBox();
+        return _buildHodometroFinalView();
     }
   }
 
@@ -478,6 +530,69 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
         ),
         const SizedBox(height: 16),
 
+        if (_terminalLogs.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF020617),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF10B981).withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('🔴 🟡 🟢', style: TextStyle(fontSize: 10)),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'terminal@gemini-3.6-flash:~',
+                      style: TextStyle(color: Color(0xFF38BDF8), fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                    const Spacer(),
+                    if (_isAiProcessing)
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                      ),
+                  ],
+                ),
+                const Divider(color: Colors.white12, height: 16),
+                ..._terminalLogs.map((log) {
+                  final bool isErr = log.contains('[ERR]');
+                  final bool isOk = log.contains('[OK]');
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      log,
+                      style: TextStyle(
+                        color: isErr ? Colors.redAccent : (isOk ? const Color(0xFF10B981) : const Color(0xFF34D399)),
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                }),
+                if (_isAiProcessing)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4.0),
+                    child: Text(' > _ █', style: TextStyle(color: Color(0xFF10B981), fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
         if (_recordedVideoPath != null && _recordedVideoPath!.isNotEmpty) ...[
           Container(
             padding: const EdgeInsets.all(16),
@@ -520,38 +635,35 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                         ),
                         onPressed: () async {
                           const channel = MethodChannel('com.srclauss.appjornada/overlay');
-                          setState(() => _loading = true);
+                          _startTerminalSimulation();
                           try {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Enviando vídeo para a IA analisar...')),
-                              );
-                            }
                             final res = await ApiService.processarVideoExtrato(_recordedVideoPath!);
                             if (mounted) {
                               if (res != null && res['sucesso'] == true) {
                                 final int count = res['corridas_adicionadas'] ?? 0;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Vídeo processado com sucesso! $count corrida(s) extraída(s).'), backgroundColor: Colors.green),
-                                );
+                                _stopTerminalSimulation(true, '$count corrida(s) extraída(s) com sucesso!');
                                 await channel.invokeMethod('clearLastRecordedVideo');
-                                setState(() => _recordedVideoPath = null);
+                                setState(() {
+                                  _recordedVideoPath = null;
+                                  _faturamentoLocal = res['faturamento'] ?? res;
+                                });
                                 await _rodarAuditoria();
+                                if (_currentStep == 1) {
+                                  Future.delayed(const Duration(milliseconds: 1500), () {
+                                    if (mounted) {
+                                      setState(() {
+                                        _currentStep = 2;
+                                      });
+                                    }
+                                  });
+                                }
                               } else {
                                 final String msg = res?['mensagem'] ?? 'Nenhuma corrida legível foi identificada no vídeo.';
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(msg), backgroundColor: Colors.orange),
-                                );
+                                _stopTerminalSimulation(false, msg);
                               }
                             }
                           } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erro ao enviar vídeo: $e'), backgroundColor: Colors.red),
-                              );
-                            }
-                          } finally {
-                            if (mounted) setState(() => _loading = false);
+                            _stopTerminalSimulation(false, 'Erro de conexão/upload: $e');
                           }
                         },
                         icon: const Icon(Icons.send_rounded, size: 18),
@@ -571,7 +683,10 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                         onPressed: () async {
                           const channel = MethodChannel('com.srclauss.appjornada/overlay');
                           await channel.invokeMethod('clearLastRecordedVideo');
-                          setState(() => _recordedVideoPath = null);
+                          setState(() {
+                            _recordedVideoPath = null;
+                            _terminalLogs.clear();
+                          });
                           try {
                             final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
                             if (ok == true) {
