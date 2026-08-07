@@ -512,13 +512,20 @@
 
       html += `<div class="uber-section-date">${currentDate}</div>`;
 
+      let totalMinutes = 18 * 60 + 50; // Inicia às 18:50
+
       for (let i = 1; i <= 50; i++) {
         const val = randFloat(8.50, 48.90).replace('.', ',');
         const km = randFloat(1.5, 22.0);
-        const min = randInt(5, 42);
+        const min = randInt(5, 35);
         const sec = randInt(10, 58);
-        const hora = String(randInt(6, 22)).padStart(2, '0');
-        const minuto = String(randInt(0, 59)).padStart(2, '0');
+        
+        const currentH = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+        const currentM = String(totalMinutes % 60).padStart(2, '0');
+        
+        // Regride entre 12 e 25 minutos a cada corrida no histórico
+        totalMinutes = Math.max(6 * 60 + 10, totalMinutes - randInt(12, 25));
+
         const cat = Math.random() > 0.4 ? 'UberX' : (Math.random() > 0.3 ? 'Comfort' : 'Uber Black');
         const isDynamic = Math.random() < 0.25;
         const dynVal = randFloat(3.50, 14.20).replace('.', ',');
@@ -536,7 +543,7 @@
                 <div class="uber-category-meta">${cat} · ${min} min ${sec} segundos · ${km} km</div>
                 ${isDynamic ? `<div class="uber-dynamic-pill">⚡ R$ ${dynVal} Preço dinâmico</div>` : ''}
               </div>
-              <div class="uber-time-badge">${hora}:${minuto}</div>
+              <div class="uber-time-badge">${currentH}:${currentM}</div>
             </div>
 
             <div class="uber-map-thumb">
@@ -567,11 +574,17 @@
       let html = '';
 
       html += `<div class="n99-date-bar">07/08/2026</div>`;
+      
+      let totalMinutes = 18 * 60 + 40; // Inicia às 18:40
 
       for (let i = 1; i <= 50; i++) {
         const val = randFloat(9.00, 52.00).replace('.', ',');
-        const hora = String(randInt(6, 22)).padStart(2, '0');
-        const minuto = String(randInt(0, 59)).padStart(2, '0');
+        
+        const currentH = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+        const currentM = String(totalMinutes % 60).padStart(2, '0');
+        
+        totalMinutes = Math.max(6 * 60 + 15, totalMinutes - randInt(14, 28));
+
         const cat = Math.random() > 0.5 ? 'Pop' : 'Pop Expresso';
 
         const ruaOrigem = randElem(ruasES);
@@ -583,7 +596,7 @@
           <div class="n99-card">
             <div style="font-size:12px; color:#888888; display:flex; justify-content:space-between;">
               <span>Ganhos pagos no app</span>
-              <span>${hora}:${minuto}</span>
+              <span>${currentH}:${currentM}</span>
             </div>
             <div class="n99-card-top">
               <div class="n99-product">
