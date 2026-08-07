@@ -730,10 +730,7 @@ export function JornadasView() {
   const getSafeTime = (ts: any): number => {
     if (!ts) return 0;
     if (typeof ts === 'string') {
-      let cleaned = ts.trim().replace(' ', 'T');
-      if (!cleaned.endsWith('Z') && !cleaned.includes('+') && !cleaned.includes('-')) {
-        cleaned += 'Z';
-      }
+      const cleaned = ts.trim().replace(' ', 'T');
       const d = new Date(cleaned);
       if (!isNaN(d.getTime())) return d.getTime();
     }
@@ -743,10 +740,7 @@ export function JornadasView() {
   const getSafeDate = (ts: any): Date => {
     if (!ts) return new Date();
     if (typeof ts === 'string') {
-      let cleaned = ts.trim().replace(' ', 'T');
-      if (!cleaned.endsWith('Z') && !cleaned.includes('+') && !cleaned.includes('-')) {
-        cleaned += 'Z';
-      }
+      const cleaned = ts.trim().replace(' ', 'T');
       const d = new Date(cleaned);
       if (!isNaN(d.getTime())) return d;
     }
@@ -1942,12 +1936,32 @@ export function JornadasView() {
                 </TableBody>
               </Table>
 
-              {/* Controles de Paginação */}
-              {filteredEvents.length > realtimePageSize && (
-                <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-4">
-                  <span className="text-xs text-slate-500">
-                    Mostrando <strong>{((realtimePage - 1) * realtimePageSize) + 1}</strong> a <strong>{Math.min(realtimePage * realtimePageSize, filteredEvents.length)}</strong> de <strong>{filteredEvents.length}</strong> eventos
-                  </span>
+              {/* Controles de Paginação Completa de Telemetria */}
+              {filteredEvents.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between border-t border-slate-100 pt-4 mt-4 gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500">
+                      Mostrando <strong>{((realtimePage - 1) * realtimePageSize) + 1}</strong> a <strong>{Math.min(realtimePage * realtimePageSize, filteredEvents.length)}</strong> de <strong>{filteredEvents.length}</strong> eventos
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <span>Exibir:</span>
+                      <select
+                        value={realtimePageSize}
+                        onChange={(e) => {
+                          setRealtimePageSize(Number(e.target.value));
+                          setRealtimePage(1);
+                        }}
+                        className="bg-slate-100 border border-slate-200 text-slate-700 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value={10}>10 por página</option>
+                        <option value={25}>25 por página</option>
+                        <option value={50}>50 por página</option>
+                        <option value={100}>100 por página</option>
+                        <option value={250}>250 por página</option>
+                        <option value={500}>500 por página</option>
+                      </select>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -1959,7 +1973,7 @@ export function JornadasView() {
                       Anterior
                     </Button>
                     <span className="text-xs font-semibold px-2 text-slate-700">
-                      Página {realtimePage} de {Math.ceil(filteredEvents.length / realtimePageSize)}
+                      Página {realtimePage} de {Math.ceil(filteredEvents.length / realtimePageSize) || 1}
                     </span>
                     <Button
                       variant="outline"

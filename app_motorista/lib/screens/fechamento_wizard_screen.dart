@@ -575,9 +575,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                       log,
                       style: TextStyle(
                         color: isErr ? Colors.redAccent : (isOk ? const Color(0xFF10B981) : const Color(0xFF34D399)),
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontFamily: 'monospace',                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   );
@@ -618,7 +616,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'A gravação do seu extrato foi concluída. Escolha se deseja enviar o vídeo para a IA analisar ou gravar novamente:',
+                  'A gravação do seu extrato foi concluída. Clique em ENVIAR PARA IA para processar ou REFAZER para regravar:',
                   style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
@@ -648,15 +646,6 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                                   _faturamentoLocal = res['faturamento'] ?? res;
                                 });
                                 await _rodarAuditoria();
-                                if (_currentStep == 1) {
-                                  Future.delayed(const Duration(milliseconds: 1500), () {
-                                    if (mounted) {
-                                      setState(() {
-                                        _currentStep = 2;
-                                      });
-                                    }
-                                  });
-                                }
                               } else {
                                 final String msg = res?['mensagem'] ?? 'Nenhuma corrida legível foi identificada no vídeo.';
                                 _stopTerminalSimulation(false, msg);
