@@ -195,8 +195,51 @@ def get_status_at(t):
         
     return "BATENDO_LATA", LOCAIS[0], LOCAIS[0], t, t+timedelta(minutes=1)
 
-def lerp(val1, val2, fraction):
-    return val1 + (val2 - val1) * fraction
+import requests
+
+def get_osrm_route(loc1, loc2):
+    try:
+        url = f"http://2.24.121.189:5000/route/v1/driving/{loc1['lon']},{loc1['lat']};{loc2['lon']},{loc2['lat']}?geometries=geojson"
+        r = requests.get(url, timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            if data["code"] == "Ok":
+                coords = data["routes"][0]["geometry"]["coordinates"]
+                return coords # list of [lon, lat]
+    except Exception:
+        pass
+    return [[loc1['lon'], loc1['lat']], [loc2['lon'], loc2['lat']]]
+
+def get_coord_along_route(coords, frac):
+    if not coords: return 0, 0
+    if len(coords) == 1: return coords[0][1], coords[0][0]
+    
+    # Calculate total length (rough euclidean for interpolation)
+    segs = []
+    tot = 0
+    for i in range(len(coords)-1):
+        dx = coords[i+1][0] - coords[i][0]
+        dy = coords[i+1][1] - coords[i][1]
+        d = (dx*dx + dy*dy)**0.5
+        segs.append(d)
+        tot += d
+        
+    if tot == 0: return coords[0][1], coords[0][0]
+    
+    target = tot * frac
+    curr = 0
+    for i in range(len(segs)):
+        if curr + segs[i] >= target:
+            # interpolate within this segment
+            rem = target - curr
+            f = rem / segs[i] if segs[i] > 0 else 0
+            lon = coords[i][0] + (coords[i+1][0] - coords[i][0]) * f
+            lat = coords[i][1] + (coords[i+1][1] - coords[i][1]) * f
+            return lat, lon
+        curr += segs[i]
+    return coords[-1][1], coords[-1][0]
+
+osrm_cache = {}
 
 while current_time <= end_time:
     status_type, loc_orig, loc_dest, st, et = get_status_at(current_time)
@@ -206,8 +249,14 @@ while current_time <= end_time:
         if total_seconds == 0: total_seconds = 1
         elapsed = (current_time - st).total_seconds()
         frac = elapsed / total_seconds
-        lat = lerp(loc_orig["lat"], loc_dest["lat"], frac)
-        lon = lerp(loc_orig["lon"], loc_dest["lon"], frac)
+        
+        # Cache OSRM route to avoid duplicate calls for same segment
+        cache_key = f"{loc_orig['lat']},{loc_orig['lon']}-{loc_dest['lat']},{loc_dest['lon']}"
+        if cache_key not in osrm_cache:
+            osrm_cache[cache_key] = get_osrm_route(loc_orig, loc_dest)
+            
+        coords = osrm_cache[cache_key]
+        lat, lon = get_coord_along_route(coords, frac)
         status = "CONDUZINDO"
         dist = 800.0
     else:
@@ -225,10 +274,10 @@ while current_time <= end_time:
         "lat": lat,
         "lon": lon,
         "status": status,
-        "dist": dist
+        "dist": dist / 4.0
     })
-    # Every 1 minute
-    current_time += timedelta(minutes=1)
+    
+    current_time += timedelta(seconds=15)
 
 with open("/home/claus/src/app_jornada/scripts/populate_dense.py", "w") as f:
     f.write(f'''
@@ -237,6 +286,7 @@ from datetime import datetime, timezone
 import json
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
+from bson import ObjectId
 
 async def run():
     client = AsyncIOMotorClient(settings.MONGO_URL)
@@ -254,7 +304,7 @@ async def run():
         detalhes = f"{{t['status']}} | Deslocamento | Dist: {{t['dist']/1000:.1f}}km"
         docs.append({{
             "jornada_id": j_id,
-            "motorista_id": "6a40670ec7008f9c4eeb44e2",
+            "motorista_id": ObjectId("6a40670ec7008f9c4eeb44e2"),
             "timestamp": base.replace(hour=h, minute=m, second=s),
             "localizacao": {{"type": "Point", "coordinates": [t["lon"], t["lat"]]}},
             "lat": t["lat"],

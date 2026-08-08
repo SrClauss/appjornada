@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visualizador de Rota OSRM - Teste de Deslocamento</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      display: flex;
+      height: 100vh;
+      background-color: #0f172a;
+      color: #f8fafc;
+      overflow: hidden;
+    }
+    /* Sidebar */
+    .sidebar {
+      width: 400px;
+      background-color: #1e293b;
+      border-right: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+    }
+    .sidebar-header {
+      padding: 20px;
+      background-color: #0f172a;
+      border-bottom: 1px solid #334155;
+    }
+    .sidebar-header h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-header p {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+    /* Ride Selector & Controls */
+    .controls {
+      padding: 16px 20px;
+      background-color: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 0.85rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    select:focus {
+      border-color: #38bdf8;
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background-color: #0284c7;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #0369a1;
+    }
+    .btn-secondary {
+      background-color: #334155;
+      color: #f1f5f9;
+    }
+    .btn-secondary:hover {
+      background-color: #475569;
+    }
+    /* Details Container */
+    .ride-details {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card {
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .app-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-uber {
+      background-color: #000000;
+      color: #ffffff;
+      border: 1px solid #334155;
+    }
+    .badge-99 {
+      background-color: #ff8800;
+      color: #ffffff;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #1e293b;
+    }
+    .info-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .info-label {
+      font-size: 0.7rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .info-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #f8fafc;
+      margin-top: 2px;
+    }
+    /* Route Timeline Nodes */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+      position: relative;
+    }
+    .timeline-node {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .node-icon {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .node-origin { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+    .node-dest { background-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+    .node-content {
+      display: flex;
+      flex-direction: column;
+    }
+    .node-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+    .node-sub {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    /* Map Container */
+    #map {
+      flex: 1;
+      height: 100%;
+      background-color: #090d16;
+    }
+    /* Status Bar */
+    .status-bar {
+      padding: 8px 12px;
+      background-color: #0f172a;
+      border-top: 1px solid #334155;
+      font-size: 0.7rem;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+    }
+    .status-active {
+      color: #10b981;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1>📍 OSRM Route Inspector</h1>
+      <p>Visualização de Trajeto por Ruas Realísticas</p>
+    </div>
+
+    <div class="controls">
+      <label for="rideSelect">Selecionar Corrida</label>
+      <select id="rideSelect" onchange="loadSelectedRide()"></select>
+
+      <div class="nav-buttons">
+        <button class="btn btn-secondary" onclick="prevRide()">◀ Anterior</button>
+        <button class="btn btn-primary" onclick="nextRide()">Próxima ▶</button>
+      </div>
+    </div>
+
+    <div class="ride-details" id="rideDetails">
+      <!-- Injetado dinamicamente -->
+    </div>
+
+    <div class="status-bar">
+      <span>Status OSRM: <span id="osrmStatus" class="status-active">Conectando...</span></span>
+      <span id="routePointsCount">0 pontos</span>
+    </div>
+  </div>
+
+  <!-- Leaflet Map -->
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Dados das corridas -->
+  <script src="./data.js"></script>
+
+  <script>
+    let map;
+    let corridas = [];
+    let currentRideIndex = 0;
+    let currentPolyline = null;
+    let originMarker = null;
+    let destMarker = null;
+
+    // Inicializar Mapa
+    function initMap() {
+      map = L.map('map').setView([-18.7144, -39.8542], 13);
+
+      // TileLayer escuro bonito
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+        maxZoom: 19
+      }).addTo(map);
+    }
+
+    // Carregar JSON de corridas
+    async function loadData() {
+      try {
+        if (window.CORRIDAS_DATA && Array.isArray(window.CORRIDAS_DATA)) {
+          corridas = window.CORRIDAS_DATA;
+        } else {
+          const response = await fetch('./corridas_sequenciais.json');
+          corridas = await response.json();
+        }
+        populateSelect();
+        loadSelectedRide();
+      } catch (e) {
+        console.error("Erro ao carregar corridas_sequenciais.json", e);
+        document.getElementById('rideDetails').innerHTML = `<div class="card" style="color:#ef4444;">Erro ao carregar corridas. Certifique-se de que corridas_sequenciais.json / data.js existem na pasta.</div>`;
+      }
+    }
+
+    function populateSelect() {
+      const select = document.getElementById('rideSelect');
+      select.innerHTML = '';
+      corridas.forEach((c, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `#${c.ordem} [${c.app}] ${c.horario_inicio} ➔ ${c.horario_fim} (${c.origem.bairro} ➔ ${c.destino.bairro})`;
+        select.appendChild(opt);
+      });
+    }
+
+    function prevRide() {
+      if (currentRideIndex > 0) {
+        currentRideIndex--;
+        document.getElementById('rideSelect').value = currentRideIndex;
+        loadSelectedRide();
+      }
+    }
+
+    function nextRide() {
+      if (currentRideIndex < corridas.length - 1) {
+        currentRideIndex++;
+        document.getElementById('rideSelect').value = currentRideIndex;
+        loadSelectedRide();
+      }
+    }
+
+    async function loadSelectedRide() {
+      currentRideIndex = parseInt(document.getElementById('rideSelect').value) || 0;
+      const ride = corridas[currentRideIndex];
+      if (!ride) return;
+
+      renderRideCard(ride);
+      await fetchAndDrawOSRMRoute(ride);
+    }
+
+    function renderRideCard(ride) {
+      const detailsContainer = document.getElementById('rideDetails');
+      const isUber = ride.app.toLowerCase() === 'uber';
+      const badgeClass = isUber ? 'badge-uber' : 'badge-99';
+      
+      detailsContainer.innerHTML = `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="app-badge ${badgeClass}">${ride.app} ${ride.categoria}</span>
+            <span style="font-size:1.1rem; font-weight:800; color:#38bdf8;">R$ ${ride['valor_r$'].toFixed(2).replace('.', ',')}</span>
+          </div>
+
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Horário</span>
+              <span class="info-value">${ride.horario_inicio} - ${ride.horario_fim}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Duração</span>
+              <span class="info-value">${ride.duracao_formatada}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Distância Est.</span>
+              <span class="info-value">${ride.distancia_km} km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="info-label">Itinerário de Deslocamento</span>
+          <div class="timeline">
+            <div class="timeline-node">
+              <div class="node-icon node-origin"></div>
+              <div class="node-content">
+                <span class="node-title">${ride.origem.rua}</span>
+                <span class="node-sub">${ride.origem.bairro} (${ride.origem.lat}, ${ride.origem.lon})</span>
+              </div>
+            </div>
+            <div class="timeline-node">
+              <div class="node-icon node-dest"></div>
+              <div class="node-content">
+                <span class="node-title">${ride.destino.rua}</span>
+                <span class="node-sub">${ride.destino.bairro} (${ride.destino.lat}, ${ride.destino.lon})</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Buscar rota no OSRM e desenhar no Leaflet
+    async function fetchAndDrawOSRMRoute(ride) {
+      const orig = ride.origem;
+      const dest = ride.destino;
+      const statusEl = document.getElementById('osrmStatus');
+      const countEl = document.getElementById('routePointsCount');
+
+      statusEl.textContent = "Buscando OSRM...";
+      statusEl.className = "status-active";
+
+      // URLs OSRM (Servidor local no Docker ou OSRM Publico)
+      const osrmUrlLocal = `http://2.24.121.189:5000/route/v1/driving/${orig.lon},${orig.lat};${dest.lon},${dest.lat}?geometries=geojson&overview=full`;
+      const osrmUrlPublic = `https://router.project-osrm.org/route/v1/driving/${orig.lon},${orig.lat};${dest.lon},${dest.lat}?geometries=geojson&overview=full`;
+
+      let coords = [];
+
+      try {
+        // Tentar servidor dedicado primeiro
+        let res = await fetch(osrmUrlLocal).catch(() => null);
+        if (!res || !res.ok) {
+          // Fallback para OSRM publico se local nao responder CORS no browser
+          res = await fetch(osrmUrlPublic);
+        }
+
+        const data = await res.json();
+        if (data.code === 'Ok' && data.routes.length > 0) {
+          // Coordenadas retornadas do OSRM estao no formato [lon, lat]
+          coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          statusEl.textContent = "OSRM OK (Via Asfalto)";
+          statusEl.className = "status-active";
+        }
+      } catch (err) {
+        console.warn("Falha no OSRM, utilizando linha reta de fallback", err);
+        coords = [[orig.lat, orig.lon], [dest.lat, dest.lon]];
+        statusEl.textContent = "Fallback Reta";
+        statusEl.style.color = "#f59e0b";
+      }
+
+      countEl.textContent = `${coords.length} vértices de rua`;
+
+      // Limpar elementos antigos do mapa
+      if (currentPolyline) map.removeLayer(currentPolyline);
+      if (originMarker) map.removeLayer(originMarker);
+      if (destMarker) map.removeLayer(destMarker);
+
+      // Desenhar nova Polyline estilizada
+      currentPolyline = L.polyline(coords, {
+        color: '#0284c7',
+        weight: 6,
+        opacity: 0.9,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(map);
+
+      // Marcadores personalizados
+      originMarker = L.circleMarker([orig.lat, orig.lon], {
+        radius: 8,
+        fillColor: '#10b981',
+        color: '#ffffff',
+        weight: 3,
+        fillOpacity: 1
+      }).addTo(map).bindPopup(`<b>Origem:</b> ${orig.rua}, ${orig.bairro}`);
+
+      destMarker = L.circleMarker([dest.lat, dest.lon], {
+        radius: 8,
+        fillColor: '#ef4444',
+        color: '#ffffff',
+        weight: 3,
+        fillOpacity: 1
+      }).addTo(map).bindPopup(`<b>Destino:</b> ${dest.rua}, ${dest.bairro}`);
+
+      // Ajustar zoom para a rota inteira
+      map.fitBounds(currentPolyline.getBounds(), { padding: [50, 50] });
+    }
+
+    // Inicializacao
+    window.onload = () => {
+      initMap();
+      loadData();
+    };
+  </script>
+</body>
+</html>
