@@ -422,7 +422,7 @@ async def registrar_pontos_gps_batch(
 async def historico_motorista(
     motorista_id: str,
     jornada_id: Optional[str] = None,
-    limite: int = 500,
+    limite: int = 100000,
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
@@ -526,7 +526,7 @@ async def rota_ajustada_motorista(
 
     # 3) Fallback: pontos brutos do historico_gps (para jornadas ativas sem rota compactada)
     filtro_gps = {"jornada_id": str(jornada_id)}
-    pontos = await db["historico_gps"].find(filtro_gps).sort("timestamp", 1).to_list(10000)
+    pontos = await db["historico_gps"].find(filtro_gps).sort("timestamp", 1).to_list(100000)
 
     if len(pontos) >= 2:
         coords = []

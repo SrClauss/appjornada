@@ -1044,8 +1044,8 @@ export function JornadasView() {
           // que é mais recente que evTime. A diferença em segundos é (lastGpsTime - evTime) / 1000.
           const diffSeconds = (lastGpsTime - evTime) / 1000;
           
-          if (filtroIntervalo === 'all') { // Amostragem: Completa (15s)
-            if (diffSeconds < 14.5) return false;
+          if (filtroIntervalo === 'all') {
+            // Amostragem Completa: mantém absolutamente todos os pontos de alta precisão
           } else if (filtroIntervalo === '1min') {
             if (diffSeconds < 59.5) return false;
           } else if (filtroIntervalo === '5min') {
