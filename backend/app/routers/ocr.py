@@ -117,18 +117,46 @@ async def processar_odometro_foto(
 
 
 def _extrair_frames_video(video_bytes: bytes, max_frames: int = 8) -> list:
+def _salvar_bytes_em_midias(jpg_bytes: bytes, contexto: str, extensao: str = ".jpg") -> str:
+    from app.routers.uploads import _resolver_dir, MINIO_ENABLED, MINIO_CLIENT, MINIO_BUCKET, _build_minio_url
+    import io
+    filename = f"{uuid.uuid4().hex}{extensao}"
+    object_name = f"{contexto}/{filename}"
+    
+    if MINIO_ENABLED and MINIO_CLIENT:
+        try:
+            stream = io.BytesIO(jpg_bytes)
+            MINIO_CLIENT.put_object(
+                MINIO_BUCKET,
+                object_name,
+                stream,
+                length=len(jpg_bytes),
+                content_type="image/jpeg" if extensao == ".jpg" else "application/octet-stream"
+            )
+            return _build_minio_url(object_name)
+        except Exception as e:
+            print(f"[OCR] Erro ao salvar bytes no MinIO: {e}")
+
+    dir_path = _resolver_dir(contexto)
+    file_path = dir_path / filename
+    file_path.write_bytes(jpg_bytes)
+    return f"/static/uploads/{contexto}/{filename}"
+
+
+def _extrair_frames_video(video_bytes: bytes, max_frames: int = 10) -> tuple:
     import tempfile
     import os
     try:
         import cv2
     except ImportError:
-        return []
+        return [], []
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         tmp.write(video_bytes)
         tmp_path = tmp.name
 
     frames_b64 = []
+    frame_urls = []
     try:
         cap = cv2.VideoCapture(tmp_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -146,8 +174,16 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 8) -> list:
                     new_h = int(h * (720 / w))
                     frame = cv2.resize(frame, (new_w, new_h))
                 _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-                img_b64 = base64.b64encode(buffer).decode("utf-8")
+                jpg_bytes = buffer.tobytes()
+                img_b64 = base64.b64encode(jpg_bytes).decode("utf-8")
                 frames_b64.append(img_b64)
+                
+                try:
+                    f_url = _salvar_bytes_em_midias(jpg_bytes, "extrato_frames", ".jpg")
+                    frame_urls.append(f_url)
+                except Exception as err_f:
+                    print(f"[OCR] Erro ao salvar URL do frame: {err_f}")
+
         cap.release()
     except Exception as e:
         print("[OCR] Erro ao extrair frames do vídeo:", e)
@@ -155,7 +191,7 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 8) -> list:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
-    return frames_b64
+    return frames_b64, frame_urls
 
 
 def _limpar_e_parsear_json_gemini(raw_text: str) -> dict:
@@ -198,10 +234,17 @@ def _limpar_e_parsear_json_gemini(raw_text: str) -> dict:
     return {}
 
 
-def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
+def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None) -> dict:
     api_key = settings.GEMINI_API_KEY
     if not api_key:
         return {"sucesso": False, "mensagem": "GEMINI_API_KEY não configurada", "corridas": []}
+
+    print("\n==================================================================")
+    print(f"🎬 [OCR Video] Iniciando análise de {len(frames_b64_list)} quadros do vídeo...")
+    if frame_urls:
+        for idx, f_url in enumerate(frame_urls):
+            print(f"   📸 Frame {idx+1}/{len(frame_urls)} salvo em Mídias: {f_url}")
+    print("------------------------------------------------------------------")
 
     prompt = (
         "Analise esta sequência de capturas de tela (frames) gravadas do histórico de corridas e ganhos de aplicativo de motorista (Uber / 99 / 99Pop / InDrive).\n"
@@ -248,17 +291,28 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
                         parsed.get("historico") or
                         parsed.get("itens")
                     )
+
+                    print(f"🤖 [OCR Video Modelo: {model} Tentativa: {tentativa+1}] Resposta Bruta da IA:")
+                    print(raw_text if raw_text else "<TEXTO VAZIO>")
+                    print(f"📊 Dados Estruturados Decodificados: {parsed}")
+                    
                     if isinstance(corridas, list):
                         parsed["corridas"] = corridas
                         parsed["sucesso"] = True
+                        print(f"✅ [Sucesso OCR Video] {len(corridas)} corridas extraídas!")
+                        print("==================================================================\n")
                         return parsed
+                    else:
+                        print("⚠️ [OCR Video] Chave 'corridas' não é uma lista válida no JSON retornado.")
             except Exception as e:
-                print(f"[OCR Video] Erro na tentativa {tentativa+1} do modelo {model}:", e)
+                print(f"❌ [OCR Video Error] Erro na tentativa {tentativa+1} do modelo {model}: {e}")
                 if "503" in str(e) or "Service Unavailable" in str(e):
                     import time
                     time.sleep(2)
                     continue
 
+    print("❌ [OCR Video Falha] Nenhum modelo conseguiu processar o vídeo com sucesso.")
+    print("==================================================================\n")
     return {"sucesso": False, "mensagem": "Não foi possível processar o vídeo do extrato", "corridas": []}
 
 

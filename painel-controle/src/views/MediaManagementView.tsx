@@ -41,6 +41,9 @@ const CONTEXTO_LABELS: Record<string, string> = {
   sinistro: 'Sinistro / Avaria',
   nota_fiscal: 'Nota Fiscal',
   vistoria: 'Checklist / Vistoria',
+  extrato_video: 'Vídeo Extrato IA',
+  extrato_frames: 'Frames do Vídeo IA',
+  hodometro: 'Foto Hodômetro',
   outros: 'Outros Documentos'
 };
 
@@ -48,6 +51,17 @@ const CONTEXTO_COLORS: Record<string, string> = {
   km_inicial: 'bg-blue-50 text-blue-700 border-blue-100',
   km_final: 'bg-indigo-50 text-indigo-700 border-indigo-100',
   cnh: 'bg-purple-50 text-purple-700 border-purple-100',
+  clrv: 'bg-pink-50 text-pink-700 border-pink-100',
+  veiculo: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+  comprovante: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  sinistro: 'bg-red-50 text-red-700 border-red-100',
+  nota_fiscal: 'bg-amber-50 text-amber-700 border-amber-100',
+  vistoria: 'bg-orange-50 text-orange-700 border-orange-100',
+  extrato_video: 'bg-violet-50 text-violet-700 border-violet-100',
+  extrato_frames: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100',
+  hodometro: 'bg-sky-50 text-sky-700 border-sky-100',
+  outros: 'bg-gray-50 text-gray-700 border-gray-100'
+};
   clrv: 'bg-amber-50 text-amber-700 border-amber-100',
   veiculo: 'bg-teal-50 text-teal-700 border-teal-100',
   comprovante: 'bg-emerald-50 text-emerald-700 border-emerald-100',

@@ -25,11 +25,11 @@ from app.models.user import UserPublic, Role
 
 CONTEXTOS_VALIDOS = {
     "km_inicial", "km_final", "cnh", "clrv", "veiculo",
-    "comprovante", "sinistro", "nota_fiscal", "outros", "vistoria", "extrato_video",
+    "comprovante", "sinistro", "nota_fiscal", "outros", "vistoria", "extrato_video", "extrato_frames", "hodometro"
 }
 
 CONTEXTOS_DELETAVEIS = {
-    "km_inicial", "km_final", "vistoria", "sinistro", "comprovante"
+    "km_inicial", "km_final", "vistoria", "sinistro", "comprovante", "extrato_video", "extrato_frames", "hodometro"
 }
 
 EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".pdf", ".webp", ".mp4", ".mov", ".avi", ".mkv"}

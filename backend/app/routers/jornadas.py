@@ -1220,11 +1220,12 @@ async def upload_e_processar_extrato_video(
     from app.routers.ocr import _extrair_frames_video, _chamar_gemini_extrato_video
 
     video_url = await _salvar_arquivo(arquivo, "extrato_video")
-    frames = _extrair_frames_video(conteudo_bytes, max_frames=10)
+    print(f"📹 [OCR Video Upload] Vídeo gravado em Mídias: {video_url}")
+    frames, frame_urls = _extrair_frames_video(conteudo_bytes, max_frames=10)
     if not frames:
         raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
 
-    res_ai = _chamar_gemini_extrato_video(frames)
+    res_ai = _chamar_gemini_extrato_video(frames, frame_urls=frame_urls)
     corridas_lidas = res_ai.get("corridas", [])
 
     if not corridas_lidas:
