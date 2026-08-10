@@ -171,7 +171,6 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
       if (res.statusCode == 200) {
         setState(() {
           _auditoriaResult = json.decode(res.body);
-          _currentStep = 4;
         });
       } else {
         if (!mounted) return;
@@ -749,6 +748,11 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                             setState(() {
                               _recordedVideoPath = null;
                               _faturamentoLocal = res['faturamento'] ?? res;
+                              if (_currentStep == 1) {
+                                _currentStep = 2;
+                              } else if (_currentStep == 2) {
+                                _currentStep = 3;
+                              }
                             });
                             await _rodarAuditoria();
                           }
@@ -863,35 +867,23 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
               onPressed: () async {
                 final ImagePicker picker = ImagePicker();
                 final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
-                if (video != null) {
-                  setState(() => _loading = true);
-                  try {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Enviando vídeo da galeria...')),
-                      );
-                    }
-                    final res = await ApiService.processarVideoExtrato(video.path);
-                    if (mounted) {
-                      if (res != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Vídeo processado com sucesso!'), backgroundColor: Colors.green),
-                        );
-                        await _rodarAuditoria();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Erro ao processar vídeo da galeria.'), backgroundColor: Colors.red),
-                        );
+                if (video != null && mounted) {
+                  final res = await Navigator.push<Map<String, dynamic>>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AiTerminalConsoleScreen(videoPath: video.path),
+                    ),
+                  );
+                  if (mounted && res != null) {
+                    setState(() {
+                      _faturamentoLocal = res['faturamento'] ?? res;
+                      if (_currentStep == 1) {
+                        _currentStep = 2;
+                      } else if (_currentStep == 2) {
+                        _currentStep = 3;
                       }
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erro ao enviar vídeo: $e'), backgroundColor: Colors.red),
-                      );
-                    }
-                  } finally {
-                    setState(() => _loading = false);
+                    });
+                    await _rodarAuditoria();
                   }
                 }
               },
