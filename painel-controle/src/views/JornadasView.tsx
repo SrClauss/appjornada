@@ -940,33 +940,51 @@ export function JornadasView() {
     });
   }, [liveEvents]);
 
+  // Estados da Tabela de Registros de Telemetria (Audit Log)
+  const [telemetryEvents, setTelemetryEvents] = useState<any[]>([]);
+  const [telemetriaSearch, setTelemetriaSearch] = useState<string>('');
+  const [telemetriaStatusFilter, setTelemetriaStatusFilter] = useState<string>('');
+  const [telemetryPage, setTelemetryPage] = useState<number>(1);
+  const [telemetryPageSize, setTelemetryPageSize] = useState<number>(50);
+
+  const filteredTelemetryEvents = useMemo(() => {
+    return telemetryEvents.filter((ev) => {
+      const matchesStatus = telemetriaStatusFilter ? ev.status === telemetriaStatusFilter : true;
+      if (!matchesStatus) return false;
+      if (!telemetriaSearch) return true;
+      const q = telemetriaSearch.toLowerCase();
+      const rua = (ev.rua || '').toLowerCase();
+      const status = (ev.status || '').toLowerCase();
+      const timeStr = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString('pt-BR') : '';
+      return rua.includes(q) || status.includes(q) || timeStr.includes(q);
+    });
+  }, [telemetryEvents, telemetriaSearch, telemetriaStatusFilter]);
+
+  const paginatedTelemetryEvents = useMemo(() => {
+    return filteredTelemetryEvents.slice((telemetryPage - 1) * telemetryPageSize, telemetryPage * telemetryPageSize);
+  }, [filteredTelemetryEvents, telemetryPage, telemetryPageSize]);
+
   const handleOpenJornada = async (j: Jornada) => {
     setSelectedJornada(j);
     setLoadingRoute(true);
-    setRouteCoordinates([]);
-    setRouteSegments([]);
+    setTelemetryEvents([]);
+    setTelemetryPage(1);
+    setTelemetriaSearch('');
+    setTelemetriaStatusFilter('');
     try {
       const jId = j.id || (j as any)._id;
-      const { data } = await api.get(`/gps/motorista/${j.motorista_id}/rota-ajustada`, {
-        params: { jornada_id: jId }
+      const motoristaId = j.motorista_id;
+      const { data } = await api.get<any[]>(`/gps/motorista/${motoristaId}`, {
+        params: { jornada_id: jId, limite: 10000 }
       });
-      if (data && data.segmentos_rota) {
-        setRouteSegments(data.segmentos_rota.map((s: any) => ({
-          is_produtivo: s.is_produtivo,
-          coords: s.coordinates
-        })));
-      } else {
-        setRouteSegments([]);
-      }
-      if (data && data.coordinates) {
-        setRouteCoordinates(data.coordinates);
-      }
+      setTelemetryEvents(data || []);
     } catch (e) {
-      console.error('Erro ao buscar rota ajustada:', e);
+      console.error('Erro ao carregar telemetria:', e);
     } finally {
       setLoadingRoute(false);
     }
   };
+
 
 
 
@@ -1115,7 +1133,7 @@ export function JornadasView() {
     
     const ev = filteredEvents[idx];
     const isAlreadySelected = selectedEvents.some(
-      x => x.timestamp === ev.timestamp && x.jornada_id === ev.jornada_id
+      x => x.timestamp === ev?.timestamp && x.jornada_id === ev?.jornada_id
     );
     dragSelectModeRef.current = !isAlreadySelected;
     setTrackHoverIdx(idx);
@@ -1128,211 +1146,428 @@ export function JornadasView() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Jornadas Cadastradas</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Selecione uma jornada e clique no olho <Eye size={14} className="inline text-sky-600" /> para visualizar o trajeto e os eventos em tempo real no Monitor Operacional
-          </p>
-        </div>
-      </div>
+      {selectedJornada ? (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedJornada(null)}
+                className="flex items-center gap-2 px-3 py-1.5 h-auto text-slate-700 border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+              >
+                <ArrowLeft size={16} />
+                Voltar para Jornadas Cadastradas
+              </Button>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">
+                  Tabela de Registros de Telemetria GPS — {selectedJornada.motorista_nome || selectedJornada.motorista_id}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Jornada em <strong>{new Date(selectedJornada.data + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> • Veículo: <strong className="text-slate-800">{selectedJornada.veiculo_id}</strong> • Total: <strong className="text-sky-600">{telemetryEvents.length} registros auditados</strong>
+                </p>
+              </div>
+            </div>
 
-      <>
-        <div className="space-y-6">
-          <div className="flex gap-4 flex-wrap items-center">
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  const jId = selectedJornada.id || (selectedJornada as any)._id;
+                  window.location.hash = `#/monitor?jornada_id=${jId}`;
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+              >
+                <Play size={14} weight="fill" />
+                <span>🎥 Replay em Tempo Real no Monitor (OSRM)</span>
+              </Button>
+            </div>
+          </div>
 
+          {/* Filters Bar */}
+          <Card className="p-4 border border-slate-200 bg-slate-50/50 shadow-sm rounded-xl space-y-3">
+            <div className="flex gap-4 flex-wrap items-center justify-between">
+              <div className="flex items-center gap-3 flex-wrap">
                 <Input
-                  placeholder="Filtrar por nome do motorista..."
-                  className="max-w-xs text-xs"
-                  value={search}
+                  placeholder="Buscar por rua ou horário..."
+                  className="max-w-xs text-xs bg-white"
+                  value={telemetriaSearch}
                   onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
+                    setTelemetriaSearch(e.target.value);
+                    setTelemetryPage(1);
                   }}
                 />
-                <Input
-                  type="date"
-                  className="max-w-xs text-xs"
-                  value={dataFiltro}
-                  onChange={(e) => {
-                    setDataFiltro(e.target.value);
-                    setCurrentPage(1);
-                    if (e.target.value) {
-                      setMostrarTodas(false);
-                    }
-                  }}
-                />
-                {dataFiltro && (
-                  <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                    setDataFiltro('');
-                    setCurrentPage(1);
-                  }}>
-                    Limpar filtro
-                  </Button>
-                )}
 
-                <Button 
-                  variant={mostrarTodas ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => {
-                    const next = !mostrarTodas;
-                    setMostrarTodas(next);
-                    setCurrentPage(1);
-                    if (next) {
-                      setDataFiltro('');
-                    }
+                <select
+                  value={telemetriaStatusFilter}
+                  onChange={(e) => {
+                    setTelemetriaStatusFilter(e.target.value);
+                    setTelemetryPage(1);
                   }}
+                  className="h-8 text-xs font-semibold rounded-md border border-input bg-white px-3 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  {mostrarTodas ? "Ocultar Jornadas" : "Mostrar Todas as Datas"}
-                </Button>
+                  <option value="">Status: Todos</option>
+                  <option value="CONDUZINDO">CONDUZINDO</option>
+                  <option value="PARADO">PARADO</option>
+                  <option value="EM_MOVIMENTO">EM MOVIMENTO</option>
+                  <option value="INICIO_JORNADA">INÍCIO JORNADA</option>
+                  <option value="PAUSA_MOTORISTA">PAUSA MOTORISTA</option>
+                  <option value="FIM_JORNADA">FIM JORNADA</option>
+                </select>
               </div>
 
-              {!dataFiltro && !mostrarTodas ? (
-                <div className="flex flex-col items-center justify-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center px-4">
-                  <div className="p-4 bg-blue-50 text-blue-600 rounded-full mb-4">
-                    <Calendar size={32} weight="duotone" />
-                  </div>
-                  <h4 className="text-base font-semibold text-slate-800">Painel de Jornadas</h4>
-                  <p className="text-xs text-slate-500 mt-1.5 max-w-md">
-                    Selecione uma data no filtro para ver as jornadas daquele dia, ou clique em <strong>"Mostrar Todas as Datas"</strong> para listar todos os registros cadastrados de forma paginada.
-                  </p>
-                </div>
-              ) : isLoading ? (
-                <Skeleton className="h-80 w-full rounded-xl" />
-              ) : (
-                <>
-                  {kmByDriver.length > 0 && (
-                    <Card className="p-6">
-                      <h3 className="text-lg font-semibold mb-4">Km Rodados por Motorista</h3>
-                      <ResponsiveContainer width="100%" height={250}>
-                        <BarChart data={kmByDriver} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                          <XAxis type="number" tick={{ fontSize: 12 }} />
-                          <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
-                          <Tooltip />
-                          <Bar dataKey="km" fill="#3b82f6" name="Km Rodados" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </Card>
-                  )}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-500 font-medium">Registros por página:</span>
+                <select
+                  value={telemetryPageSize}
+                  onChange={(e) => {
+                    setTelemetryPageSize(Number(e.target.value));
+                    setTelemetryPage(1);
+                  }}
+                  className="h-8 text-xs font-semibold rounded-md border border-input bg-white px-2 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value={25}>25 por página</option>
+                  <option value={50}>50 por página</option>
+                  <option value={100}>100 por página</option>
+                  <option value={250}>250 por página</option>
+                </select>
+              </div>
+            </div>
+          </Card>
 
-                  <Card className="p-6">
-                    <div className="flex flex-wrap justify-between items-center gap-4 mb-4 pb-2 border-b border-slate-100">
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-850">Jornadas Cadastradas</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {dataFiltro 
-                            ? `Jornadas do dia ${new Date(dataFiltro + 'T00:00:00').toLocaleDateString('pt-BR')}`
-                            : "Todas as jornadas cadastradas no sistema"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          disabled={currentPage === 1 || isLoading}
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        >
-                          Anterior
-                        </Button>
-                        <span className="text-xs text-slate-600 font-mono font-medium px-2">
-                          Pág. {currentPage}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          disabled={jornadas.length < pageSize || isLoading}
-                          onClick={() => setCurrentPage(prev => prev + 1)}
-                        >
-                          Próxima
-                        </Button>
-                      </div>
-                    </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Motorista</TableHead>
-                          <TableHead>Veículo</TableHead>
-                          <TableHead>Início</TableHead>
-                          <TableHead>Fim</TableHead>
-                          <TableHead>Km Rodados</TableHead>
-                          <TableHead>Faturamento</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Ações</TableHead>
+          {/* Telemetry Log Table */}
+          <Card className="p-6">
+            {loadingRoute ? (
+              <div className="py-16 text-center text-slate-400 space-y-2">
+                <Skeleton className="h-64 w-full rounded-xl" />
+              </div>
+            ) : filteredTelemetryEvents.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 text-xs">
+                Nenhum registro de telemetria encontrado para esta jornada.
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                  <span className="text-xs text-slate-500 font-medium">
+                    Exibindo registros {(telemetryPage - 1) * telemetryPageSize + 1} a {Math.min(telemetryPage * telemetryPageSize, filteredTelemetryEvents.length)} de {filteredTelemetryEvents.length}
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={telemetryPage === 1}
+                      onClick={() => setTelemetryPage(p => Math.max(1, p - 1))}
+                    >
+                      Anterior
+                    </Button>
+                    <span className="text-xs text-slate-600 font-mono font-medium px-2">
+                      Página {telemetryPage} de {Math.ceil(filteredTelemetryEvents.length / telemetryPageSize) || 1}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={telemetryPage >= Math.ceil(filteredTelemetryEvents.length / telemetryPageSize)}
+                      onClick={() => setTelemetryPage(p => Math.min(Math.ceil(filteredTelemetryEvents.length / telemetryPageSize), p + 1))}
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead>Horário</TableHead>
+                      <TableHead>Status / Evento</TableHead>
+                      <TableHead>Endereço / Rua</TableHead>
+                      <TableHead>Coordenadas (Lat, Lon)</TableHead>
+                      <TableHead>Distância (+Metros)</TableHead>
+                      <TableHead className="text-right">Ação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedTelemetryEvents.map((pt: any, idx: number) => {
+                      const globalIndex = (telemetryPage - 1) * telemetryPageSize + idx + 1;
+                      const timeStr = pt.timestamp ? new Date(pt.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--';
+                      const dateStr = pt.timestamp ? new Date(pt.timestamp).toLocaleDateString('pt-BR') : '';
+                      
+                      let lat = 0;
+                      let lon = 0;
+                      if (pt.localizacao?.coordinates) {
+                        lon = pt.localizacao.coordinates[0];
+                        lat = pt.localizacao.coordinates[1];
+                      } else if (pt.localizacao?.lat && pt.localizacao?.lon) {
+                        lat = pt.localizacao.lat;
+                        lon = pt.localizacao.lon;
+                      }
+
+                      const isParado = pt.status === 'PARADO';
+
+                      return (
+                        <TableRow key={pt._id || pt.id || idx}>
+                          <TableCell className="font-mono text-xs text-slate-400 font-bold">{globalIndex}</TableCell>
+                          <TableCell className="font-mono text-xs font-semibold text-slate-700">
+                            <div>{timeStr}</div>
+                            <div className="text-[10px] text-slate-400 font-normal">{dateStr}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] font-mono font-bold uppercase ${
+                                isParado 
+                                  ? 'bg-rose-50 text-rose-600 border-rose-200' 
+                                  : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                              }`}
+                            >
+                              {pt.status || 'CONDUZINDO'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-700">
+                            <span className="font-medium flex items-center gap-1">
+                              📍 {pt.rua || 'Via não identificada'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-mono text-[11px] text-slate-500">
+                            {lat !== 0 ? `${lat.toFixed(6)}, ${lon.toFixed(6)}` : '—'}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs font-semibold text-slate-600">
+                            {pt.distancia_ultima_m ? `+${pt.distancia_ultima_m.toFixed(0)}m` : '0m'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 font-semibold"
+                              onClick={() => {
+                                const jId = selectedJornada.id || (selectedJornada as any)._id;
+                                window.location.hash = `#/monitor?jornada_id=${jId}`;
+                              }}
+                            >
+                              <Play size={14} className="mr-1" weight="fill" />
+                              Replay
+                            </Button>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {jornadas.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                              Nenhuma jornada encontrada.
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </>
+            )}
+          </Card>
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Jornadas Cadastradas</h1>
+              <p className="text-xs text-slate-500 mt-1">
+                Selecione uma jornada e clique no olho <Eye size={14} className="inline text-sky-600" /> para visualizar a tabela completa de registros de telemetria
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex gap-4 flex-wrap items-center">
+              <Input
+                placeholder="Filtrar por nome do motorista..."
+                className="max-w-xs text-xs"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+              <Input
+                type="date"
+                className="max-w-xs text-xs"
+                value={dataFiltro}
+                onChange={(e) => {
+                  setDataFiltro(e.target.value);
+                  setCurrentPage(1);
+                  if (e.target.value) {
+                    setMostrarTodas(false);
+                  }
+                }}
+              />
+              {dataFiltro && (
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                  setDataFiltro('');
+                  setCurrentPage(1);
+                }}>
+                  Limpar filtro
+                </Button>
+              )}
+
+              <Button 
+                variant={mostrarTodas ? "default" : "outline"}
+                size="sm"
+                className="text-xs"
+                onClick={() => {
+                  const next = !mostrarTodas;
+                  setMostrarTodas(next);
+                  setCurrentPage(1);
+                  if (next) {
+                    setDataFiltro('');
+                  }
+                }}
+              >
+                {mostrarTodas ? "Ocultar Jornadas" : "Mostrar Todas as Datas"}
+              </Button>
+            </div>
+
+            {!dataFiltro && !mostrarTodas ? (
+              <div className="flex flex-col items-center justify-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center px-4">
+                <div className="p-4 bg-blue-50 text-blue-600 rounded-full mb-4">
+                  <Calendar size={32} weight="duotone" />
+                </div>
+                <h4 className="text-base font-semibold text-slate-800">Painel de Jornadas</h4>
+                <p className="text-xs text-slate-500 mt-1.5 max-w-md">
+                  Selecione uma data no filtro para ver as jornadas daquele dia, ou clique em <strong>"Mostrar Todas as Datas"</strong> para listar todos os registros cadastrados de forma paginada.
+                </p>
+              </div>
+            ) : isLoading ? (
+              <Skeleton className="h-80 w-full rounded-xl" />
+            ) : (
+              <>
+                {kmByDriver.length > 0 && (
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Km Rodados por Motorista</h3>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={kmByDriver} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis type="number" tick={{ fontSize: 12 }} />
+                        <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
+                        <Tooltip />
+                        <Bar dataKey="km" fill="#3b82f6" name="Km Rodados" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Card>
+                )}
+
+                <Card className="p-6">
+                  <div className="flex flex-wrap justify-between items-center gap-4 mb-4 pb-2 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-850">Jornadas Cadastradas</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {dataFiltro 
+                          ? `Jornadas do dia ${new Date(dataFiltro + 'T00:00:00').toLocaleDateString('pt-BR')}`
+                          : "Todas as jornadas cadastradas no sistema"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        disabled={currentPage === 1 || isLoading}
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      >
+                        Anterior
+                      </Button>
+                      <span className="text-xs text-slate-600 font-mono font-medium px-2">
+                        Pág. {currentPage}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        disabled={jornadas.length < pageSize || isLoading}
+                        onClick={() => setCurrentPage(prev => prev + 1)}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Motorista</TableHead>
+                        <TableHead>Veículo</TableHead>
+                        <TableHead>Início</TableHead>
+                        <TableHead>Fim</TableHead>
+                        <TableHead>Km Rodados</TableHead>
+                        <TableHead>Faturamento</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jornadas.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                            Nenhuma jornada encontrada.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        jornadas.map((j) => (
+                          <TableRow key={j.id || (j as any)._id}>
+                            <TableCell>{new Date(j.data + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
+                            <TableCell className="font-medium">
+                              {j.motorista_nome ?? j.motorista_id}
+                            </TableCell>
+                            <TableCell>{j.veiculo_id}</TableCell>
+                            <TableCell>{j.horario?.inicio ?? '—'}</TableCell>
+                            <TableCell>{j.horario?.fim ?? '—'}</TableCell>
+                            <TableCell>{j.km?.rodados ?? 0} km</TableCell>
+                            <TableCell>{formatCurrency(j.faturamento?.total_dia ?? 0)}</TableCell>
+                            <TableCell>
+                              <Badge variant={statusBadgeVariant(j.status)}>{j.status}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  title="Ver Tabela de Registros de Telemetria GPS" 
+                                  onClick={() => handleOpenJornada(j)}
+                                >
+                                  <Eye size={16} className="text-sky-600" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  title="Refazer Trajeto no Monitor (OSRM)" 
+                                  onClick={() => {
+                                    const jId = j.id || (j as any)._id;
+                                    window.location.hash = `#/monitor?jornada_id=${jId}`;
+                                  }}
+                                  className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                                >
+                                  <Play size={16} weight="fill" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  title="Excluir Jornada"
+                                  onClick={() => handleDeleteJornada(j.id || (j as any)._id)} 
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash size={16} />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          jornadas.map((j) => (
-                            <TableRow key={j.id || (j as any)._id}>
-                              <TableCell>{new Date(j.data + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
-                              <TableCell className="font-medium">
-                                {j.motorista_nome ?? j.motorista_id}
-                              </TableCell>
-                              <TableCell>{j.veiculo_id}</TableCell>
-                              <TableCell>{j.horario?.inicio ?? '—'}</TableCell>
-                              <TableCell>{j.horario?.fim ?? '—'}</TableCell>
-                              <TableCell>{j.km?.rodados ?? 0} km</TableCell>
-                              <TableCell>{formatCurrency(j.faturamento?.total_dia ?? 0)}</TableCell>
-                              <TableCell>
-                                <Badge variant={statusBadgeVariant(j.status)}>{j.status}</Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    title="Visualizar Detalhes e Fotos da Jornada" 
-                                    onClick={() => handleOpenJornada(j)}
-                                  >
-                                    <Eye size={16} className="text-sky-600" />
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    title="Refazer Trajeto no Monitor (OSRM)" 
-                                    onClick={() => {
-                                      const jId = j.id || (j as any)._id;
-                                      window.location.hash = `#/monitor?jornada_id=${jId}`;
-                                    }}
-                                    className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
-                                  >
-                                    <Play size={16} weight="fill" />
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    title="Excluir Jornada"
-                                    onClick={() => handleDeleteJornada(j.id || (j as any)._id)} 
-                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                  >
-                                    <Trash size={16} />
-                                  </Button>
-                                </div>
-                              </TableCell>
-
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </Card>
-                </>
-              )}
-            </div>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </Card>
+              </>
+            )}
+          </div>
         </>
+      )}
     </div>
   );
 }
+
+
 
