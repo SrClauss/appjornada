@@ -1357,7 +1357,7 @@ async def upload_e_processar_comprovante(
         base64_image = base64.b64encode(conteudo).decode('utf-8')
         import os
         gemini_key = os.getenv("GEMINI_API_KEY", "")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={gemini_key}"
         
         # Determina o MIME type correto para o Gemini
         mime_type = arquivo.content_type or "image/jpeg"

@@ -227,7 +227,7 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                         Text(
                           _pendenciaAtual?['mensagem'] ??
                           _pendenciaAtual?['descricao'] ??
-                          'Identificada divergência de KM na jornada anterior. Você poderá prosseguir normalmente com sua jornada atual.',
+                          'Identificada diferença de quilometragem na jornada anterior. O registro foi armazenado para acompanhamento da gestão.',
                           style: const TextStyle(color: Colors.white70, fontSize: 13),
                         ),
                       ],
@@ -238,12 +238,13 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Opção A: Enviar Justificativa / Mídias Agora',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              'Opção A: Enviar Justificativa ou Foto',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 8),
             Card(
               color: const Color(0xFF1E293B),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -252,7 +253,7 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                       maxLines: 2,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: 'Descreva a ocorrência ou motivo do deslocamento...',
+                        hintText: 'Descreva o motivo do deslocamento...',
                         hintStyle: const TextStyle(color: Colors.grey),
                         filled: true,
                         fillColor: const Color(0xFF0F172A),
@@ -265,17 +266,17 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                       onPressed: _uploadingMidia ? null : _selecionarEUploadMidia,
                       icon: _uploadingMidia
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : Icon(_midiaUrl != null ? Icons.check_circle : Icons.attach_file, color: _midiaUrl != null ? Colors.green : const Color(0xFF818CF8)),
+                          : Icon(_midiaUrl != null ? Icons.check_circle : Icons.attach_file, color: _midiaUrl != null ? Colors.green : const Color(0xFF38BDF8)),
                       label: Text(
-                        _midiaUrl != null ? 'Mídia Anexada com Sucesso' : 'ANEXAR FOTO / MÍDIA DE JUSTIFICATIVA',
-                        style: TextStyle(color: _midiaUrl != null ? Colors.green : const Color(0xFF818CF8), fontWeight: FontWeight.bold),
+                        _midiaUrl != null ? 'Mídia Anexada com Sucesso' : 'ANEXAR FOTO / COMPROVANTE',
+                        style: TextStyle(color: _midiaUrl != null ? Colors.green : const Color(0xFF38BDF8), fontWeight: FontWeight.bold),
                       ),
                     ),
                     if (_midiaUrl != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
-                          'Arquivo enviado ao servidor: ${_midiaUrl!.split('/').last}',
+                          'Arquivo: ${_midiaUrl!.split('/').last}',
                           style: const TextStyle(color: Colors.greenAccent, fontSize: 11),
                         ),
                       ),
@@ -284,7 +285,10 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                         onPressed: _salvarJustificativa,
                         child: const Text('ENVIAR JUSTIFICATIVA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
@@ -293,39 +297,40 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                 ),
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             const Text(
-              'Opção B: Declarar Ciência e Iniciar Jornada',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              'Opção B: Assinar Termo de Ciência e Iniciar Jornada',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 8),
             Card(
               color: const Color(0xFF1E293B),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'TERMO DE CIÊNCIA E LIBERAÇÃO DE JORNADA',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF818CF8)),
+                      'ASSINATURA DE REGISTRO E LIBERAÇÃO',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF38BDF8)),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     const Text(
-                      'Declaro estar ciente da ocorrência de KM Morta registrada em minha jornada anterior. Comprometo-me a fornecer a devida justificativa por outros meios junto à gestão da frota posteriormente. Confirmo o início da minha jornada de trabalho hoje.',
-                      style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.4),
+                      'Confirmo a ciência sobre a variação de quilometragem da jornada anterior para registro na gestão.',
+                      style: TextStyle(fontSize: 12, color: Colors.white70, height: 1.3),
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: () => _abrirModalAssinatura(context),
                       icon: Icon(
                         _assinado ? Icons.check_circle : Icons.draw,
-                        color: _assinado ? Colors.green : const Color(0xFF818CF8),
+                        color: _assinado ? Colors.green : const Color(0xFF38BDF8),
                       ),
                       label: Text(
-                        _assinado ? 'Assinatura Capturada (Clique para alterar)' : 'COLHER ASSINATURA DE CIÊNCIA',
+                        _assinado ? 'Assinatura Capturada (Alterar)' : 'ABRIR TELA DE ASSINATURA DIGITAL',
                         style: TextStyle(
-                          color: _assinado ? Colors.green : const Color(0xFF818CF8),
+                          color: _assinado ? Colors.green : const Color(0xFF38BDF8),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -333,7 +338,7 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
+                      height: 48,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6366F1),
@@ -341,8 +346,8 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                         ),
                         onPressed: _assinarAdvertencia,
                         child: const Text(
-                          'DECLARAR E INICIAR JORNADA',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                          'CONFIRMAR E INICIAR JORNADA',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
                         ),
                       ),
                     ),
@@ -350,7 +355,7 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                 ),
               ),
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 32),
           ],
         ),
       ),

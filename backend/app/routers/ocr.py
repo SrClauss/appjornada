@@ -42,7 +42,7 @@ def _chamar_gemini_odometro(img_bytes: bytes, mime_type: str) -> dict:
         '{"km": 123456.0, "confianca": "ALTA"|"MEDIA"|"BAIXA", "observacao": "leitura exata"}'
     )
 
-    modelos = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro-preview"]
+    modelos = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
     
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -194,7 +194,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
     for b64_img in frames_b64_list:
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
-    modelos = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.6-flash"]
+    modelos = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
@@ -264,7 +264,7 @@ def _chamar_gemini_nota_fiscal(img_bytes: bytes, mime_type: str) -> dict:
         "}"
     )
 
-    modelos = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro-preview"]
+    modelos = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({

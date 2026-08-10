@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:app_motorista/core/api_service.dart';
 import 'package:app_motorista/core/overlay_service.dart';
+import 'package:app_motorista/screens/ai_terminal_console_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -423,10 +424,112 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
           },
         );
       case 3:
+        return _buildCorridasParticularesStep();
+      case 4:
         return _buildHodometroFinalView();
       default:
         return _buildHodometroFinalView();
     }
+  }
+
+  Widget _buildCorridasParticularesStep() {
+    final double fatPart = ((_faturamentoLocal?['outros'] ?? widget.jornada['faturamento']?['outros']) as num?)?.toDouble() ?? 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          color: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.directions_car_rounded, color: Color(0xFF38BDF8), size: 28),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Corridas Particulares (Fora de App)',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Confira o faturamento total em corridas particulares registradas durante a sua jornada.',
+                  style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF334155)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Faturamento Particular:',
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
+                      Text(
+                        'R\$ ${fatPart.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 20),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: Colors.grey),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _currentStep = 2;
+                  });
+                },
+                child: const Text('VOLTAR (99)', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _currentStep = 4;
+                  });
+                },
+                child: const Text(
+                  'PROSSEGUIR PARA FECHAMENTO',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildPlataformaGuiada({
@@ -632,27 +735,22 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () async {
-                          const channel = MethodChannel('com.srclauss.appjornada/overlay');
-                          _startTerminalSimulation();
-                          try {
-                            final res = await ApiService.processarVideoExtrato(_recordedVideoPath!);
-                            if (mounted) {
-                              if (res != null && res['sucesso'] == true) {
-                                final int count = res['corridas_adicionadas'] ?? 0;
-                                _stopTerminalSimulation(true, '$count corrida(s) extraída(s) com sucesso!');
-                                await channel.invokeMethod('clearLastRecordedVideo');
-                                setState(() {
-                                  _recordedVideoPath = null;
-                                  _faturamentoLocal = res['faturamento'] ?? res;
-                                });
-                                await _rodarAuditoria();
-                              } else {
-                                final String msg = res?['mensagem'] ?? 'Nenhuma corrida legível foi identificada no vídeo.';
-                                _stopTerminalSimulation(false, msg);
-                              }
-                            }
-                          } catch (e) {
-                            _stopTerminalSimulation(false, 'Erro de conexão/upload: $e');
+                          final res = await Navigator.push<Map<String, dynamic>>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AiTerminalConsoleScreen(videoPath: _recordedVideoPath!),
+                            ),
+                          );
+                          if (mounted && res != null) {
+                            const channel = MethodChannel('com.srclauss.appjornada/overlay');
+                            try {
+                              await channel.invokeMethod('clearLastRecordedVideo');
+                            } catch (_) {}
+                            setState(() {
+                              _recordedVideoPath = null;
+                              _faturamentoLocal = res['faturamento'] ?? res;
+                            });
+                            await _rodarAuditoria();
                           }
                         },
                         icon: const Icon(Icons.send_rounded, size: 18),
