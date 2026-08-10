@@ -116,7 +116,7 @@ async def processar_odometro_foto(
     )
 
 
-def _extrair_frames_video(video_bytes: bytes, max_frames: int = 6) -> list:
+def _extrair_frames_video(video_bytes: bytes, max_frames: int = 8) -> list:
     import tempfile
     import os
     try:
@@ -131,12 +131,15 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 6) -> list:
     frames_b64 = []
     try:
         cap = cv2.VideoCapture(tmp_path)
-        frame_idx = 0
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if frame_idx % 20 == 0:
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if total_frames > 0:
+            step = max(1, total_frames // max_frames)
+            for i in range(max_frames):
+                target = i * step
+                cap.set(cv2.CAP_PROP_POS_FRAMES, target)
+                ret, frame = cap.read()
+                if not ret:
+                    break
                 h, w = frame.shape[:2]
                 if w > 720:
                     new_w = 720
@@ -145,9 +148,6 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 6) -> list:
                 _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
                 img_b64 = base64.b64encode(buffer).decode("utf-8")
                 frames_b64.append(img_b64)
-                if len(frames_b64) >= max_frames:
-                    break
-            frame_idx += 1
         cap.release()
     except Exception as e:
         print("[OCR] Erro ao extrair frames do vídeo:", e)
@@ -194,13 +194,13 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
     for b64_img in frames_b64_list:
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
-    modelos = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro-preview"]
+    modelos = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.6-flash"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=25) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 data = json.loads(resp.read().decode())
                 raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                 
