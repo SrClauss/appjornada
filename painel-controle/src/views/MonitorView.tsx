@@ -816,23 +816,7 @@ export function MonitorView() {
                 </div>
               </div>
 
-              {/* Map Component */}
-              <LiveMapView 
-                jornadas={displayedJornadas} 
-                bases={bases} 
-                baseFoco={selectedBase} 
-                selectedJornadaId={selectedJornadaId}
-                onSelectJornada={(j) => setSelectedJornadaId(j.id || (j as any)._id)}
-                onStartReplay={(j) => handleStartReplay(j, true)}
-                onShowCompleteRoute={handleShowCompleteRoute}
-                replayMode={!!replayJornada}
-                replayPoints={replayPoints}
-                osrmRouteCoords={osrmRouteCoords}
-                currentReplayIndex={currentReplayIndex}
-                followVehicle={followVehicle}
-              />
-
-              {/* Replay Player Overlay */}
+              {/* Replay Player Overlay ABOVE the Map */}
               {replayJornada && (
                 <DriverReplayOverlay
                   jornada={replayJornada}
@@ -852,6 +836,23 @@ export function MonitorView() {
                   onClose={handleCloseReplay}
                 />
               )}
+
+              {/* Map Component */}
+              <LiveMapView 
+                jornadas={displayedJornadas} 
+                bases={bases} 
+                baseFoco={selectedBase} 
+                selectedJornadaId={selectedJornadaId}
+                onSelectJornada={(j) => setSelectedJornadaId(j.id || (j as any)._id)}
+                onStartReplay={(j) => handleStartReplay(j, true)}
+                onShowCompleteRoute={handleShowCompleteRoute}
+                replayMode={!!replayJornada}
+                replayPoints={replayPoints}
+                osrmRouteCoords={osrmRouteCoords}
+                currentReplayIndex={currentReplayIndex}
+                followVehicle={followVehicle}
+              />
+
             </div>
 
             {/* Futuristic KPI Grid */}
