@@ -67,3 +67,4 @@ docker-compose.override.yml
 # ─── Local Run Directories ───────────────────────────────────────────────────
 osrm_data/
 scratch/
+visualizador_ronaldo/

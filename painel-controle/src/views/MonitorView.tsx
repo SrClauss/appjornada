@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Jornada, Veiculo, BaseOperacao } from '@/lib/types';
@@ -10,19 +10,23 @@ import {
   Wrench, 
   Clock, 
   ArrowClockwise, 
-  ArrowLeft,
-  Circle,
-  BellRinging,
-  BellSlash,
-  WarningOctagon,
-  Gauge,
-  Sparkle
+  ArrowLeft, 
+  Circle, 
+  BellRinging, 
+  BellSlash, 
+  WarningOctagon, 
+  Gauge, 
+  Sparkle,
+  Play,
+  Crosshair,
+  MapPin
 } from '@phosphor-icons/react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { LiveMapView } from '@/components/LiveMapView';
+import { DriverReplayOverlay, TelemetriaPoint } from '@/components/DriverReplayOverlay';
 
 interface AlertaInatividade {
   motorista_id: string;
@@ -33,6 +37,140 @@ interface AlertaInatividade {
   timestamp?: string;
 }
 
+function MotoristaMonitorRow({ 
+  initialJornada, 
+  formatCurrency,
+  isFocado,
+  onSelect,
+  onStartReplay
+}: { 
+  initialJornada: Jornada; 
+  formatCurrency: (v: number) => string;
+  isFocado?: boolean;
+  onSelect?: (jornada: Jornada) => void;
+  onStartReplay?: (jornada: Jornada) => void;
+}) {
+  const isRodandoInicial = initialJornada.status === 'EM_ANDAMENTO' || initialJornada.status === 'ABERTA';
+  const jId = initialJornada.id || (initialJornada as any)._id;
+
+  // Polling de 5s ISOLADO apenas neste componente do motorista se a jornada estiver aberta/rodando
+  const { data: jornada = initialJornada } = useQuery<Jornada>({
+    queryKey: ['jornada-item-live', jId],
+    queryFn: async () => {
+      const { data } = await api.get<Jornada>(`/jornadas/${jId}`);
+      return data;
+    },
+    enabled: isRodandoInicial && !!jId,
+    refetchInterval: isRodandoInicial ? 5000 : false,
+    initialData: initialJornada,
+  });
+
+  const isRodando = jornada.status === 'EM_ANDAMENTO' || jornada.status === 'ABERTA';
+  const isEncerrada = jornada.status === 'ENCERRADA';
+  const isParado = jornada.telemetria_status === 'PARADO';
+
+  return (
+    <div 
+      className={`p-3.5 bg-slate-900/80 border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all duration-200 shadow-sm ${
+        isFocado ? 'border-sky-500 shadow-lg shadow-sky-500/20 bg-slate-900' : 'border-slate-800 hover:border-slate-700'
+      }`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-bold text-sm text-white tracking-wide truncate">
+            {jornada.motorista_nome || 'Motorista'}
+          </span>
+          
+          {/* Status Badge */}
+          <Badge 
+            variant="outline" 
+            className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
+              isEncerrada
+                ? 'bg-slate-800 text-slate-400 border-slate-700'
+                : isRodando
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+            }`}
+          >
+            {isEncerrada ? 'ENCERRADA' : isRodando ? 'RODANDO' : 'EM PAUSA'}
+          </Badge>
+
+          {/* Telemetria Status Badge */}
+          {isRodando && jornada.telemetria_status && (
+            <Badge 
+              variant="outline" 
+              className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
+                isParado
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              }`}
+            >
+              {isParado ? 'PARADO' : 'EM MOVIMENTO'}
+            </Badge>
+          )}
+
+          {isRodando && (
+            <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              LIVE 5s
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 text-xs text-slate-400 mt-2 font-mono flex-wrap">
+          <span className="flex items-center gap-1 text-slate-300">
+            <Car size={14} className="text-slate-500" />
+            Placa: <strong className="text-sky-400 font-semibold">{jornada.veiculo_id}</strong>
+          </span>
+          {jornada.km?.inicial !== undefined && (
+            <span className="text-slate-500">
+              KM Inicial: {jornada.km.inicial}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Action Buttons & Revenue */}
+      <div className="flex items-center gap-3 border-t sm:border-t-0 border-slate-800/80 pt-2 sm:pt-0 shrink-0 justify-between sm:justify-end">
+        {/* Actions */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => onSelect && onSelect(jornada)}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border transition-all ${
+              isFocado
+                ? 'bg-sky-500 text-white border-sky-400 shadow-md shadow-sky-500/30'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+            }`}
+            title="Centralizar Câmera do Mapa neste Motorista"
+          >
+            <Crosshair size={14} className={isFocado ? 'animate-pulse' : ''} />
+            <span>{isFocado ? 'Focado' : 'Focar'}</span>
+          </button>
+
+          <button
+            onClick={() => onStartReplay && onStartReplay(jornada)}
+            className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 text-xs font-bold flex items-center gap-1 transition-all"
+            title="Refazer o Trajeto Completo do Motorista com OSRM"
+          >
+            <Play size={14} weight="fill" />
+            <span>Refazer Trajeto</span>
+          </button>
+        </div>
+
+        {/* Revenue Badge */}
+        <div className="text-right">
+          <span className="text-xs text-slate-500 uppercase tracking-wider block font-mono">
+            Faturado Hoje
+          </span>
+          <span className="text-base font-black text-emerald-400 font-mono">
+            {formatCurrency(jornada.faturamento?.total_dia ?? 0)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MonitorView() {
   const [hoje, setHoje] = useState('');
   const [currentTimeStr, setCurrentTimeStr] = useState('');
@@ -40,6 +178,22 @@ export function MonitorView() {
     return localStorage.getItem('pwa_notifications_enabled') === 'true';
   });
   const [notifiedAlertKeys, setNotifiedAlertKeys] = useState<Set<string>>(new Set());
+
+  // Focus & Replay State
+  const [selectedJornadaId, setSelectedJornadaId] = useState<string | null>(null);
+  const [replayJornada, setReplayJornada] = useState<Jornada | null>(null);
+  const [replayPoints, setReplayPoints] = useState<TelemetriaPoint[]>([]);
+  const [osrmRouteCoords, setOsrmRouteCoords] = useState<[number, number][]>([]);
+  const [currentReplayIndex, setCurrentReplayIndex] = useState<number>(0);
+  const [isPlayingReplay, setIsPlayingReplay] = useState<boolean>(false);
+  const [replaySpeed, setReplaySpeed] = useState<number>(5);
+  const [followVehicle, setFollowVehicle] = useState<boolean>(true);
+  const [distanciaOsrmKm, setDistanciaOsrmKm] = useState<number>(0);
+  const [distanciaGpsKm, setDistanciaGpsKm] = useState<number>(0);
+  const [loadingReplay, setLoadingReplay] = useState<boolean>(false);
+
+  const replayTimerRef = useRef<any>(null);
+
 
   useEffect(() => {
     const updateTime = () => {
@@ -74,8 +228,25 @@ export function MonitorView() {
       return data;
     },
     enabled: !!hoje,
-    refetchInterval: 10000,
+    refetchInterval: 15000,
   });
+
+  // Detect URL parameter ?jornada_id=... to auto-focus and auto-replay driver
+  useEffect(() => {
+    if (jornadas.length === 0) return;
+    const hash = window.location.hash;
+    if (hash.includes('jornada_id=')) {
+      const jIdParam = hash.split('jornada_id=')[1]?.split('&')[0];
+      if (jIdParam) {
+        setSelectedJornadaId(jIdParam);
+        const targetJ = jornadas.find((j) => (j.id || (j as any)._id) === jIdParam);
+        if (targetJ && !replayJornada) {
+          handleStartReplay(targetJ);
+        }
+      }
+    }
+  }, [jornadas, replayJornada]);
+
 
   const { 
     data: veiculos = [], 
@@ -109,7 +280,7 @@ export function MonitorView() {
 
   const alertas = alertasData?.alertas ?? [];
 
-  // Real-Time SSE (Server-Sent Events) - Transmissão sem necessidade de Polling constante
+  // Real-Time SSE
   useEffect(() => {
     const sseUrl = `${api.defaults.baseURL || ''}/events/stream`;
     let eventSource: EventSource | null = null;
@@ -146,7 +317,6 @@ export function MonitorView() {
   const [baseFocoId, setBaseFocoId] = useState<string>('AUTO');
   const selectedBase = bases.find((b) => b.id === baseFocoId) || null;
 
-  // Gestão da Configuração do Limite de KM Morta pelo Gestor
   const { data: configInatividade, refetch: refetchConfig } = useQuery({
     queryKey: ['config-inatividade'],
     queryFn: async () => {
@@ -178,7 +348,7 @@ export function MonitorView() {
     }
   };
 
-  // Dispara Notificação Push do Navegador quando surge novo alerta
+  // Trigger Push Notification for Alerts
   useEffect(() => {
     if (!notificationsEnabled || Notification.permission !== 'granted' || alertas.length === 0) {
       return;
@@ -226,15 +396,6 @@ export function MonitorView() {
         setNotificationsEnabled(true);
         localStorage.setItem('pwa_notifications_enabled', 'true');
         toast.success('Notificações de Inatividade ativadas em tempo real!');
-
-        try {
-          new Notification('📢 Monitor PWA', {
-            body: 'Notificações de inatividade em tempo real foram ativadas com sucesso.',
-            icon: '/favicon.ico',
-          });
-        } catch (e) {
-          console.error('Erro ao emitir notificação de teste:', e);
-        }
       } else {
         toast.error('Permissão de notificação negada no navegador.');
       }
@@ -257,6 +418,148 @@ export function MonitorView() {
 
   const [filtroStatus, setFiltroStatus] = useState<'ATIVAS' | 'TODAS' | 'ENCERRADAS'>('ATIVAS');
 
+  // Trigger Replay for Driver
+  const handleStartReplay = async (jornada: Jornada) => {
+    const motoristaId = (jornada as any).motorista_id || jornada.id;
+    const jId = jornada.id || (jornada as any)._id;
+
+    setLoadingReplay(true);
+    toast.info(`Buscando telemetria de ${jornada.motorista_nome || 'Motorista'}...`);
+
+    try {
+      // 1. Fetch raw telemetry from Backend API
+      const mId = typeof motoristaId === 'object' ? (motoristaId as any).$oid || motoristaId : motoristaId;
+      const res = await api.get<any[]>(`/gps/motorista/${mId}`, {
+        params: { jornada_id: jId, limite: 10000 }
+      });
+
+      const docs = res.data || [];
+      if (docs.length === 0) {
+        toast.warning(`Nenhum ponto de telemetria encontrado para esta jornada.`);
+        setLoadingReplay(false);
+        return;
+      }
+
+      // Convert docs into TelemetriaPoint array sorted chronologically
+      const points: TelemetriaPoint[] = docs.map((d) => {
+        let lat = 0;
+        let lng = 0;
+        if (d.localizacao?.coordinates) {
+          lng = d.localizacao.coordinates[0];
+          lat = d.localizacao.coordinates[1];
+        } else if (d.localizacao?.lat && d.localizacao?.lon) {
+          lat = Number(d.localizacao.lat);
+          lng = Number(d.localizacao.lon);
+        }
+
+        return {
+          id: d._id || d.id,
+          timestamp: typeof d.timestamp === 'string' ? d.timestamp : new Date(d.timestamp).toISOString(),
+          lat,
+          lng,
+          distancia_ultima_m: d.distancia_ultima_m || 0,
+          status: d.status || 'CONDUZINDO',
+          rua: d.rua || '',
+        };
+      }).filter(p => p.lat !== 0 && p.lng !== 0);
+
+      points.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+      if (points.length === 0) {
+        toast.warning(`Pontos de GPS inválidos ou vazios.`);
+        setLoadingReplay(false);
+        return;
+      }
+
+      // Calculate Total GPS Distance
+      let totalGpsM = 0;
+      points.forEach(p => { totalGpsM += (p.distancia_ultima_m || 0); });
+      setDistanciaGpsKm(totalGpsM / 1000);
+
+      // 2. Fetch Local OSRM Map-Matching Route
+      let osrmCoords: [number, number][] = [];
+      let osrmDistM = 0;
+
+      try {
+        const sampled: TelemetriaPoint[] = [];
+        for (let i = 0; i < points.length; i += 4) {
+          sampled.push(points[i]);
+        }
+
+        if (sampled[sampled.length - 1] !== points[points.length - 1]) {
+          sampled.push(points[points.length - 1]);
+        }
+
+        const chunkSize = 50;
+        for (let i = 0; i < sampled.length - 1; i += chunkSize) {
+          const chunk = sampled.slice(i, i + chunkSize + 1);
+          const coordsStr = chunk.map(p => `${p.lng},${p.lat}`).join(';');
+          
+          const osrmUrl = `http://localhost:5000/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`;
+          const osrmRes = await fetch(osrmUrl);
+          
+          if (osrmRes.ok) {
+            const data = await osrmRes.json();
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+              const r = data.routes[0];
+              osrmDistM += r.distance;
+              const coords = r.geometry.coordinates.map((c: any) => [c[1], c[0]] as [number, number]);
+              osrmCoords.push(...coords);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('OSRM local não disponível no momento para o painel:', err);
+      }
+
+      setOsrmRouteCoords(osrmCoords);
+      setDistanciaOsrmKm(osrmDistM > 0 ? osrmDistM / 1000 : totalGpsM / 1000);
+      setReplayPoints(points);
+      setReplayJornada(jornada);
+      setCurrentReplayIndex(0);
+      setIsPlayingReplay(true);
+      setLoadingReplay(false);
+
+      toast.success(`Iniciando Replay de ${jornada.motorista_nome || 'Motorista'} (${points.length} pontos de GPS)!`);
+    } catch (err) {
+      console.error('Erro ao iniciar replay:', err);
+      toast.error('Erro ao buscar dados de telemetria do motorista.');
+      setLoadingReplay(false);
+    }
+  };
+
+  // Replay Animation Timer Loop
+  useEffect(() => {
+    if (!isPlayingReplay || replayPoints.length === 0) {
+      if (replayTimerRef.current) clearInterval(replayTimerRef.current);
+      return;
+    }
+
+    const intervalMs = Math.max(30, Math.round(500 / replaySpeed));
+    replayTimerRef.current = setInterval(() => {
+      setCurrentReplayIndex((prev) => {
+        if (prev < replayPoints.length - 1) {
+          return prev + 1;
+        } else {
+          setIsPlayingReplay(false);
+          return prev;
+        }
+      });
+    }, intervalMs);
+
+    return () => {
+      if (replayTimerRef.current) clearInterval(replayTimerRef.current);
+    };
+  }, [isPlayingReplay, replayPoints.length, replaySpeed]);
+
+  const handleCloseReplay = () => {
+    setIsPlayingReplay(false);
+    setReplayJornada(null);
+    setReplayPoints([]);
+    setOsrmRouteCoords([]);
+    setCurrentReplayIndex(0);
+  };
+
   // KPI Calculations
   const activeJourneys = jornadas.filter(
     (j) => j.status === 'ABERTA' || j.status === 'EM_ANDAMENTO' || j.status === 'EM_PAUSA'
@@ -271,7 +574,7 @@ export function MonitorView() {
     }
     return true;
   });
-  
+
   const motoristasAndando = activeJourneys.filter(
     (j) => j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA'
   ).length;
@@ -347,7 +650,6 @@ export function MonitorView() {
 
         {/* Control Action Buttons */}
         <div className="flex items-center gap-2">
-          {/* Notification Toggle Button */}
           <button
             onClick={toggleNotifications}
             title={notificationsEnabled ? "Notificações de inatividade ativas" : "Clique para ativar notificações de inatividade"}
@@ -370,7 +672,6 @@ export function MonitorView() {
             )}
           </button>
 
-          {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
             disabled={isGlobalLoading}
@@ -444,13 +745,16 @@ export function MonitorView() {
               </Card>
             )}
 
-            {/* Live Map View Section */}
-            <div className="space-y-3">
+            {/* Live Map View Section with Replay Overlay */}
+            <div className="space-y-3 relative">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                  <span>🗺️ Mapa Ao Vivo da Frota em Tempo Real</span>
-                  <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-400 text-[10px]">
-                    SSE ONLINE
+                  <span>🗺️ Mapa Ao Vivo da Frota & Replay de Trajeto</span>
+                  <Badge 
+                    variant="outline" 
+                    className={replayJornada ? 'bg-sky-500/20 border-sky-500/40 text-sky-300 font-mono' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 text-[10px]'}
+                  >
+                    {replayJornada ? 'REPLAY ATIVO (OSRM)' : 'SSE ONLINE'}
                   </Badge>
                 </h2>
 
@@ -494,13 +798,44 @@ export function MonitorView() {
                 </div>
               </div>
 
-              <LiveMapView jornadas={displayedJornadas} bases={bases} baseFoco={selectedBase} />
+              {/* Map Component */}
+              <LiveMapView 
+                jornadas={displayedJornadas} 
+                bases={bases} 
+                baseFoco={selectedBase} 
+                selectedJornadaId={selectedJornadaId}
+                onSelectJornada={(j) => setSelectedJornadaId(j.id || (j as any)._id)}
+                onStartReplay={handleStartReplay}
+                replayMode={!!replayJornada}
+                replayPoints={replayPoints}
+                osrmRouteCoords={osrmRouteCoords}
+                currentReplayIndex={currentReplayIndex}
+                followVehicle={followVehicle}
+              />
+
+              {/* Replay Player Overlay */}
+              {replayJornada && (
+                <DriverReplayOverlay
+                  jornada={replayJornada}
+                  telemetriaPoints={replayPoints}
+                  currentIndex={currentReplayIndex}
+                  isPlaying={isPlayingReplay}
+                  speed={replaySpeed}
+                  followVehicle={followVehicle}
+                  distanciaOsrmKm={distanciaOsrmKm}
+                  distanciaGpsKm={distanciaGpsKm}
+                  onIndexChange={(idx) => setCurrentReplayIndex(idx)}
+                  onTogglePlay={() => setIsPlayingReplay(!isPlayingReplay)}
+                  onRestart={() => setCurrentReplayIndex(0)}
+                  onToggleFollow={() => setFollowVehicle(!followVehicle)}
+                  onSpeedChange={(spd) => setReplaySpeed(spd)}
+                  onClose={handleCloseReplay}
+                />
+              )}
             </div>
 
-            {/* Futuristic KPI Grid (4 Cols on Desktop, 2 Cols on Mobile) */}
+            {/* Futuristic KPI Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              
-              {/* Rodando Card */}
               <div className="p-4 bg-gradient-to-br from-emerald-950/30 via-slate-900/80 to-slate-950 border border-emerald-500/30 rounded-2xl shadow-xl shadow-emerald-950/20 backdrop-blur-md flex flex-col justify-between h-28 relative overflow-hidden group hover:border-emerald-500/50 transition-all duration-300">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/20 transition-all"></div>
                 <div className="flex justify-between items-start">
@@ -515,7 +850,6 @@ export function MonitorView() {
                 </div>
               </div>
 
-              {/* Pausa Card */}
               <div className="p-4 bg-gradient-to-br from-amber-950/30 via-slate-900/80 to-slate-950 border border-amber-500/30 rounded-2xl shadow-xl shadow-amber-950/20 backdrop-blur-md flex flex-col justify-between h-28 relative overflow-hidden group hover:border-amber-500/50 transition-all duration-300">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/20 transition-all"></div>
                 <div className="flex justify-between items-start">
@@ -530,7 +864,6 @@ export function MonitorView() {
                 </div>
               </div>
 
-              {/* Faturamento Card */}
               <div className="p-4 bg-gradient-to-br from-sky-950/30 via-slate-900/80 to-slate-950 border border-sky-500/30 rounded-2xl shadow-xl shadow-sky-950/20 backdrop-blur-md flex flex-col justify-between h-28 relative overflow-hidden group hover:border-sky-500/50 transition-all duration-300">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-sky-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-sky-500/20 transition-all"></div>
                 <div className="flex justify-between items-start">
@@ -544,7 +877,6 @@ export function MonitorView() {
                 </div>
               </div>
 
-              {/* Lucro Líquido Real Card */}
               <div className="p-4 bg-gradient-to-br from-indigo-950/30 via-slate-900/80 to-slate-950 border border-indigo-500/30 rounded-2xl shadow-xl shadow-indigo-950/20 backdrop-blur-md flex flex-col justify-between h-28 relative overflow-hidden group hover:border-indigo-500/50 transition-all duration-300">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all"></div>
                 <div className="flex justify-between items-start">
@@ -558,10 +890,9 @@ export function MonitorView() {
                   <span className="text-[10px] text-indigo-400/80 font-medium">DRE Líquido</span>
                 </div>
               </div>
-
             </div>
 
-            {/* Secondary KPI Bar (Despesas + Oficina) */}
+            {/* Secondary KPI Bar */}
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -641,73 +972,17 @@ export function MonitorView() {
               ) : (
                 <div className="grid grid-cols-1 gap-3">
                   {displayedJornadas.map((j) => {
-                    const isRodando = j.status === 'EM_ANDAMENTO' || j.status === 'ABERTA';
-                    const isEncerrada = j.status === 'ENCERRADA';
-                    const isParado = j.telemetria_status === 'PARADO';
-
+                    const jIdStr = j.id || (j as any)._id;
+                    const isFocado = selectedJornadaId === jIdStr;
                     return (
-                      <div 
-                        key={j.id} 
-                        className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all duration-200 shadow-sm"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-sm text-white tracking-wide truncate">
-                              {j.motorista_nome || 'Motorista'}
-                            </span>
-                            
-                            {/* Status Badge */}
-                            <Badge 
-                              variant="outline" 
-                              className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
-                                isEncerrada
-                                  ? 'bg-slate-800 text-slate-400 border-slate-700'
-                                  : isRodando
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              }`}
-                            >
-                              {isEncerrada ? 'ENCERRADA' : isRodando ? 'RODANDO' : 'EM PAUSA'}
-                            </Badge>
-
-                            {/* Telemetria Status Badge */}
-                            {isRodando && j.telemetria_status && (
-                              <Badge 
-                                variant="outline" 
-                                className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-md border ${
-                                  isParado
-                                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                                }`}
-                              >
-                                {isParado ? 'PARADO' : 'EM MOVIMENTO'}
-                              </Badge>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 text-xs text-slate-400 mt-2 font-mono flex-wrap">
-                            <span className="flex items-center gap-1 text-slate-300">
-                              <Car size={14} className="text-slate-500" />
-                              Placa: <strong className="text-sky-400 font-semibold">{j.veiculo_id}</strong>
-                            </span>
-                            {j.km?.inicial !== undefined && (
-                              <span className="text-slate-500">
-                                KM Inicial: {j.km.inicial}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Revenue Badge */}
-                        <div className="text-left sm:text-right border-t sm:border-t-0 border-slate-800/80 pt-2 sm:pt-0 shrink-0">
-                          <span className="text-xs text-slate-500 uppercase tracking-wider block font-mono">
-                            Faturado Hoje
-                          </span>
-                          <span className="text-base font-black text-emerald-400 font-mono">
-                            {formatCurrency(j.faturamento?.total_dia ?? 0)}
-                          </span>
-                        </div>
-                      </div>
+                      <MotoristaMonitorRow 
+                        key={jIdStr} 
+                        initialJornada={j} 
+                        formatCurrency={formatCurrency}
+                        isFocado={isFocado}
+                        onSelect={(selected) => setSelectedJornadaId(selected.id || (selected as any)._id)}
+                        onStartReplay={handleStartReplay}
+                      />
                     );
                   })}
                 </div>

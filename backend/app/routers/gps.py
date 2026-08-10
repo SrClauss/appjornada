@@ -466,6 +466,47 @@ async def historico_motorista(
     return [HistoricoGPS(**d) for d in docs]
 
 
+async def interpolar_lacunas_com_osrm(coords_raw: list) -> list:
+    """
+    Dada uma lista de coordenadas [[lon, lat], ...], detecta lacunas maiores que 80m
+    e interpola via OSRM/driving para seguir a rota mais lógica pelas ruas.
+    """
+    if len(coords_raw) < 2:
+        return coords_raw
+        
+    coords_interpoladas = []
+    
+    for i in range(len(coords_raw) - 1):
+        pt1 = coords_raw[i]
+        pt2 = coords_raw[i+1]
+        coords_interpoladas.append(pt1)
+        
+        lon1, lat1 = pt1[0], pt1[1]
+        lon2, lat2 = pt2[0], pt2[1]
+        
+        dist_m = calcular_distancia_m(lat1, lon1, lat2, lon2)
+        
+        # Se houver lacuna superior a 80 metros, calcula rota pelas ruas via OSRM
+        if dist_m > 80.0:
+            try:
+                url = f"{settings.OSRM_URL}/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(url, timeout=1.5)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        routes = data.get("routes", [])
+                        if routes and "geometry" in routes[0]:
+                            geom_coords = routes[0]["geometry"].get("coordinates", [])
+                            if len(geom_coords) > 2:
+                                for sub_pt in geom_coords[1:-1]:
+                                    coords_interpoladas.append([sub_pt[0], sub_pt[1]])
+            except Exception as e:
+                print("Erro na interpolação OSRM de lacuna:", e)
+
+    coords_interpoladas.append(coords_raw[-1])
+    return coords_interpoladas
+
+
 @router.get("/motorista/{motorista_id}/rota-ajustada")
 async def rota_ajustada_motorista(
     motorista_id: str,
@@ -475,7 +516,7 @@ async def rota_ajustada_motorista(
 ):
     """
     Retorna a rota da jornada.
-    Prioridade: 1) segmentos_rota compactados (OSRM), 2) rota_polyline, 3) historico_gps bruto.
+    Prioridade: 1) segmentos_rota compactados (OSRM), 2) rota_polyline, 3) historico_gps bruto com interpolação de lacunas OSRM.
     """
     if current_user.role == Role.MOTORISTA and str(current_user.id) != motorista_id:
         raise HTTPException(status_code=403, detail="Acesso negado")
@@ -501,14 +542,17 @@ async def rota_ajustada_motorista(
                     })
             except Exception:
                 pass
+        km_rodados = _safe_float(jornada.get("km", {}).get("rodados") if jornada else 0.0)
+        total_horas_seg = _safe_float(jornada.get("horario", {}).get("total_horas_segundos") if jornada else 0.0)
+
         if len(decoded_segments) > 0:
             return {
                 "status": "ok",
                 "snapped": True,
                 "segmentos_rota": decoded_segments,
                 "coordinates": [],
-                "distance_m": jornada.get("km", {}).get("rodados", 0.0) * 1000.0,
-                "duration_s": jornada.get("horario", {}).get("total_horas_segundos", 0.0)
+                "distance_m": km_rodados * 1000.0,
+                "duration_s": total_horas_seg
             }
 
     # 2) Fallback: rota_polyline simples
@@ -516,32 +560,37 @@ async def rota_ajustada_motorista(
         polyline_str = jornada["rota_polyline"]
         coords = decode_polyline(polyline_str)
         if len(coords) >= 2:
+            km_rodados = _safe_float(jornada.get("km", {}).get("rodados") if jornada else 0.0)
+            total_horas_seg = _safe_float(jornada.get("horario", {}).get("total_horas_segundos") if jornada else 0.0)
             return {
                 "status": "ok",
                 "snapped": True,
                 "coordinates": coords,
-                "distance_m": jornada.get("km", {}).get("rodados", 0.0) * 1000.0,
-                "duration_s": jornada.get("horario", {}).get("total_horas_segundos", 0.0)
+                "distance_m": km_rodados * 1000.0,
+                "duration_s": total_horas_seg
             }
 
-    # 3) Fallback: pontos brutos do historico_gps (para jornadas ativas sem rota compactada)
+    # 3) Fallback: pontos do historico_gps com interpolação de lacunas OSRM
     filtro_gps = {"jornada_id": str(jornada_id)}
     pontos = await db["historico_gps"].find(filtro_gps).sort("timestamp", 1).to_list(100000)
 
     if len(pontos) >= 2:
-        coords = []
+        coords_raw = []
         for p in pontos:
             loc = p.get("localizacao", {})
             c = loc.get("coordinates")
             if c and len(c) >= 2:
-                coords.append([c[0], c[1]])
-        if len(coords) >= 2:
+                coords_raw.append([c[0], c[1]])
+        if len(coords_raw) >= 2:
+            coords = await interpolar_lacunas_com_osrm(coords_raw)
+            km_rodados = _safe_float(jornada.get("km", {}).get("rodados") if jornada else 0.0)
+            total_horas_seg = _safe_float(jornada.get("horario", {}).get("total_horas_segundos") if jornada else 0.0)
             return {
                 "status": "ok",
-                "snapped": False,
+                "snapped": True,
                 "coordinates": coords,
-                "distance_m": (jornada.get("km", {}).get("rodados", 0.0) if jornada else 0.0) * 1000.0,
-                "duration_s": (jornada.get("horario", {}).get("total_horas_segundos", 0) if jornada else 0)
+                "distance_m": km_rodados * 1000.0,
+                "duration_s": total_horas_seg
             }
 
     return {

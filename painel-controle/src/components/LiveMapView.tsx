@@ -2,20 +2,47 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Jornada, BaseOperacao } from '@/lib/types';
+import type { TelemetriaPoint } from './DriverReplayOverlay';
 
 interface LiveMapViewProps {
   jornadas: Jornada[];
   bases?: BaseOperacao[];
   baseFoco?: BaseOperacao | null;
+  selectedJornadaId?: string | null;
   onSelectJornada?: (jornada: Jornada) => void;
+  onStartReplay?: (jornada: Jornada) => void;
+  // Replay Mode Props
+  replayMode?: boolean;
+  replayPoints?: TelemetriaPoint[];
+  osrmRouteCoords?: [number, number][];
+  currentReplayIndex?: number;
+  followVehicle?: boolean;
 }
 
-export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }: LiveMapViewProps) {
+export function LiveMapView({ 
+  jornadas, 
+  bases = [], 
+  baseFoco, 
+  selectedJornadaId,
+  onSelectJornada,
+  onStartReplay,
+  replayMode = false,
+  replayPoints = [],
+  osrmRouteCoords = [],
+  currentReplayIndex = 0,
+  followVehicle = true,
+}: LiveMapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const replayPolylineOsrmRef = useRef<L.Polyline | null>(null);
+  const replayPolylineGpsRef = useRef<L.Polyline | null>(null);
+  const replayVehicleMarkerRef = useRef<L.Marker | null>(null);
+  const replayGpsMarkersRef = useRef<L.CircleMarker[]>([]);
+  
   const isInitialFitRef = useRef<boolean>(false);
   const prevBaseFocoRef = useRef<BaseOperacao | null | undefined>(baseFoco);
+  const prevSelectedJornadaIdRef = useRef<string | null | undefined>(selectedJornadaId);
 
   const basePrincipal = bases.find((b) => b.is_principal) || bases[0];
   const targetBase = baseFoco || basePrincipal;
@@ -42,6 +69,7 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
     }
   };
 
+  // Initialize Map
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -57,16 +85,20 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
 
       mapRef.current = map;
     }
+  }, [fallbackLat, fallbackLon, fallbackZoom]);
 
+  // Handle Standard Live Markers
+  useEffect(() => {
+    if (!mapRef.current || replayMode) return;
     const map = mapRef.current;
 
-    // Limpa marcadores anteriores
+    // Clear live markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
     const bounds = L.latLngBounds([]);
 
-    // Marcadores das Bases de Operações
+    // Base Markers
     bases.forEach((b) => {
       if (b.lat && b.lon) {
         const baseIcon = L.divIcon({
@@ -105,7 +137,7 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
       }
     });
 
-    // Marcadores dos Motoristas
+    // Driver Markers
     jornadas.forEach((j) => {
       let lat: number | undefined;
       let lon: number | undefined;
@@ -124,9 +156,9 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
         lon = Number(locObj.longitude);
       }
 
-      if (!lat || !lon) {
-        return;
-      }
+      if (!lat || !lon) return;
+
+      const isSelected = selectedJornadaId === (j.id || (j as any)._id);
 
       const statusColor =
         j.status === 'EM_ANDAMENTO'
@@ -136,22 +168,23 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
           : j.status === 'ABERTA'
           ? '#6366F1'
           : '#64748B';
-      
+
       const customIcon = L.divIcon({
         className: 'custom-vehicle-marker',
         html: `
           <div style="
-            background-color: ${statusColor};
-            width: 32px;
-            height: 32px;
+            background-color: ${isSelected ? '#00f0ff' : statusColor};
+            width: ${isSelected ? '38px' : '32px'};
+            height: ${isSelected ? '38px' : '32px'};
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 12px ${statusColor};
-            border: 2px solid white;
+            box-shadow: ${isSelected ? '0 0 20px #00f0ff' : `0 0 12px ${statusColor}`};
+            border: ${isSelected ? '3px solid white' : '2px solid white'};
             color: white;
             font-weight: bold;
+            transition: all 0.3s ease;
           ">
             🚗
           </div>
@@ -162,69 +195,214 @@ export function LiveMapView({ jornadas, bases = [], baseFoco, onSelectJornada }:
 
       const marker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
 
+      const jIdStr = j.id || (j as any)._id;
+
       const popupContent = `
-        <div style="color: #0f172a; font-family: sans-serif; padding: 4px;">
-          <h4 style="margin:0 0 4px 0; font-weight:bold; font-size:14px;">${j.motorista_nome || 'Motorista'}</h4>
-          <p style="margin:0; font-size:12px; color:#475569;">Veículo: <strong>${j.veiculo_id}</strong></p>
+        <div style="color: #0f172a; font-family: sans-serif; padding: 6px; min-width: 180px;">
+          <h4 style="margin:0 0 4px 0; font-weight:bold; font-size:14px; color:#0f172a;">${j.motorista_nome || 'Motorista'}</h4>
+          <p style="margin:0; font-size:12px; color:#475569;">Veículo: <strong style="color:#0f172a;">${j.veiculo_id}</strong></p>
           <p style="margin:2px 0; font-size:12px; color:#475569;">Status: <span style="color:${statusColor}; font-weight:bold;">${j.status}</span></p>
           ${j.km?.rodados ? `<p style="margin:2px 0; font-size:12px;">Rodados: <strong>${j.km.rodados} km</strong></p>` : ''}
-          ${j.score_auditoria ? `<p style="margin:4px 0 0 0; font-size:11px; font-weight:bold; color:${j.score_auditoria.nivel_risco === 'VERDE' ? '#10B981' : j.score_auditoria.nivel_risco === 'AMARELO' ? '#D97706' : '#EF4444'}">Auditoria: ${j.score_auditoria.nivel_risco} (${j.score_auditoria.score_risco} pts)</p>` : ''}
+          <div style="margin-top: 8px; display: flex; gap: 4px;">
+            <button id="btn-popup-replay-${jIdStr}" style="
+              background: #0284c7; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; flex: 1;
+            ">🎥 Refazer Trajeto</button>
+          </div>
         </div>
       `;
 
       marker.bindPopup(popupContent);
+      
+      marker.on('popupopen', () => {
+        const btn = document.getElementById(`btn-popup-replay-${jIdStr}`);
+        if (btn && onStartReplay) {
+          btn.onclick = () => {
+            onStartReplay(j);
+            marker.closePopup();
+          };
+        }
+      });
+
       marker.on('click', () => {
         if (onSelectJornada) onSelectJornada(j);
       });
 
       markersRef.current.push(marker);
       bounds.extend([lat, lon]);
+
+      // If this driver is selected, zoom directly to their coordinates!
+      if (isSelected && map) {
+        map.setView([lat, lon], 16, { animate: true });
+      }
     });
 
-    // Centraliza o mapa APENAS no primeiro carregamento ou se a baseFoco mudar ativamente
+    // Fit map bounds on initial load
     const baseFocoMudou = prevBaseFocoRef.current !== baseFoco;
+    const selectedMudou = prevSelectedJornadaIdRef.current !== selectedJornadaId;
     prevBaseFocoRef.current = baseFoco;
+    prevSelectedJornadaIdRef.current = selectedJornadaId;
 
     if (!isInitialFitRef.current || baseFocoMudou) {
       centralizarMapa();
       isInitialFitRef.current = true;
     }
-  }, [jornadas, bases, baseFoco, fallbackLat, fallbackLon, fallbackZoom]);
+  }, [jornadas, bases, baseFoco, selectedJornadaId, replayMode]);
+
+  // Handle Replay Mode Layer rendering
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    // Clear Replay Layers when leaving Replay Mode
+    if (!replayMode) {
+      if (replayPolylineOsrmRef.current) {
+        replayPolylineOsrmRef.current.remove();
+        replayPolylineOsrmRef.current = null;
+      }
+      if (replayPolylineGpsRef.current) {
+        replayPolylineGpsRef.current.remove();
+        replayPolylineGpsRef.current = null;
+      }
+      if (replayVehicleMarkerRef.current) {
+        replayVehicleMarkerRef.current.remove();
+        replayVehicleMarkerRef.current = null;
+      }
+      replayGpsMarkersRef.current.forEach((m) => m.remove());
+      replayGpsMarkersRef.current = [];
+      return;
+    }
+
+    // Hide live markers during replay
+    markersRef.current.forEach((m) => m.remove());
+
+    // 1. Draw Raw GPS Polyline
+    if (replayPoints.length > 0 && !replayPolylineGpsRef.current) {
+      const gpsLatLngs = replayPoints.map((p) => [p.lat, p.lng] as [number, number]);
+      replayPolylineGpsRef.current = L.polyline(gpsLatLngs, {
+        color: '#f59e0b',
+        weight: 3,
+        opacity: 0.6,
+        dashArray: '6, 8',
+      }).addTo(map);
+
+      // Raw GPS Dots
+      replayGpsMarkersRef.current.forEach((m) => m.remove());
+      replayGpsMarkersRef.current = [];
+      replayPoints.forEach((p) => {
+        const circle = L.circleMarker([p.lat, p.lng], {
+          radius: 3,
+          color: '#f59e0b',
+          fillColor: '#fbbf24',
+          fillOpacity: 0.7,
+          weight: 1,
+        }).addTo(map);
+        replayGpsMarkersRef.current.push(circle);
+      });
+    }
+
+    // 2. Draw OSRM Matched Route Polyline (Cyan Glow)
+    if (osrmRouteCoords.length > 0) {
+      if (replayPolylineOsrmRef.current) {
+        replayPolylineOsrmRef.current.setLatLngs(osrmRouteCoords);
+      } else {
+        replayPolylineOsrmRef.current = L.polyline(osrmRouteCoords, {
+          color: '#00f0ff',
+          weight: 5,
+          opacity: 0.9,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }).addTo(map);
+      }
+    }
+
+    // 3. Update Vehicle Pulsing Position
+    if (replayPoints.length > 0) {
+      const currentPoint = replayPoints[currentReplayIndex] || replayPoints[0];
+      const pos: [number, number] = [currentPoint.lat, currentPoint.lng];
+
+      if (!replayVehicleMarkerRef.current) {
+        const vehicleIcon = L.divIcon({
+          className: 'replay-vehicle-marker',
+          html: `
+            <div style="
+              width: 28px;
+              height: 28px;
+              background-color: #3b82f6;
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 0 20px #3b82f6, 0 0 35px rgba(59, 130, 246, 0.7);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">
+              <div style="width: 8px; height: 8px; background: white; border-radius: 50%;"></div>
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+
+        replayVehicleMarkerRef.current = L.marker(pos, { icon: vehicleIcon }).addTo(map);
+        map.setView(pos, 15);
+      } else {
+        replayVehicleMarkerRef.current.setLatLng(pos);
+        if (followVehicle) {
+          map.panTo(pos, { animate: true });
+        }
+      }
+    }
+  }, [replayMode, replayPoints, osrmRouteCoords, currentReplayIndex, followVehicle]);
 
   return (
-    <div className="relative w-full h-[380px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#0d1117]">
+    <div className="relative w-full h-[460px] md:h-[520px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#0d1117]">
       <div ref={containerRef} className="w-full h-full z-10" />
 
-      {/* Botão para Re-centralizar Visão */}
-      <button
-        onClick={centralizarMapa}
-        className="absolute top-3 right-3 z-[400] bg-slate-900/90 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95"
-      >
-        🎯 Centralizar Visão
-      </button>
+      {/* Re-center Button */}
+      {!replayMode && (
+        <button
+          onClick={centralizarMapa}
+          className="absolute top-3 right-3 z-[400] bg-slate-900/90 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95"
+        >
+          🎯 Centralizar Visão
+        </button>
+      )}
 
-      {/* Overlay de Legenda */}
-      <div className="absolute bottom-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 flex items-center gap-4 text-xs text-slate-300 flex-wrap">
-
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
-          <span>Rodando</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#F59E0B]"></span>
-          <span>Em Pausa</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-          <span>Aberta</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-          <span>Encerrada</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px]">🏢 Base Operacional</span>
-        </div>
+      {/* Legend Overlay */}
+      <div className="absolute bottom-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 flex items-center gap-4 text-xs text-slate-300 flex-wrap shadow-xl">
+        {replayMode ? (
+          <>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-1 rounded bg-[#00f0ff] shadow-[0_0_8px_#00f0ff]"></span>
+              <span className="font-semibold text-cyan-300">Rota OSRM Encaixada</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-1 rounded bg-[#f59e0b]"></span>
+              <span>Pontos Brutos GPS</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
+              <span>Rodando</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#F59E0B]"></span>
+              <span>Em Pausa</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+              <span>Aberta</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+              <span>Encerrada</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px]">🏢 Base Operacional</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
