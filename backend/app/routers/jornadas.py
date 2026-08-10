@@ -742,12 +742,30 @@ async def fechar_jornada(
     km_inicial = doc.get("km", {}).get("inicial") or 0
     km_rodados = round(km_final - km_inicial, 1)
     fat_doc = doc.get("faturamento") or {}
-    if faturamento_uber == 0.0 and fat_doc.get("uber"):
-        faturamento_uber = float(fat_doc.get("uber"))
-    if faturamento_99 == 0.0 and fat_doc.get("noventa_nove"):
-        faturamento_99 = float(fat_doc.get("noventa_nove"))
-    if faturamento_outros == 0.0 and fat_doc.get("outros"):
-        faturamento_outros = float(fat_doc.get("outros"))
+    comprovantes = fat_doc.get("comprovantes_processados") or []
+    
+    comp_uber_val = sum(float(c.get("valor", 0.0)) for c in comprovantes if c.get("plataforma") == "UBER")
+    comp_uber_count = sum(1 for c in comprovantes if c.get("plataforma") == "UBER")
+    
+    comp_99_val = sum(float(c.get("valor", 0.0)) for c in comprovantes if c.get("plataforma") in ("99", "99POP", "NOVENTA_NOVEM", "NOVENTA_NOVE"))
+    comp_99_count = sum(1 for c in comprovantes if c.get("plataforma") in ("99", "99POP", "NOVENTA_NOVEM", "NOVENTA_NOVE"))
+    
+    comp_outros_val = sum(float(c.get("valor", 0.0)) for c in comprovantes if c.get("plataforma") not in ("UBER", "99", "99POP", "NOVENTA_NOVEM", "NOVENTA_NOVE"))
+    comp_outros_count = sum(1 for c in comprovantes if c.get("plataforma") not in ("UBER", "99", "99POP", "NOVENTA_NOVEM", "NOVENTA_NOVE"))
+
+    if faturamento_uber == 0.0:
+        faturamento_uber = comp_uber_val or float(fat_doc.get("uber") or 0.0)
+    if faturamento_99 == 0.0:
+        faturamento_99 = comp_99_val or float(fat_doc.get("noventa_nove") or 0.0)
+    if faturamento_outros == 0.0:
+        faturamento_outros = comp_outros_val or float(fat_doc.get("outros") or 0.0)
+
+    if corridas_uber == 0:
+        corridas_uber = comp_uber_count or int(fat_doc.get("corridas_uber") or 0)
+    if corridas_99 == 0:
+        corridas_99 = comp_99_count or int(fat_doc.get("corridas_99") or 0)
+    if corridas_outros == 0:
+        corridas_outros = comp_outros_count or int(fat_doc.get("corridas_outros") or 0)
 
     total_faturamento = round(faturamento_uber + faturamento_99 + faturamento_outros, 2)
 

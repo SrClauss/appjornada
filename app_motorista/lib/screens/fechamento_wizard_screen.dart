@@ -328,12 +328,28 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
 
       final jId = widget.jornada['_id'] ?? widget.jornada['id'];
       
-      final uberVal = double.tryParse(_uberValorCtrl.text) ?? 0.0;
-      final uberCorr = int.tryParse(_uberCorridasCtrl.text) ?? 0;
-      final ninetyNineVal = double.tryParse(_99ValorCtrl.text) ?? 0.0;
-      final ninetyNineCorr = int.tryParse(_99CorridasCtrl.text) ?? 0;
-      final outrosVal = double.tryParse(_outrosValorCtrl.text) ?? 0.0;
-      final outrosCorr = int.tryParse(_outrosCorridasCtrl.text) ?? 0;
+      final fat = widget.jornada['faturamento'] ?? {};
+      final comprovantes = fat['comprovantes_processados'] as List? ?? [];
+
+      final double totalUberComprovantes = comprovantes
+          .where((c) => c['plataforma'] == 'UBER')
+          .fold(0.0, (sum, c) => sum + ((c['valor'] as num?)?.toDouble() ?? 0.0));
+
+      final double total99Comprovantes = comprovantes
+          .where((c) => (c['plataforma'] == '99' || c['plataforma'] == 'NOVENTA_NOVEM'))
+          .fold(0.0, (sum, c) => sum + ((c['valor'] as num?)?.toDouble() ?? 0.0));
+
+      final detectadosUber = comprovantes.where((c) => c['plataforma'] == 'UBER').length;
+      final detectados99 = comprovantes.where((c) => (c['plataforma'] == '99' || c['plataforma'] == 'NOVENTA_NOVEM')).length;
+
+      final uberVal = double.tryParse(_uberValorCtrl.text) ?? (totalUberComprovantes > 0 ? totalUberComprovantes : (fat['uber'] as num?)?.toDouble() ?? 0.0);
+      final uberCorr = int.tryParse(_uberCorridasCtrl.text) ?? (detectadosUber > 0 ? detectadosUber : (fat['corridas_uber'] as num?)?.toInt() ?? 0);
+
+      final ninetyNineVal = double.tryParse(_99ValorCtrl.text) ?? (total99Comprovantes > 0 ? total99Comprovantes : (fat['noventa_nove'] as num?)?.toDouble() ?? 0.0);
+      final ninetyNineCorr = int.tryParse(_99CorridasCtrl.text) ?? (detectados99 > 0 ? detectados99 : (fat['corridas_99'] as num?)?.toInt() ?? 0);
+
+      final outrosVal = double.tryParse(_outrosValorCtrl.text) ?? ((fat['outros'] as num?)?.toDouble() ?? 0.0);
+      final outrosCorr = int.tryParse(_outrosCorridasCtrl.text) ?? ((fat['corridas_outros'] as num?)?.toInt() ?? 0);
 
       final url = '${ApiService.baseUrl}/jornadas/$jId/fechar'
           '?km_final=$kmFinal'
