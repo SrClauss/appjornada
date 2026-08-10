@@ -1238,16 +1238,22 @@ async def upload_e_processar_extrato_video(
 
         horario_c = c.get("horario")
         origem_c = c.get("origem")
+        destino_c = c.get("destino")
 
-        # Evita duplicar corridas idênticas já adicionadas no lote ou em envios anteriores
-        eh_duplicada = any(
-            c_exist.get("valor") == valor_c and
-            c_exist.get("plataforma") == plat_c and
-            (horario_c is None or c_exist.get("horario") == horario_c) and
-            (origem_c is None or c_exist.get("origem") == origem_c)
-            for c_exist in (comprovantes_existentes + novos_comprovantes)
-        )
-        if eh_duplicada:
+        # Deduplicação precisa: só descarta se houver correspondência de horário ou endereços válidos
+        def _eh_duplicada(c_exist):
+            if c_exist.get("valor") != valor_c or c_exist.get("plataforma") != plat_c:
+                return False
+            h_ex = c_exist.get("horario")
+            o_ex = c_exist.get("origem")
+            d_ex = c_exist.get("destino")
+            if horario_c and h_ex and horario_c == h_ex:
+                return True
+            if origem_c and o_ex and origem_c == o_ex and destino_c and d_ex and destino_c == d_ex:
+                return True
+            return False
+
+        if any(_eh_duplicada(c_exist) for c_exist in (comprovantes_existentes + novos_comprovantes)):
             continue
 
         comp_dict = {
