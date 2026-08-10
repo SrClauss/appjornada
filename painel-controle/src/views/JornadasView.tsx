@@ -23,7 +23,8 @@ import {
   ListBullets,
   Trash,
   Calendar,
-  Camera
+  Camera,
+  Play
 } from '@phosphor-icons/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useQueryClient } from '@tanstack/react-query';
@@ -939,10 +940,34 @@ export function JornadasView() {
     });
   }, [liveEvents]);
 
-  const handleOpenJornada = (j: Jornada) => {
-    const jId = j.id || (j as any)._id;
-    window.location.hash = `#/monitor?jornada_id=${jId}`;
+  const handleOpenJornada = async (j: Jornada) => {
+    setSelectedJornada(j);
+    setLoadingRoute(true);
+    setRouteCoordinates([]);
+    setRouteSegments([]);
+    try {
+      const jId = j.id || (j as any)._id;
+      const { data } = await api.get(`/gps/motorista/${j.motorista_id}/rota-ajustada`, {
+        params: { jornada_id: jId }
+      });
+      if (data && data.segmentos_rota) {
+        setRouteSegments(data.segmentos_rota.map((s: any) => ({
+          is_produtivo: s.is_produtivo,
+          coords: s.coordinates
+        })));
+      } else {
+        setRouteSegments([]);
+      }
+      if (data && data.coordinates) {
+        setRouteCoordinates(data.coordinates);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar rota ajustada:', e);
+    } finally {
+      setLoadingRoute(false);
+    }
   };
+
 
 
   const handleOpenJornadaFromEvent = async (jornadaId: string) => {
@@ -1136,7 +1161,20 @@ export function JornadasView() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const jId = selectedJornada.id || (selectedJornada as any)._id;
+                      window.location.hash = `#/monitor?jornada_id=${jId}`;
+                    }}
+                    className="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md mr-2"
+                  >
+                    <Play size={14} weight="fill" />
+                    <span>🎥 Refazer Trajeto no Monitor (OSRM)</span>
+                  </Button>
+
                   <Badge variant={statusBadgeVariant(selectedJornada.status)} className="px-3 py-1 text-sm font-semibold uppercase tracking-wider">
+
                     {selectedJornada.status}
                   </Badge>
                   <Badge 
@@ -1548,15 +1586,39 @@ export function JornadasView() {
                                 <Badge variant={statusBadgeVariant(j.status)}>{j.status}</Badge>
                               </TableCell>
                               <TableCell>
-                                <div className="flex gap-2">
-                                  <Button size="sm" variant="ghost" onClick={() => handleOpenJornada(j)}>
-                                    <Eye size={16} />
+                                <div className="flex items-center gap-1">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    title="Visualizar Detalhes e Fotos da Jornada" 
+                                    onClick={() => handleOpenJornada(j)}
+                                  >
+                                    <Eye size={16} className="text-sky-600" />
                                   </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => handleDeleteJornada(j.id || (j as any)._id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    title="Refazer Trajeto no Monitor (OSRM)" 
+                                    onClick={() => {
+                                      const jId = j.id || (j as any)._id;
+                                      window.location.hash = `#/monitor?jornada_id=${jId}`;
+                                    }}
+                                    className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                                  >
+                                    <Play size={16} weight="fill" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    title="Excluir Jornada"
+                                    onClick={() => handleDeleteJornada(j.id || (j as any)._id)} 
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  >
                                     <Trash size={16} />
                                   </Button>
                                 </div>
                               </TableCell>
+
                             </TableRow>
                           ))
                         )}
