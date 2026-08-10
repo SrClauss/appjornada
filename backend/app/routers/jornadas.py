@@ -1236,15 +1236,29 @@ async def upload_e_processar_extrato_video(
         if valor_c <= 0:
             continue
 
+        horario_c = c.get("horario")
+        origem_c = c.get("origem")
+
+        # Evita duplicar corridas idênticas já adicionadas no lote ou em envios anteriores
+        eh_duplicada = any(
+            c_exist.get("valor") == valor_c and
+            c_exist.get("plataforma") == plat_c and
+            (horario_c is None or c_exist.get("horario") == horario_c) and
+            (origem_c is None or c_exist.get("origem") == origem_c)
+            for c_exist in (comprovantes_existentes + novos_comprovantes)
+        )
+        if eh_duplicada:
+            continue
+
         comp_dict = {
             "id": str(uuid.uuid4()),
             "url": video_url,
             "valor": valor_c,
             "plataforma": plat_c,
             "categoria": c.get("categoria"),
-            "origem": c.get("origem"),
+            "origem": origem_c,
             "destino": c.get("destino"),
-            "horario": c.get("horario"),
+            "horario": horario_c,
             "distancia_km": c.get("distancia_km"),
             "processado_via": "VIDEO_EXTRATO",
             "created_at": now_iso,
