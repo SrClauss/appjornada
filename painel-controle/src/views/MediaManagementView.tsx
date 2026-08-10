@@ -62,7 +62,10 @@ const CONTEXTO_COLORS: Record<string, string> = {
   hodometro: 'bg-sky-50 text-sky-700 border-sky-100',
 };
 
-const DELETABLE_CONTEXTS = ['km_inicial', 'km_final', 'vistoria', 'sinistro', 'comprovante'];
+const DELETABLE_CONTEXTS = [
+  'km_inicial', 'km_final', 'vistoria', 'sinistro', 'comprovante', 
+  'extrato_video', 'extrato_frames', 'hodometro', 'nota_fiscal', 'cnh', 'clrv', 'veiculo', 'outros'
+];
 
 export function MediaManagementView() {
   const [medias, setMedias] = useState<UploadedMedia[]>([]);

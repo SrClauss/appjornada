@@ -29,7 +29,8 @@ CONTEXTOS_VALIDOS = {
 }
 
 CONTEXTOS_DELETAVEIS = {
-    "km_inicial", "km_final", "vistoria", "sinistro", "comprovante", "extrato_video", "extrato_frames", "hodometro"
+    "km_inicial", "km_final", "vistoria", "sinistro", "comprovante", 
+    "extrato_video", "extrato_frames", "hodometro", "nota_fiscal", "cnh", "clrv", "veiculo", "outros"
 }
 
 EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".pdf", ".webp", ".mp4", ".mov", ".avi", ".mkv"}
