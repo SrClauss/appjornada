@@ -33,14 +33,18 @@ fi
 if [ "$BUILD_APK" = true ]; then
   echo "==> Iniciando compilação do APK de Produção (app_motorista)..."
   cd "$LOCAL_DIR/app_motorista"
+  VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1 || echo "1.0.4")
   flutter clean
   flutter build apk --release
   mkdir -p "$LOCAL_DIR/nginx/html"
   cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/nginx/html/app-release.apk"
+  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/nginx/html/app-jornada-v${VERSION}.apk"
   cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/app-release.apk"
+  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/app-jornada-v${VERSION}.apk"
   cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/painel-controle/public/app-release.apk"
+  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/painel-controle/public/app-jornada-v${VERSION}.apk"
   cd "$LOCAL_DIR"
-  echo "==> APK compilado e copiado com sucesso!"
+  echo "==> APK v${VERSION} compilado e copiado para app-jornada-v${VERSION}.apk e app-release.apk com sucesso!"
 fi
 
 # Se um comentário de commit for fornecido
