@@ -440,8 +440,10 @@ async def processar_ocr_nota_fiscal(
         inferred, _ = mimetypes.guess_type(file.filename or "")
         if inferred and inferred.startswith("image/"):
             content_type = inferred
-        else:
+        elif not content_type or content_type == "application/octet-stream":
             content_type = "image/jpeg"
+        else:
+            raise HTTPException(status_code=400, detail="O arquivo enviado precisa ser uma imagem (JPEG/PNG).")
 
     img_bytes = await file.read()
     file.file.seek(0)

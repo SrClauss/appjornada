@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 const String defaultApiUrl = 'https://rafael.arkana.fun/api';
 
@@ -31,7 +32,14 @@ class ApiService {
         request.headers['Authorization'] = 'Bearer $token';
       }
       
-      request.files.add(await http.MultipartFile.fromPath('arquivo', filePath));
+      final ext = filePath.toLowerCase().endsWith('.png') ? 'png' : (filePath.toLowerCase().endsWith('.pdf') ? 'pdf' : 'jpeg');
+      final mimeType = filePath.toLowerCase().endsWith('.pdf') ? MediaType('application', 'pdf') : MediaType('image', ext);
+
+      request.files.add(await http.MultipartFile.fromPath(
+        'arquivo',
+        filePath,
+        contentType: mimeType,
+      ));
       
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -160,7 +168,12 @@ class ApiService {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
-      request.files.add(await http.MultipartFile.fromPath('file', imagePath));
+      final ext = imagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        imagePath,
+        contentType: MediaType('image', ext),
+      ));
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);

@@ -31,7 +31,7 @@ CONTEXTOS_VALIDOS = {
 
 CONTEXTOS_DELETAVEIS = {
     "km_inicial", "km_final", "vistoria", "sinistro", "comprovante", 
-    "extrato_video", "extrato_frames", "hodometro", "nota_fiscal", "cnh", "clrv", "veiculo", "outros",
+    "extrato_video", "extrato_frames", "hodometro", "nota_fiscal", "outros",
     "abastecimentos", "abastecimento"
 }
 
