@@ -1,16 +1,17 @@
 import os
 from pymongo import MongoClient
 
-# Carrega do .env se existir
-env_path = os.path.join(os.path.dirname(__file__), ".env")
-if os.path.exists(env_path):
-    with open(env_path) as f:
-        for line in f:
-            if line.strip() and not line.startswith("#"):
-                parts = line.strip().split("=", 1)
-                if len(parts) == 2:
-                    key, val = parts
-                    os.environ.setdefault(key, val)
+# Carrega do .env se existir (no diretório do script ou no diretório pai backend)
+for candidate in [os.path.join(os.path.dirname(__file__), ".env"), os.path.join(os.path.dirname(__file__), "..", ".env")]:
+    if os.path.exists(candidate):
+        with open(candidate) as f:
+            for line in f:
+                if line.strip() and not line.startswith("#"):
+                    parts = line.strip().split("=", 1)
+                    if len(parts) == 2:
+                        key, val = parts
+                        os.environ.setdefault(key, val)
+        break
 
 # Pega o MONGO_URL do env
 mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017/appjornada")
