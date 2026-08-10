@@ -741,7 +741,15 @@ async def fechar_jornada(
 
     km_inicial = doc.get("km", {}).get("inicial") or 0
     km_rodados = round(km_final - km_inicial, 1)
-    total_faturamento = faturamento_uber + faturamento_99 + faturamento_outros
+    fat_doc = doc.get("faturamento") or {}
+    if faturamento_uber == 0.0 and fat_doc.get("uber"):
+        faturamento_uber = float(fat_doc.get("uber"))
+    if faturamento_99 == 0.0 and fat_doc.get("noventa_nove"):
+        faturamento_99 = float(fat_doc.get("noventa_nove"))
+    if faturamento_outros == 0.0 and fat_doc.get("outros"):
+        faturamento_outros = float(fat_doc.get("outros"))
+
+    total_faturamento = round(faturamento_uber + faturamento_99 + faturamento_outros, 2)
 
     # Calcular bonus baseado no faturamento total e horario de inicio
     bonus_dia = 0.0
@@ -803,16 +811,14 @@ async def fechar_jornada(
         "noventa_nove": faturamento_99,
         "outros": faturamento_outros,
         "total_dia": total_faturamento,
-        "corridas_uber": corridas_uber,
-        "corridas_99": corridas_99,
-        "corridas_outros": corridas_outros,
+        "corridas_uber": corridas_uber if corridas_uber > 0 else fat_doc.get("corridas_uber", 0),
+        "corridas_99": corridas_99 if corridas_99 > 0 else fat_doc.get("corridas_99", 0),
+        "corridas_outros": corridas_outros if corridas_outros > 0 else fat_doc.get("corridas_outros", 0),
+        "comprovantes_processados": fat_doc.get("comprovantes_processados", []),
+        "comprovante_uber_url": comprovante_uber_url or fat_doc.get("comprovante_uber_url"),
+        "comprovante_99_url": comprovante_99_url or fat_doc.get("comprovante_99_url"),
+        "comprovante_outros_url": comprovante_outros_url or fat_doc.get("comprovante_outros_url"),
     }
-    if comprovante_uber_url:
-        faturamento_obj["comprovante_uber_url"] = comprovante_uber_url
-    if comprovante_99_url:
-        faturamento_obj["comprovante_99_url"] = comprovante_99_url
-    if comprovante_outros_url:
-        faturamento_obj["comprovante_outros_url"] = comprovante_outros_url
 
     update = {
         "status": "ENCERRADA",

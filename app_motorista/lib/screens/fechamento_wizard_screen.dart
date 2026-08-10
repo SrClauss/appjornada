@@ -947,9 +947,12 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
   }
 
   Widget _buildHodometroFinalView() {
-    final double fatUber = ((widget.jornada['faturamento']?['uber'] ?? 0.0) as num).toDouble();
-    final double fat99 = ((widget.jornada['faturamento']?['ninety_nine'] ?? 0.0) as num).toDouble();
-    final double fatTotal = fatUber + fat99;
+    final fatObj = _faturamentoLocal ?? widget.jornada['faturamento'] ?? {};
+    final double fatUber = ((fatObj['uber'] ?? 0.0) as num).toDouble();
+    final double fat99 = ((fatObj['noventa_nove'] ?? fatObj['ninety_nine'] ?? 0.0) as num).toDouble();
+    final double fatOutros = ((fatObj['outros'] ?? 0.0) as num).toDouble();
+    final double fatTotal = fatUber + fat99 + fatOutros;
+    final double kmInicial = ((widget.jornada['km']?['inicial'] ?? 0.0) as num).toDouble();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -961,54 +964,73 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
         ),
         const SizedBox(height: 8),
         const Text(
-          'Confira os faturamentos extraídos pela IA e fotografe o hodômetro do veículo para finalizar o dia.',
+          'Confira os faturamentos acumulados nesta jornada e registre o hodômetro final do veículo para fechar o dia.',
           style: TextStyle(color: Colors.grey, fontSize: 13),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // CARD RESUMO FATURAMENTO IA
+        // CARD RESUMO FATURAMENTO DA JORNADA ATUAL
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color(0xFF1E293B),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.greenAccent),
+            border: Border.all(color: const Color(0xFF10B981)),
           ),
           child: Column(
             children: [
-              const Text('Faturamento Total Extraído por IA', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+              const Text('Faturamento Total da Jornada Atual', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Text(
                 'R\$ ${fatTotal.toStringAsFixed(2).replaceAll('.', ',')}',
-                style: const TextStyle(color: Colors.greenAccent, fontSize: 32, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Color(0xFF10B981), fontSize: 32, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Text('Uber: R\$ ${fatUber.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                  Text('99: R\$ ${fat99.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Color(0xFFFFCC00), fontSize: 14, fontWeight: FontWeight.bold)),
+                  Text('Uber: R\$ ${fatUber.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('99: R\$ ${fat99.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Color(0xFFFFCC00), fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('Particular: R\$ ${fatOutros.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 13, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+
+        // INFORMACAO HODOMETRO INICIAL DA JORNADA ATUAL
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF334155)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Hodômetro Inicial da Jornada Atual:', style: TextStyle(color: Colors.grey, fontSize: 13)),
+              Text('${kmInicial.toStringAsFixed(1)} KM', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
 
         // DADOS DO FECHAMENTO HODOMETRO
         const Text(
-          'Hodômetro Final do Veículo (Foto Obrigatória)',
-          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+          'Foto do Hodômetro Final (Comprovante Visual)',
+          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         SizedBox(
-          height: 56,
+          height: 48,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _fotoKmFinalUrl != null ? Colors.green : const Color(0xFF1E293B),
+              backgroundColor: _fotoKmFinalUrl != null ? const Color(0xFF10B981) : const Color(0xFF1E293B),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: _tirarFotoHodometro,
             icon: Icon(_fotoKmFinalUrl != null ? Icons.check_circle : Icons.camera_alt, color: _fotoKmFinalUrl != null ? Colors.white : Colors.blueAccent),
@@ -1021,29 +1043,29 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
-            labelText: 'KM Final do Hodômetro',
-            labelStyle: const TextStyle(color: Colors.grey),
+            labelText: 'KM Final do Hodômetro (Mínimo: ${kmInicial.toStringAsFixed(1)} KM)',
+            labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
             filled: true,
             fillColor: const Color(0xFF1E293B),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             prefixIcon: const Icon(Icons.speed, color: Colors.blueAccent),
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 32),
         Row(
           children: [
             Expanded(
               child: SizedBox(
-                height: 56,
+                height: 48,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white70,
                     side: const BorderSide(color: Colors.white24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () {
                     setState(() {
-                      _currentStep = 2;
+                      _currentStep = 3;
                     });
                   },
                   child: const Text('VOLTAR'),
@@ -1053,17 +1075,17 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
             const SizedBox(width: 16),
             Expanded(
               child: SizedBox(
-                height: 56,
+                height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color(0xFF10B981),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: _loading ? null : _finalizarJornada,
                   child: _loading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('ENCERRAR JORNADA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      : const Text('ENCERRAR JORNADA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 ),
               ),
             ),
