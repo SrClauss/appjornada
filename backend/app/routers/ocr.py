@@ -198,23 +198,29 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                data = json.loads(resp.read().decode())
-                raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                
-                cleaned = re.sub(r"^```json\s*", "", raw_text.strip(), flags=re.IGNORECASE)
-                cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.IGNORECASE)
-                cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.IGNORECASE).strip()
+        
+        for tentativa in range(3):
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    data = json.loads(resp.read().decode())
+                    raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                    
+                    cleaned = re.sub(r"^```json\s*", "", raw_text.strip(), flags=re.IGNORECASE)
+                    cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.IGNORECASE)
+                    cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.IGNORECASE).strip()
 
-                parsed = json.loads(cleaned)
-                if isinstance(parsed, dict) and "corridas" in parsed:
-                    parsed["sucesso"] = True
-                    return parsed
-        except Exception as e:
-            print(f"[OCR Video] Erro no modelo {model}:", e)
-            continue
+                    parsed = json.loads(cleaned)
+                    if isinstance(parsed, dict) and "corridas" in parsed:
+                        parsed["sucesso"] = True
+                        return parsed
+            except Exception as e:
+                print(f"[OCR Video] Erro na tentativa {tentativa+1} do modelo {model}:", e)
+                if "503" in str(e) or "Service Unavailable" in str(e):
+                    import time
+                    time.sleep(2)
+                    continue
+                break
 
     return {"sucesso": False, "mensagem": "Não foi possível processar o vídeo do extrato", "corridas": []}
 
