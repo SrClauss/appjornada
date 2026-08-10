@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Jornada, Veiculo, BaseOperacao } from '@/lib/types';
@@ -202,6 +202,18 @@ export function MonitorView() {
   const [distanciaOsrmKm, setDistanciaOsrmKm] = useState<number>(0);
   const [distanciaGpsKm, setDistanciaGpsKm] = useState<number>(0);
   const [loadingReplay, setLoadingReplay] = useState<boolean>(false);
+  const [telemetriaSearch, setTelemetriaSearch] = useState<string>('');
+
+  const filteredReplayPoints = useMemo(() => {
+    if (!telemetriaSearch) return replayPoints;
+    const q = telemetriaSearch.toLowerCase();
+    return replayPoints.filter(pt => 
+      (pt.rua && pt.rua.toLowerCase().includes(q)) ||
+      pt.status?.toLowerCase().includes(q) ||
+      (pt.timestamp && pt.timestamp.includes(q))
+    );
+  }, [replayPoints, telemetriaSearch]);
+
 
   const replayTimerRef = useRef<any>(null);
 
@@ -837,21 +849,125 @@ export function MonitorView() {
                 />
               )}
 
-              {/* Map Component */}
-              <LiveMapView 
-                jornadas={displayedJornadas} 
-                bases={bases} 
-                baseFoco={selectedBase} 
-                selectedJornadaId={selectedJornadaId}
-                onSelectJornada={(j) => setSelectedJornadaId(j.id || (j as any)._id)}
-                onStartReplay={(j) => handleStartReplay(j, true)}
-                onShowCompleteRoute={handleShowCompleteRoute}
-                replayMode={!!replayJornada}
-                replayPoints={replayPoints}
-                osrmRouteCoords={osrmRouteCoords}
-                currentReplayIndex={currentReplayIndex}
-                followVehicle={followVehicle}
-              />
+              {/* Grid with Interactive Telemetry Sidebar + Map Component */}
+              {replayJornada ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  {/* Interactive Telemetry List Sidebar */}
+                  <Card className="lg:col-span-4 p-4 bg-[#0d1117]/95 border-slate-800 rounded-2xl shadow-xl flex flex-col h-[520px]">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                          Pontos de Telemetria ({replayPoints.length})
+                        </h3>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">Clique para pular</span>
+                    </div>
+
+                    <div className="mb-3">
+                      <input
+                        type="text"
+                        placeholder="Filtrar por rua ou horário..."
+                        value={telemetriaSearch}
+                        onChange={(e) => setTelemetriaSearch(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+                      />
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+                      {filteredReplayPoints.length === 0 ? (
+                        <div className="text-center py-10 text-slate-500 text-xs">
+                          Nenhum ponto encontrado com o filtro aplicado.
+                        </div>
+                      ) : (
+                        filteredReplayPoints.map((pt) => {
+                          const realIdx = replayPoints.findIndex((p) => p.timestamp === pt.timestamp && p.lat === pt.lat);
+                          const isSelected = realIdx === currentReplayIndex;
+                          const isParado = pt.status === 'PARADO';
+                          const timeOnly = new Date(pt.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                          return (
+                            <div
+                              key={pt.id || realIdx}
+                              onClick={() => {
+                                if (realIdx !== -1) {
+                                  setCurrentReplayIndex(realIdx);
+                                  setIsPlayingReplay(false);
+                                }
+                              }}
+                              className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'bg-sky-950/90 border-sky-400 shadow-md shadow-sky-950/50'
+                                  : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-mono font-bold text-sky-300 text-[11px]">{timeOnly}</span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-[9px] font-mono font-bold uppercase ${
+                                    isParado 
+                                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' 
+                                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                  }`}
+                                >
+                                  {pt.status || 'CONDUZINDO'}
+                                </Badge>
+                              </div>
+
+                              <div className="text-[11px] text-slate-300 truncate font-medium flex items-center gap-1">
+                                <span className="text-slate-500">📍</span>
+                                <span className="truncate">{pt.rua || 'Via não identificada'}</span>
+                              </div>
+
+                              {pt.distancia_ultima_m ? (
+                                <div className="text-[10px] font-mono text-slate-500 mt-1 flex items-center justify-between">
+                                  <span>+{(pt.distancia_ultima_m).toFixed(0)}m desde o anterior</span>
+                                  <span>Point #{realIdx + 1}</span>
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </Card>
+
+                  {/* Live Map Component */}
+                  <div className="lg:col-span-8">
+                    <LiveMapView 
+                      jornadas={displayedJornadas} 
+                      bases={bases} 
+                      baseFoco={selectedBase} 
+                      selectedJornadaId={selectedJornadaId}
+                      onSelectJornada={(j) => setSelectedJornadaId(j.id || (j as any)._id)}
+                      onStartReplay={(j) => handleStartReplay(j, true)}
+                      onShowCompleteRoute={handleShowCompleteRoute}
+                      replayMode={!!replayJornada}
+                      replayPoints={replayPoints}
+                      osrmRouteCoords={osrmRouteCoords}
+                      currentReplayIndex={currentReplayIndex}
+                      followVehicle={followVehicle}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <LiveMapView 
+                  jornadas={displayedJornadas} 
+                  bases={bases} 
+                  baseFoco={selectedBase} 
+                  selectedJornadaId={selectedJornadaId}
+                  onSelectJornada={(j) => setSelectedJornadaId(j.id || (j as any)._id)}
+                  onStartReplay={(j) => handleStartReplay(j, true)}
+                  onShowCompleteRoute={handleShowCompleteRoute}
+                  replayMode={!!replayJornada}
+                  replayPoints={replayPoints}
+                  osrmRouteCoords={osrmRouteCoords}
+                  currentReplayIndex={currentReplayIndex}
+                  followVehicle={followVehicle}
+                />
+              )}
+
 
             </div>
 
