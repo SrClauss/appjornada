@@ -940,53 +940,18 @@ export function JornadasView() {
     });
   }, [liveEvents]);
 
-  // Estados da Tabela de Registros de Telemetria (Audit Log)
-  const [telemetryEvents, setTelemetryEvents] = useState<any[]>([]);
-  const [telemetriaSearch, setTelemetriaSearch] = useState<string>('');
-  const [telemetriaStatusFilter, setTelemetriaStatusFilter] = useState<string>('');
-  const [telemetryPage, setTelemetryPage] = useState<number>(1);
-  const [telemetryPageSize, setTelemetryPageSize] = useState<number>(50);
-
-  const filteredTelemetryEvents = useMemo(() => {
-    return telemetryEvents.filter((ev) => {
-      const matchesStatus = telemetriaStatusFilter ? ev.status === telemetriaStatusFilter : true;
-      if (!matchesStatus) return false;
-      if (!telemetriaSearch) return true;
-      const q = telemetriaSearch.toLowerCase();
-      const rua = (ev.rua || '').toLowerCase();
-      const status = (ev.status || '').toLowerCase();
-      const timeStr = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString('pt-BR') : '';
-      return rua.includes(q) || status.includes(q) || timeStr.includes(q);
-    });
-  }, [telemetryEvents, telemetriaSearch, telemetriaStatusFilter]);
-
-  const paginatedTelemetryEvents = useMemo(() => {
-    return filteredTelemetryEvents.slice((telemetryPage - 1) * telemetryPageSize, telemetryPage * telemetryPageSize);
-  }, [filteredTelemetryEvents, telemetryPage, telemetryPageSize]);
-
   const handleOpenJornada = async (j: Jornada) => {
-    setSelectedJornada(j);
-    setLoadingRoute(true);
-    setTelemetryEvents([]);
-    setTelemetryPage(1);
-    setTelemetriaSearch('');
-    setTelemetriaStatusFilter('');
-    try {
-      const jId = j.id || (j as any)._id;
-      const motoristaId = j.motorista_id;
-      const { data } = await api.get<any[]>(`/gps/motorista/${motoristaId}`, {
-        params: { jornada_id: jId, limite: 10000 }
-      });
-      setTelemetryEvents(data || []);
-    } catch (e) {
-      console.error('Erro ao carregar telemetria:', e);
-    } finally {
-      setLoadingRoute(false);
+    setSelectedMotoristaId(j.motorista_id);
+    if (j.data) {
+      setDatetimeInicio(`${j.data}T00:00`);
+      setDatetimeFim(`${j.data}T23:59`);
+    }
+    setActiveTab('realtime');
+    const jId = j.id || (j as any)._id;
+    if (j.motorista_id && jId) {
+      fetchGpsForJornada(j.motorista_id, jId, true);
     }
   };
-
-
-
 
   const handleOpenJornadaFromEvent = async (jornadaId: string) => {
     setLoadingRoute(true);
@@ -1133,7 +1098,7 @@ export function JornadasView() {
     
     const ev = filteredEvents[idx];
     const isAlreadySelected = selectedEvents.some(
-      x => x.timestamp === ev?.timestamp && x.jornada_id === ev?.jornada_id
+      x => x.timestamp === ev.timestamp && x.jornada_id === ev.jornada_id
     );
     dragSelectModeRef.current = !isAlreadySelected;
     setTrackHoverIdx(idx);
@@ -1146,428 +1111,994 @@ export function JornadasView() {
 
   return (
     <div className="space-y-6">
-      {selectedJornada ? (
-        <div className="space-y-6 animate-fade-in">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedJornada(null)}
-                className="flex items-center gap-2 px-3 py-1.5 h-auto text-slate-700 border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
-              >
-                <ArrowLeft size={16} />
-                Voltar para Jornadas Cadastradas
-              </Button>
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">
-                  Tabela de Registros de Telemetria GPS — {selectedJornada.motorista_nome || selectedJornada.motorista_id}
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Jornada em <strong>{new Date(selectedJornada.data + 'T00:00:00').toLocaleDateString('pt-BR')}</strong> • Veículo: <strong className="text-slate-800">{selectedJornada.veiculo_id}</strong> • Total: <strong className="text-sky-600">{telemetryEvents.length} registros auditados</strong>
-                </p>
-              </div>
-            </div>
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 gap-6">
+        <button
+          onClick={() => { setActiveTab('painel'); setSelectedJornada(null); }}
+          className={`pb-3 font-semibold text-sm transition-all relative ${
+            activeTab === 'painel' 
+              ? 'text-primary border-b-2 border-blue-600' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <MapTrifold size={18} />
+            <span>Painel e Trajetos</span>
+          </div>
+        </button>
 
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                onClick={() => {
-                  const jId = selectedJornada.id || (selectedJornada as any)._id;
-                  window.location.hash = `#/monitor?jornada_id=${jId}`;
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
-              >
-                <Play size={14} weight="fill" />
-                <span>🎥 Replay em Tempo Real no Monitor (OSRM)</span>
-              </Button>
+        <button
+          onClick={() => { setActiveTab('realtime'); setSelectedJornada(null); }}
+          className={`pb-3 font-semibold text-sm transition-all relative ${
+            activeTab === 'realtime' 
+              ? 'text-primary border-b-2 border-blue-600' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <ListBullets size={18} />
+            <div className="flex items-center gap-1.5">
+              <span>Eventos em Tempo Real</span>
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('importar'); setSelectedJornada(null); }}
+          className={`pb-3 font-semibold text-sm transition-all relative ${
+            activeTab === 'importar' 
+              ? 'text-primary border-b-2 border-blue-600' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <UploadSimple size={18} />
+            <span>Importação Uber/99</span>
+          </div>
+        </button>
+      </div>
+
+      {activeTab === 'painel' && (
+        <>
+          {selectedJornada ? (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedJornada(null)}
+                    className="flex items-center gap-2 px-3 py-1.5 h-auto text-slate-700 border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+                  >
+                    <ArrowLeft size={16} />
+                    Voltar
+                  </Button>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-800">Visualizar Jornada</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Deslocamento real e eventos ocorridos em {new Date(selectedJornada.data).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={statusBadgeVariant(selectedJornada.status)} className="px-3 py-1 text-sm font-semibold uppercase tracking-wider">
+                    {selectedJornada.status}
+                  </Badge>
+                  <Badge 
+                    variant="outline" 
+                    className={`px-3 py-1 text-sm font-semibold uppercase tracking-wider ${
+                      (selectedJornada.score_auditoria?.nivel_risco || selectedJornada.auditoria_status) === 'VERDE' || selectedJornada.auditoria_status === 'APROVADA'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                        : (selectedJornada.score_auditoria?.nivel_risco || selectedJornada.auditoria_status) === 'AMARELO'
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                    }`}
+                  >
+                    Auditoria: {selectedJornada.score_auditoria?.nivel_risco || selectedJornada.auditoria_status || 'PENDENTE'}
+                    {selectedJornada.score_auditoria ? ` (${selectedJornada.score_auditoria.score_risco} pts)` : ''}
+                  </Badge>
+
+                  {selectedJornada.status === 'ENCERRADA' && selectedJornada.auditoria_status !== 'APROVADA' && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={handleAprovarAuditoria}
+                      className="border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white font-semibold"
+                    >
+                      <ShieldCheck size={18} className="mr-1.5" />
+                      Aprovar Auditoria
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Triggers / Motivos do Risco de Auditoria */}
+              {selectedJornada.score_auditoria?.motivos_risco && selectedJornada.score_auditoria.motivos_risco.length > 0 && (
+                <div className="mt-3 p-3 bg-slate-900/90 border border-amber-500/30 rounded-xl text-xs space-y-1">
+                  <div className="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>⚠️ Alertas de Inconsistência Detectados:</span>
+                  </div>
+                  <ul className="list-disc list-inside text-slate-300 space-y-0.5 pl-1">
+                    {selectedJornada.score_auditoria.motivos_risco.map((motivo, idx) => (
+                      <li key={idx}>{motivo}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-100 rounded-xl">
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <User size={24} weight="duotone" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Motorista</p>
+                    <h4 className="text-sm font-semibold text-slate-800 mt-0.5">
+                      {selectedJornada.motorista_nome ?? selectedJornada.motorista_id}
+                    </h4>
+                  </div>
+                </Card>
+
+                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-100 rounded-xl">
+                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <Car size={24} weight="duotone" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Veículo / Placa</p>
+                    <h4 className="text-sm font-semibold text-slate-800 mt-0.5">{selectedJornada.veiculo_id}</h4>
+                  </div>
+                </Card>
+
+                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-100 rounded-xl">
+                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <Compass size={24} weight="duotone" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Odômetro Inicial / Final</p>
+                    <h4 className="text-sm font-semibold text-slate-800 mt-0.5">
+                      {selectedJornada.km?.inicial?.toLocaleString('pt-BR') ?? '—'} / {selectedJornada.km?.final?.toLocaleString('pt-BR') ?? '—'}
+                    </h4>
+                  </div>
+                </Card>
+
+                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-100 rounded-xl">
+                  <div className="p-3 bg-rose-50 text-rose-600 rounded-xl">
+                    <Clock size={24} weight="duotone" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Km Rodados</p>
+                    <h4 className="text-sm font-bold text-blue-600 mt-0.5">
+                      {selectedJornada.km?.rodados?.toLocaleString('pt-BR') ?? 0} km
+                    </h4>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Main Content Layout */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <MapTrifold size={20} className="text-slate-600" />
+                    <h3 className="text-lg font-semibold text-slate-700">Deslocamento Contínuo e Direção da Rota</h3>
+                  </div>
+                  <Card className="overflow-hidden border border-slate-100 shadow-md rounded-2xl h-[550px] relative">
+                    {loadingRoute ? (
+                      <div className="w-full h-full flex items-center justify-center bg-slate-50">
+                        <span className="text-sm text-slate-500 animate-pulse">Carregando telemetria...</span>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full relative">
+                        <JourneyMap 
+                          key={(selectedJornada as any)._id || selectedJornada.id}
+                          coordinates={routeCoordinates} 
+                          routeSegments={routeSegments}
+                          corridasParticulares={(selectedJornada as any).corridas_particulares}
+                        />
+                      </div>
+                    )}
+                  </Card>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock size={20} className="text-slate-600" />
+                    <h3 className="text-lg font-semibold text-slate-700">Linha do Tempo</h3>
+                  </div>
+                  <Card className="p-6 border border-slate-100 shadow-md rounded-2xl h-[550px] overflow-y-auto bg-card">
+                    <UnifiedTimeline journey={selectedJornada} />
+                  </Card>
+                </div>
+              </div>
+
+              {/* Fotografias e Comprovantes */}
+              {(selectedJornada.fotos?.km_inicial_url || 
+                selectedJornada.fotos?.km_final_url || 
+                selectedJornada.vistoria?.foto_avarias_url ||
+                selectedJornada.faturamento?.comprovante_uber_url ||
+                selectedJornada.faturamento?.comprovante_99_url ||
+                selectedJornada.faturamento?.comprovante_outros_url) && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <Camera size={18} className="text-slate-600" />
+                    Fotografias e Comprovantes da Jornada
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {selectedJornada.fotos?.km_inicial_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Odômetro Inicial</span>
+                        <a 
+                          href={selectedJornada.fotos.km_inicial_url.startsWith('http') ? selectedJornada.fotos.km_inicial_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.fotos.km_inicial_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity"
+                        >
+                          <img 
+                            src={selectedJornada.fotos.km_inicial_url.startsWith('http') ? selectedJornada.fotos.km_inicial_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.fotos.km_inicial_url}`}
+                            alt="Odômetro Inicial" 
+                            className="w-full h-full object-cover" 
+                          />
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.fotos?.km_final_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Odômetro Final</span>
+                        <a 
+                          href={selectedJornada.fotos.km_final_url.startsWith('http') ? selectedJornada.fotos.km_final_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.fotos.km_final_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity"
+                        >
+                          <img 
+                            src={selectedJornada.fotos.km_final_url.startsWith('http') ? selectedJornada.fotos.km_final_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.fotos.km_final_url}`}
+                            alt="Odômetro Final" 
+                            className="w-full h-full object-cover" 
+                          />
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.vistoria?.foto_avarias_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Avarias Vistoria</span>
+                        <a 
+                          href={selectedJornada.vistoria.foto_avarias_url.startsWith('http') ? selectedJornada.vistoria.foto_avarias_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.vistoria.foto_avarias_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity"
+                        >
+                          <img 
+                            src={selectedJornada.vistoria.foto_avarias_url.startsWith('http') ? selectedJornada.vistoria.foto_avarias_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.vistoria.foto_avarias_url}`}
+                            alt="Foto Avarias" 
+                            className="w-full h-full object-cover" 
+                          />
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.faturamento?.comprovante_uber_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Comprovante Uber</span>
+                        <a 
+                          href={selectedJornada.faturamento.comprovante_uber_url.startsWith('http') ? selectedJornada.faturamento.comprovante_uber_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_uber_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity flex items-center justify-center bg-slate-50"
+                        >
+                          {selectedJornada.faturamento.comprovante_uber_url.endsWith('.pdf') ? (
+                            <span className="text-xs font-semibold text-red-500">Visualizar PDF</span>
+                          ) : (
+                            <img 
+                              src={selectedJornada.faturamento.comprovante_uber_url.startsWith('http') ? selectedJornada.faturamento.comprovante_uber_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_uber_url}`}
+                              alt="Comprovante Uber" 
+                              className="w-full h-full object-cover" 
+                            />
+                          )}
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.faturamento?.comprovante_99_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Comprovante 99</span>
+                        <a 
+                          href={selectedJornada.faturamento.comprovante_99_url.startsWith('http') ? selectedJornada.faturamento.comprovante_99_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_99_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity flex items-center justify-center bg-slate-50"
+                        >
+                          {selectedJornada.faturamento.comprovante_99_url.endsWith('.pdf') ? (
+                            <span className="text-xs font-semibold text-red-500">Visualizar PDF</span>
+                          ) : (
+                            <img 
+                              src={selectedJornada.faturamento.comprovante_99_url.startsWith('http') ? selectedJornada.faturamento.comprovante_99_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_99_url}`}
+                              alt="Comprovante 99" 
+                              className="w-full h-full object-cover" 
+                            />
+                          )}
+                        </a>
+                      </Card>
+                    )}
+                    {selectedJornada.faturamento?.comprovante_outros_url && (
+                      <Card className="p-3 border border-slate-100 shadow-sm rounded-xl flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Comprovante Outros</span>
+                        <a 
+                          href={selectedJornada.faturamento.comprovante_outros_url.startsWith('http') ? selectedJornada.faturamento.comprovante_outros_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_outros_url}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 block hover:opacity-85 transition-opacity flex items-center justify-center bg-slate-50"
+                        >
+                          {selectedJornada.faturamento.comprovante_outros_url.endsWith('.pdf') ? (
+                            <span className="text-xs font-semibold text-red-500">Visualizar PDF</span>
+                          ) : (
+                            <img 
+                              src={selectedJornada.faturamento.comprovante_outros_url.startsWith('http') ? selectedJornada.faturamento.comprovante_outros_url : `${api.defaults.baseURL?.replace('/api', '')}${selectedJornada.faturamento.comprovante_outros_url}`}
+                              alt="Comprovante Outros" 
+                              className="w-full h-full object-cover" 
+                            />
+                          )}
+                        </a>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex gap-4 flex-wrap items-center">
+                <Input
+                  placeholder="Filtrar por nome do motorista..."
+                  className="max-w-xs text-xs"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+                <Input
+                  type="date"
+                  className="max-w-xs text-xs"
+                  value={dataFiltro}
+                  onChange={(e) => {
+                    setDataFiltro(e.target.value);
+                    setCurrentPage(1);
+                    if (e.target.value) {
+                      setMostrarTodas(false);
+                    }
+                  }}
+                />
+                {dataFiltro && (
+                  <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                    setDataFiltro('');
+                    setCurrentPage(1);
+                  }}>
+                    Limpar filtro
+                  </Button>
+                )}
+
+                <Button 
+                  variant={mostrarTodas ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => {
+                    const next = !mostrarTodas;
+                    setMostrarTodas(next);
+                    setCurrentPage(1);
+                    if (next) {
+                      setDataFiltro('');
+                    }
+                  }}
+                >
+                  {mostrarTodas ? "Ocultar Jornadas" : "Mostrar Todas as Datas"}
+                </Button>
+              </div>
+
+              {!dataFiltro && !mostrarTodas ? (
+                <div className="flex flex-col items-center justify-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center px-4">
+                  <div className="p-4 bg-blue-50 text-blue-600 rounded-full mb-4">
+                    <Calendar size={32} weight="duotone" />
+                  </div>
+                  <h4 className="text-base font-semibold text-slate-800">Painel de Jornadas</h4>
+                  <p className="text-xs text-slate-500 mt-1.5 max-w-md">
+                    Selecione uma data no filtro para ver as jornadas daquele dia, ou clique em <strong>"Mostrar Todas as Datas"</strong> para listar todos os registros cadastrados de forma paginada.
+                  </p>
+                </div>
+              ) : isLoading ? (
+                <Skeleton className="h-80 w-full rounded-xl" />
+              ) : (
+                <>
+                  {kmByDriver.length > 0 && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Km Rodados por Motorista</h3>
+                      <ResponsiveContainer width="100%" height={250}>
+                        <BarChart data={kmByDriver} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis type="number" tick={{ fontSize: 12 }} />
+                          <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
+                          <Tooltip />
+                          <Bar dataKey="km" fill="#3b82f6" name="Km Rodados" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Card>
+                  )}
+
+                  <Card className="p-6">
+                    <div className="flex flex-wrap justify-between items-center gap-4 mb-4 pb-2 border-b border-slate-100">
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-850">Jornadas Cadastradas</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {dataFiltro 
+                            ? `Jornadas do dia ${new Date(dataFiltro + 'T00:00:00').toLocaleDateString('pt-BR')}`
+                            : "Todas as jornadas cadastradas no sistema"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          disabled={currentPage === 1 || isLoading}
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        >
+                          Anterior
+                        </Button>
+                        <span className="text-xs text-slate-600 font-mono font-medium px-2">
+                          Pág. {currentPage}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          disabled={jornadas.length < pageSize || isLoading}
+                          onClick={() => setCurrentPage(prev => prev + 1)}
+                        >
+                          Próxima
+                        </Button>
+                      </div>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Motorista</TableHead>
+                          <TableHead>Veículo</TableHead>
+                          <TableHead>Início</TableHead>
+                          <TableHead>Fim</TableHead>
+                          <TableHead>Km Rodados</TableHead>
+                          <TableHead>Faturamento</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {jornadas.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                              Nenhuma jornada encontrada.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          jornadas.map((j) => (
+                            <TableRow key={j.id || (j as any)._id}>
+                              <TableCell>{new Date(j.data + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
+                              <TableCell className="font-medium">
+                                {j.motorista_nome ?? j.motorista_id}
+                              </TableCell>
+                              <TableCell>{j.veiculo_id}</TableCell>
+                              <TableCell>{j.horario?.inicio ?? '—'}</TableCell>
+                              <TableCell>{j.horario?.fim ?? '—'}</TableCell>
+                              <TableCell>{j.km?.rodados ?? 0} km</TableCell>
+                              <TableCell>{formatCurrency(j.faturamento?.total_dia ?? 0)}</TableCell>
+                              <TableCell>
+                                <Badge variant={statusBadgeVariant(j.status)}>{j.status}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="ghost" title="Ver Eventos em Tempo Real / Telemetria" onClick={() => handleOpenJornada(j)}>
+                                    <Eye size={16} className="text-sky-600" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    title="Refazer Trajeto no Monitor (OSRM)" 
+                                    onClick={() => {
+                                      const jId = j.id || (j as any)._id;
+                                      window.location.hash = `#/monitor?jornada_id=${jId}`;
+                                    }}
+                                    className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                                  >
+                                    <Play size={16} weight="fill" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" title="Excluir Jornada" onClick={() => handleDeleteJornada(j.id || (j as any)._id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                    <Trash size={16} />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </Card>
+                </>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'realtime' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">Eventos em Tempo Real</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Selecione múltiplos eventos para visualizar e segmentar a rota percorrida no mapa
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {selectedEvents.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedEvents([])}
+                  className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 text-xs px-3 py-1.5 h-auto"
+                >
+                  <Trash size={14} />
+                  Limpar Seleção ({selectedEvents.length})
+                </Button>
+              )}
+              <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Conexão Ativa
+              </div>
             </div>
           </div>
 
-          {/* Filters Bar */}
-          <Card className="p-4 border border-slate-200 bg-slate-50/50 shadow-sm rounded-xl space-y-3">
-            <div className="flex gap-4 flex-wrap items-center justify-between">
-              <div className="flex items-center gap-3 flex-wrap">
-                <Input
-                  placeholder="Buscar por rua ou horário..."
-                  className="max-w-xs text-xs bg-white"
-                  value={telemetriaSearch}
+          <div className="flex gap-4 items-center flex-wrap">
+            <select
+              value={selectedMotoristaId}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedMotoristaId(val);
+                setSelectedEvents([]); // Limpa a seleção ao trocar de motorista
+                if (val && !datetimeInicio) {
+                  const now = new Date();
+                  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                  const formatDate = (d: Date) => {
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                  };
+                  setDatetimeInicio(`${formatDate(yesterday)}T00:00`);
+                  setDatetimeFim(`${formatDate(tomorrow)}T23:59`);
+                }
+              }}
+              className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg p-2 focus:outline-none min-w-[200px] shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Selecione o Motorista...</option>
+              {motoristas.map((m) => (
+                <option key={m.id || m._id} value={m.id || m._id}>
+                  {m.nome} ({m.email})
+                </option>
+              ))}
+            </select>
+
+            {selectedMotoristaId && (
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
+                <span className="text-xs font-medium text-slate-400">De:</span>
+                <input
+                  type="datetime-local"
+                  value={datetimeInicio}
                   onChange={(e) => {
-                    setTelemetriaSearch(e.target.value);
-                    setTelemetryPage(1);
+                    const val = e.target.value;
+                    setDatetimeInicio(val);
+                    setSelectedEvents([]);
+                    if (val) {
+                      const datePart = val.split('T')[0];
+                      if (!datetimeFim || !datetimeFim.startsWith(datePart)) {
+                        setDatetimeFim(`${datePart}T23:59`);
+                      }
+                    }
                   }}
+                  className="text-xs font-semibold text-slate-700 focus:outline-none bg-transparent"
                 />
-
-                <select
-                  value={telemetriaStatusFilter}
+                <span className="text-xs font-medium text-slate-400">Até:</span>
+                <input
+                  type="datetime-local"
+                  value={datetimeFim}
                   onChange={(e) => {
-                    setTelemetriaStatusFilter(e.target.value);
-                    setTelemetryPage(1);
+                    setDatetimeFim(e.target.value);
+                    setSelectedEvents([]);
                   }}
-                  className="h-8 text-xs font-semibold rounded-md border border-input bg-white px-3 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Status: Todos</option>
-                  <option value="CONDUZINDO">CONDUZINDO</option>
-                  <option value="PARADO">PARADO</option>
-                  <option value="EM_MOVIMENTO">EM MOVIMENTO</option>
-                  <option value="INICIO_JORNADA">INÍCIO JORNADA</option>
-                  <option value="PAUSA_MOTORISTA">PAUSA MOTORISTA</option>
-                  <option value="FIM_JORNADA">FIM JORNADA</option>
-                </select>
+                  className="text-xs font-semibold text-slate-700 focus:outline-none bg-transparent"
+                />
+                {(datetimeInicio || datetimeFim) && (
+                  <button
+                    onClick={() => {
+                      setDatetimeInicio('');
+                      setDatetimeFim('');
+                      setSelectedEvents([]);
+                    }}
+                    className="text-xs font-semibold text-red-500 hover:text-red-750 ml-1 transition-colors"
+                    title="Limpar filtro de data/hora"
+                  >
+                    Limpar
+                  </button>
+                )}
               </div>
+            )}
 
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500 font-medium">Registros por página:</span>
-                <select
-                  value={telemetryPageSize}
-                  onChange={(e) => {
-                    setTelemetryPageSize(Number(e.target.value));
-                    setTelemetryPage(1);
-                  }}
-                  className="h-8 text-xs font-semibold rounded-md border border-input bg-white px-2 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value={25}>25 por página</option>
-                  <option value={50}>50 por página</option>
-                  <option value={100}>100 por página</option>
-                  <option value={250}>250 por página</option>
-                </select>
-              </div>
-            </div>
-          </Card>
+            {selectedMotoristaId && dataFiltroRealtime && (
+              <select
+                value={filtroTipoEvento}
+                onChange={(e) => {
+                  setFiltroTipoEvento(e.target.value);
+                  setSelectedEvents([]);
+                }}
+                className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg p-2 focus:outline-none shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">Todos os tipos de evento</option>
+                <option value="INICIO_JORNADA">Início de Jornada</option>
+                <option value="ABASTECIMENTO">Abastecimento</option>
+                <option value="INICIO_INTERVALO">Início de Intervalo</option>
+                <option value="FIM_INTERVALO">Fim de Intervalo</option>
+                <option value="FIM_JORNADA">Fim de Jornada</option>
+                <option value="TELEMETRIA_GPS">Telemetria GPS</option>
+              </select>
+            )}
 
-          {/* Telemetry Log Table */}
-          <Card className="p-6">
-            {loadingRoute ? (
-              <div className="py-16 text-center text-slate-400 space-y-2">
-                <Skeleton className="h-64 w-full rounded-xl" />
-              </div>
-            ) : filteredTelemetryEvents.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                Nenhum registro de telemetria encontrado para esta jornada.
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-                  <span className="text-xs text-slate-500 font-medium">
-                    Exibindo registros {(telemetryPage - 1) * telemetryPageSize + 1} a {Math.min(telemetryPage * telemetryPageSize, filteredTelemetryEvents.length)} de {filteredTelemetryEvents.length}
-                  </span>
+            {selectedMotoristaId && dataFiltroRealtime && (
+              <select
+                value={filtroIntervalo}
+                onChange={(e) => {
+                  setFiltroIntervalo(e.target.value);
+                  setSelectedEvents([]);
+                }}
+                className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg p-2 focus:outline-none shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">Amostragem: Completa (15s)</option>
+                <option value="1s">Amostragem: Alta Resolução (1s)</option>
+                <option value="1min">Amostragem: 1 minuto</option>
+                <option value="5min">Amostragem: 5 minutos</option>
+                <option value="10min">Amostragem: 10 minutos</option>
+                <option value="events_only">Amostragem: Ocultar Telemetria</option>
+              </select>
+            )}
+          </div>
 
+          {!selectedMotoristaId ? (
+            <Card className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center space-y-4 border-dashed border-2 border-slate-200 max-w-2xl mx-auto mt-6">
+              <div className="p-4 bg-slate-50 rounded-full">
+                <User size={36} className="text-slate-400" />
+              </div>
+              <div className="space-y-1">
+                <div className="font-semibold text-slate-700 text-sm">Nenhum Motorista Selecionado</div>
+                <p className="text-xs text-slate-400 max-w-sm">
+                  Selecione um motorista no combobox acima para carregar o histórico de eventos e telemetria GPS.
+                </p>
+              </div>
+            </Card>
+          ) : !dataFiltroRealtime ? (
+            <Card className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center space-y-4 border-dashed border-2 border-slate-200 max-w-2xl mx-auto mt-6">
+              <div className="p-4 bg-slate-50 rounded-full">
+                <Calendar size={36} className="text-slate-400" />
+              </div>
+              <div className="space-y-1">
+                <div className="font-semibold text-slate-700 text-sm">Nenhuma Data Selecionada</div>
+                <p className="text-xs text-slate-400 max-w-sm">
+                  Selecione a data no filtro acima para visualizar a telemetria e eventos ocorridos nesse dia.
+                </p>
+              </div>
+            </Card>
+          ) : (
+            /* Layout Split-Screen dinâmico ao selecionar eventos */
+            <div className={`grid grid-cols-1 gap-6 ${selectedEvents.length > 0 ? 'lg:grid-cols-5' : ''}`}>
+              {/* Tabela de Eventos */}
+              <Card className={`p-6 ${selectedEvents.length > 0 ? 'lg:col-span-3' : 'w-full'}`}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px] text-center">Faixa</TableHead>
+                      <TableHead>Horário (São Paulo)</TableHead>
+                      <TableHead>Motorista</TableHead>
+                      <TableHead>Veículo</TableHead>
+                      <TableHead>Evento</TableHead>
+                      <TableHead>KM</TableHead>
+                      <TableHead className="w-[80px] text-right">Ação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEvents.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          Nenhum evento registrado recentemente para este motorista.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedEvents.map((ev, idx) => {
+                        const actualIdx = (realtimePage - 1) * realtimePageSize + idx;
+                        let badgeColor: "default" | "secondary" | "destructive" | "outline" = "outline";
+                        if (ev.tipo === "INICIO_JORNADA") badgeColor = "default";
+                        else if (ev.tipo === "FIM_JORNADA") badgeColor = "destructive";
+                        else if (ev.tipo === "ABASTECIMENTO") badgeColor = "secondary";
+                        else if (ev.tipo === "TELEMETRIA_GPS") badgeColor = "outline";
+
+                        const isChecked = selectedEvents.some(
+                          x => x.timestamp === ev.timestamp && x.jornada_id === ev.jornada_id
+                        );
+
+                        const isRowInRange = (() => {
+                          if (trackStartIdxRef.current === null || trackHoverIdx === null) return false;
+                          const start = Math.min(trackStartIdxRef.current, trackHoverIdx);
+                          const end = Math.max(trackStartIdxRef.current, trackHoverIdx);
+                          return actualIdx >= start && actualIdx <= end;
+                        })();
+
+                        const rowBgColor = (() => {
+                          if (isRowInRange) {
+                            return dragSelectModeRef.current ? 'bg-blue-50/20' : 'bg-red-50/20';
+                          }
+                          return isChecked ? 'bg-blue-50/20' : '';
+                        })();
+
+                        const trackDotColor = (() => {
+                          if (trackStartIdxRef.current === actualIdx) {
+                            return dragSelectModeRef.current ? 'bg-emerald-500 scale-125 animate-pulse' : 'bg-rose-500 scale-125 animate-pulse';
+                          }
+                          if (isRowInRange) {
+                            return dragSelectModeRef.current ? 'bg-blue-500 scale-110' : 'bg-rose-400 scale-110';
+                          }
+                          return isChecked ? 'bg-blue-500' : 'bg-slate-300 hover:bg-blue-400';
+                        })();
+
+                        const trackLineColor = (() => {
+                          if (isRowInRange) {
+                            return dragSelectModeRef.current ? 'bg-blue-500' : 'bg-rose-400';
+                          }
+                          return isChecked ? 'bg-blue-300' : 'bg-slate-200';
+                        })();
+
+                        return (
+                          <TableRow 
+                            key={actualIdx} 
+                            className={`hover:bg-slate-50/50 transition-all duration-150 cursor-pointer ${rowBgColor}`}
+                            onClick={() => handleToggleEvent(ev)}
+                          >
+                            <TableCell className="w-[50px] relative select-none text-center p-0">
+                              <div className={`absolute top-0 bottom-0 w-0.5 left-1/2 -translate-x-1/2 z-0 ${trackLineColor}`} />
+                              <div 
+                                className="relative z-10 flex justify-center items-center h-full min-h-[44px]"
+                                onMouseDown={(e) => handleTrackMouseDown(e, actualIdx)}
+                                onMouseEnter={() => handleTrackMouseEnter(actualIdx)}
+                              >
+                                <div
+                                  className={`w-3.5 h-3.5 rounded-full border-2 border-white transition-all shadow-sm cursor-row-resize ${trackDotColor}`}
+                                  title="Clique e arraste para selecionar faixa"
+                                />
+                              </div>
+                            </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            <div className="font-semibold text-slate-700">
+                              {formatDateTime(ev.timestamp)}
+                            </div>
+                            {ev.rua ? (
+                              <div className="text-[10px] text-slate-500 font-sans mt-0.5 max-w-[180px] truncate" title={ev.rua}>
+                                {ev.rua}
+                              </div>
+                            ) : ev.tipo === 'TELEMETRIA_GPS' ? (
+                              <div className="text-[10px] text-slate-400 font-sans italic mt-0.5">
+                                Rua não identificada
+                              </div>
+                            ) : null}
+                            {ev.lat && ev.lon && (
+                              <div className="text-[9px] text-slate-400 font-mono mt-0.5">
+                                Lat: {ev.lat.toFixed(5)}, Lon: {ev.lon.toFixed(5)}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-semibold text-slate-700">{ev.motorista_nome}</TableCell>
+                          <TableCell className="font-mono text-xs">{ev.veiculo_id}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <Badge variant={badgeColor} className="w-fit">{ev.tipo}</Badge>
+                              {ev.detalhes && (
+                                <span className="text-[10px] text-slate-400 mt-1 font-mono tracking-tighter">
+                                  {ev.tipo === 'TELEMETRIA_GPS'
+                                    ? ev.detalhes.split(' | ').filter((p: string) => !p.startsWith('Rua') && !p.startsWith('Lat:')).join(' | ')
+                                    : ev.detalhes}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{ev.km?.toFixed(1) ?? '—'} km</TableCell>
+                          <TableCell className="text-right">
+                            {ev.jornada_id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => { e.stopPropagation(); handleDeleteTelemetry(ev.jornada_id); }}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
+                                title="Apagar toda a telemetria desta jornada"
+                              >
+                                <Trash size={14} />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+
+              {/* Controles de Paginação Completa de Telemetria */}
+              {filteredEvents.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between border-t border-slate-100 pt-4 mt-4 gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500">
+                      Mostrando <strong>{((realtimePage - 1) * realtimePageSize) + 1}</strong> a <strong>{Math.min(realtimePage * realtimePageSize, filteredEvents.length)}</strong> de <strong>{filteredEvents.length}</strong> eventos
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <span>Exibir:</span>
+                      <select
+                        value={realtimePageSize}
+                        onChange={(e) => {
+                          setRealtimePageSize(Number(e.target.value));
+                          setRealtimePage(1);
+                        }}
+                        className="bg-slate-100 border border-slate-200 text-slate-700 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value={10}>10 por página</option>
+                        <option value={25}>25 por página</option>
+                        <option value={50}>50 por página</option>
+                        <option value={100}>100 por página</option>
+                        <option value={250}>250 por página</option>
+                        <option value={500}>500 por página</option>
+                      </select>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 text-xs"
-                      disabled={telemetryPage === 1}
-                      onClick={() => setTelemetryPage(p => Math.max(1, p - 1))}
+                      disabled={realtimePage === 1}
+                      onClick={() => setRealtimePage(p => Math.max(1, p - 1))}
+                      className="h-8 px-3 text-xs"
                     >
                       Anterior
                     </Button>
-                    <span className="text-xs text-slate-600 font-mono font-medium px-2">
-                      Página {telemetryPage} de {Math.ceil(filteredTelemetryEvents.length / telemetryPageSize) || 1}
+                    <span className="text-xs font-semibold px-2 text-slate-700">
+                      Página {realtimePage} de {Math.ceil(filteredEvents.length / realtimePageSize) || 1}
                     </span>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 text-xs"
-                      disabled={telemetryPage >= Math.ceil(filteredTelemetryEvents.length / telemetryPageSize)}
-                      onClick={() => setTelemetryPage(p => Math.min(Math.ceil(filteredTelemetryEvents.length / telemetryPageSize), p + 1))}
+                      disabled={realtimePage >= Math.ceil(filteredEvents.length / realtimePageSize)}
+                      onClick={() => setRealtimePage(p => Math.min(Math.ceil(filteredEvents.length / realtimePageSize), p + 1))}
+                      className="h-8 px-3 text-xs"
                     >
                       Próxima
                     </Button>
                   </div>
                 </div>
+              )}
+            </Card>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>Horário</TableHead>
-                      <TableHead>Status / Evento</TableHead>
-                      <TableHead>Endereço / Rua</TableHead>
-                      <TableHead>Coordenadas (Lat, Lon)</TableHead>
-                      <TableHead>Distância (+Metros)</TableHead>
-                      <TableHead className="text-right">Ação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedTelemetryEvents.map((pt: any, idx: number) => {
-                      const globalIndex = (telemetryPage - 1) * telemetryPageSize + idx + 1;
-                      const timeStr = pt.timestamp ? new Date(pt.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--';
-                      const dateStr = pt.timestamp ? new Date(pt.timestamp).toLocaleDateString('pt-BR') : '';
-                      
-                      let lat = 0;
-                      let lon = 0;
-                      if (pt.localizacao?.coordinates) {
-                        lon = pt.localizacao.coordinates[0];
-                        lat = pt.localizacao.coordinates[1];
-                      } else if (pt.localizacao?.lat && pt.localizacao?.lon) {
-                        lat = pt.localizacao.lat;
-                        lon = pt.localizacao.lon;
-                      }
+            {/* Painel do Mapa Lateral (Split Screen) */}
+            {selectedEvents.length > 0 && (
+              <Card className="lg:col-span-2 p-4 h-[600px] border border-slate-100 shadow-lg rounded-2xl flex flex-col gap-3 sticky top-6 self-start">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapTrifold size={18} className="text-blue-600" />
+                    <h3 className="text-sm font-bold text-slate-700">Roteamento dos Eventos</h3>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-semibold">
+                    {selectedRoutes.length} motorista(s) ativo(s)
+                  </Badge>
+                </div>
 
-                      const isParado = pt.status === 'PARADO';
-
-                      return (
-                        <TableRow key={pt._id || pt.id || idx}>
-                          <TableCell className="font-mono text-xs text-slate-400 font-bold">{globalIndex}</TableCell>
-                          <TableCell className="font-mono text-xs font-semibold text-slate-700">
-                            <div>{timeStr}</div>
-                            <div className="text-[10px] text-slate-400 font-normal">{dateStr}</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className={`text-[10px] font-mono font-bold uppercase ${
-                                isParado 
-                                  ? 'bg-rose-50 text-rose-600 border-rose-200' 
-                                  : 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                              }`}
-                            >
-                              {pt.status || 'CONDUZINDO'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-slate-700">
-                            <span className="font-medium flex items-center gap-1">
-                              📍 {pt.rua || 'Via não identificada'}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-mono text-[11px] text-slate-500">
-                            {lat !== 0 ? `${lat.toFixed(6)}, ${lon.toFixed(6)}` : '—'}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs font-semibold text-slate-600">
-                            {pt.distancia_ultima_m ? `+${pt.distancia_ultima_m.toFixed(0)}m` : '0m'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 font-semibold"
-                              onClick={() => {
-                                const jId = selectedJornada.id || (selectedJornada as any)._id;
-                                window.location.hash = `#/monitor?jornada_id=${jId}`;
-                              }}
-                            >
-                              <Play size={14} className="mr-1" weight="fill" />
-                              Replay
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </>
+                <div className="w-full flex-1 min-h-0 bg-slate-50 rounded-xl overflow-hidden relative border border-slate-100">
+                  {selectedRoutes.length > 0 ? (
+                    <SelectedEventsMap routes={selectedRoutes} />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 bg-slate-50 text-slate-400">
+                      <span className="text-xs font-semibold animate-pulse">Buscando telemetria correspondente...</span>
+                    </div>
+                  )}
+                </div>
+              </Card>
             )}
-          </Card>
-        </div>
-      ) : (
-        <>
-          {/* Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Jornadas Cadastradas</h1>
-              <p className="text-xs text-slate-500 mt-1">
-                Selecione uma jornada e clique no olho <Eye size={14} className="inline text-sky-600" /> para visualizar a tabela completa de registros de telemetria
-              </p>
             </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'importar' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">Importação de Relatórios de Ganhos</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Importar dados de faturamento externo da Uber e 99 para cruzamento e auditoria da telemetria
+            </p>
           </div>
 
-          <div className="space-y-6">
-            <div className="flex gap-4 flex-wrap items-center">
-              <Input
-                placeholder="Filtrar por nome do motorista..."
-                className="max-w-xs text-xs"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-              <Input
-                type="date"
-                className="max-w-xs text-xs"
-                value={dataFiltro}
-                onChange={(e) => {
-                  setDataFiltro(e.target.value);
-                  setCurrentPage(1);
-                  if (e.target.value) {
-                    setMostrarTodas(false);
-                  }
-                }}
-              />
-              {dataFiltro && (
-                <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                  setDataFiltro('');
-                  setCurrentPage(1);
-                }}>
-                  Limpar filtro
-                </Button>
-              )}
-
-              <Button 
-                variant={mostrarTodas ? "default" : "outline"}
-                size="sm"
-                className="text-xs"
-                onClick={() => {
-                  const next = !mostrarTodas;
-                  setMostrarTodas(next);
-                  setCurrentPage(1);
-                  if (next) {
-                    setDataFiltro('');
-                  }
-                }}
-              >
-                {mostrarTodas ? "Ocultar Jornadas" : "Mostrar Todas as Datas"}
-              </Button>
-            </div>
-
-            {!dataFiltro && !mostrarTodas ? (
-              <div className="flex flex-col items-center justify-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center px-4">
-                <div className="p-4 bg-blue-50 text-blue-600 rounded-full mb-4">
-                  <Calendar size={32} weight="duotone" />
-                </div>
-                <h4 className="text-base font-semibold text-slate-800">Painel de Jornadas</h4>
-                <p className="text-xs text-slate-500 mt-1.5 max-w-md">
-                  Selecione uma data no filtro para ver as jornadas daquele dia, ou clique em <strong>"Mostrar Todas as Datas"</strong> para listar todos os registros cadastrados de forma paginada.
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 p-8 border-2 border-dashed border-slate-200 hover:border-slate-300 transition-all rounded-2xl flex flex-col items-center justify-center text-center gap-4 bg-slate-50/50">
+              <div className="p-4 bg-blue-50 text-blue-500 rounded-full">
+                <FileArrowUp size={36} />
+              </div>
+              <div className="space-y-1 max-w-sm">
+                <h4 className="text-sm font-semibold text-slate-800">Selecione o Extrato de Ganhos</h4>
+                <p className="text-xs text-muted-foreground">
+                  Arraste e solte o arquivo CSV ou PDF oficial do seu aplicativo ou clique para navegar
                 </p>
               </div>
-            ) : isLoading ? (
-              <Skeleton className="h-80 w-full rounded-xl" />
-            ) : (
-              <>
-                {kmByDriver.length > 0 && (
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Km Rodados por Motorista</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={kmByDriver} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis type="number" tick={{ fontSize: 12 }} />
-                        <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
-                        <Tooltip />
-                        <Bar dataKey="km" fill="#3b82f6" name="Km Rodados" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Card>
-                )}
+              <input type="file" className="hidden" id="file-uploader" disabled />
+              <Button onClick={() => document.getElementById('file-uploader')?.click()} disabled className="mt-2 text-xs">
+                Selecionar Arquivo
+              </Button>
+            </Card>
 
-                <Card className="p-6">
-                  <div className="flex flex-wrap justify-between items-center gap-4 mb-4 pb-2 border-b border-slate-100">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-850">Jornadas Cadastradas</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {dataFiltro 
-                          ? `Jornadas do dia ${new Date(dataFiltro + 'T00:00:00').toLocaleDateString('pt-BR')}`
-                          : "Todas as jornadas cadastradas no sistema"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs"
-                        disabled={currentPage === 1 || isLoading}
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      >
-                        Anterior
-                      </Button>
-                      <span className="text-xs text-slate-600 font-mono font-medium px-2">
-                        Pág. {currentPage}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs"
-                        disabled={jornadas.length < pageSize || isLoading}
-                        onClick={() => setCurrentPage(prev => prev + 1)}
-                      >
-                        Próxima
-                      </Button>
-                    </div>
-                  </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Motorista</TableHead>
-                        <TableHead>Veículo</TableHead>
-                        <TableHead>Início</TableHead>
-                        <TableHead>Fim</TableHead>
-                        <TableHead>Km Rodados</TableHead>
-                        <TableHead>Faturamento</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {jornadas.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                            Nenhuma jornada encontrada.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        jornadas.map((j) => (
-                          <TableRow key={j.id || (j as any)._id}>
-                            <TableCell>{new Date(j.data + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
-                            <TableCell className="font-medium">
-                              {j.motorista_nome ?? j.motorista_id}
-                            </TableCell>
-                            <TableCell>{j.veiculo_id}</TableCell>
-                            <TableCell>{j.horario?.inicio ?? '—'}</TableCell>
-                            <TableCell>{j.horario?.fim ?? '—'}</TableCell>
-                            <TableCell>{j.km?.rodados ?? 0} km</TableCell>
-                            <TableCell>{formatCurrency(j.faturamento?.total_dia ?? 0)}</TableCell>
-                            <TableCell>
-                              <Badge variant={statusBadgeVariant(j.status)}>{j.status}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  title="Ver Tabela de Registros de Telemetria GPS" 
-                                  onClick={() => handleOpenJornada(j)}
-                                >
-                                  <Eye size={16} className="text-sky-600" />
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  title="Refazer Trajeto no Monitor (OSRM)" 
-                                  onClick={() => {
-                                    const jId = j.id || (j as any)._id;
-                                    window.location.hash = `#/monitor?jornada_id=${jId}`;
-                                  }}
-                                  className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
-                                >
-                                  <Play size={16} weight="fill" />
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  title="Excluir Jornada"
-                                  onClick={() => handleDeleteJornada(j.id || (j as any)._id)} 
-                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash size={16} />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </Card>
-              </>
-            )}
+            <Card className="p-6 border border-slate-100 shadow-sm rounded-2xl space-y-4">
+              <div className="flex items-center gap-2.5 text-amber-600 bg-amber-50 px-3 py-2 rounded-xl border border-amber-100">
+                <Warning size={20} weight="fill" />
+                <span className="text-xs font-bold uppercase tracking-wide">Planejamento [TODO]</span>
+              </div>
+              
+              <div className="space-y-3 text-xs leading-relaxed text-slate-600">
+                <p className="font-semibold text-slate-800">Integração dos Extratos de Apps:</p>
+                <p>
+                  Esta seção conterá o parser automático dos extratos mensais e diários exportados pelos motoristas. 
+                </p>
+                <p>
+                  O motorista carrega o relatório de rendimentos, e o algoritmo de backend mapeará as coordenadas de cada corrida (`id_viagem`) para bater com as posições registradas no GPS do veículo da frota no mesmo instante.
+                </p>
+                <div className="flex items-center gap-2 text-emerald-600 font-semibold pt-1">
+                  <ShieldCheck size={16} weight="fill" />
+                  <span>Auditoria e Comparação de Km/Ganhos</span>
+                </div>
+              </div>
+            </Card>
           </div>
-        </>
+
+          <Card className="p-6">
+            <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Histórico de Importações Recentes</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data de Importação</TableHead>
+                  <TableHead>Aplicativo</TableHead>
+                  <TableHead>Arquivo</TableHead>
+                  <TableHead>Corridas Mapeadas</TableHead>
+                  <TableHead>Valor Total</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="opacity-60">
+                  <TableCell className="font-mono text-xs">27/06/2026 14:32</TableCell>
+                  <TableCell><Badge variant="outline">UBER</Badge></TableCell>
+                  <TableCell className="font-mono text-xs">extrato_uber_carlos_junio.csv</TableCell>
+                  <TableCell>14 corridas</TableCell>
+                  <TableCell>{formatCurrency(384.20)}</TableCell>
+                  <TableCell><Badge variant="default" className="bg-emerald-500">Mapeado</Badge></TableCell>
+                </TableRow>
+                <TableRow className="opacity-60">
+                  <TableCell className="font-mono text-xs">26/06/2026 18:15</TableCell>
+                  <TableCell><Badge variant="outline">99APP</Badge></TableCell>
+                  <TableCell className="font-mono text-xs">relatorio_99_bruno.xlsx</TableCell>
+                  <TableCell>9 corridas</TableCell>
+                  <TableCell>{formatCurrency(245.90)}</TableCell>
+                  <TableCell><Badge variant="default" className="bg-emerald-500">Mapeado</Badge></TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
       )}
     </div>
   );
 }
-
-
-
