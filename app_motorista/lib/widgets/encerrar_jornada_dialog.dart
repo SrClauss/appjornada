@@ -136,7 +136,7 @@ class _EncerrarJornadaDialogState extends State<EncerrarJornadaDialog> {
     }
 
     final km = double.tryParse(_kmController.text) ?? 0;
-    if (km <= 0) {
+    if (km < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, digite ou confirme o KM final.')),
       );

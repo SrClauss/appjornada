@@ -920,7 +920,7 @@ async def fechar_jornada(
     
     # Atualizar quilometragem do veículo no banco de dados
     v_id = doc.get("veiculo_id")
-    if v_id and km_final > 0:
+    if v_id and km_final >= 0:
         try:
             await db["veiculos"].update_one(
                 {"$or": [{"_id": v_id}, {"_id": str(v_id)}, {"placa": str(v_id)}]},

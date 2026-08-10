@@ -145,9 +145,9 @@ class _KmInicialStepState extends State<KmInicialStep> {
     }
 
     final kmDigitado = double.tryParse(_kmController.text);
-    if (kmDigitado == null || kmDigitado <= 0) {
+    if (kmDigitado == null || kmDigitado < 0) {
       setState(() {
-        _errorMessage = 'Por favor, confirme ou informe uma quilometragem inicial válida.';
+        _errorMessage = 'Por favor, informe uma quilometragem inicial válida.';
       });
       return;
     }

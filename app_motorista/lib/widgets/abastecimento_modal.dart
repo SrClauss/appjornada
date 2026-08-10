@@ -120,7 +120,7 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
   Future<void> _confirmarAbastecimento() async {
     if (_loading) return;
     final km = double.tryParse(_kmController.text) ?? 0;
-    if (km <= 0) {
+    if (km < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, digite o KM atual.')),
       );
