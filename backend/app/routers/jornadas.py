@@ -918,6 +918,17 @@ async def fechar_jornada(
     normalized = _normalizar_jornada(atualizado)
     await _populate_motorista_nome(normalized, db)
     
+    # Atualizar quilometragem do veículo no banco de dados
+    v_id = doc.get("veiculo_id")
+    if v_id and km_final > 0:
+        try:
+            await db["veiculos"].update_one(
+                {"$or": [{"_id": v_id}, {"_id": str(v_id)}, {"placa": str(v_id)}]},
+                {"$set": {"km_atual": km_final, "km_hodometro": km_final, "km": km_final}}
+            )
+        except Exception as err_v:
+            print(f"Erro ao atualizar KM do veiculo {v_id}: {err_v}")
+
     try:
         await event_manager.broadcast("jornada_atualizada", {"jornada_id": jornada_id, "status": "ENCERRADA"})
     except Exception:

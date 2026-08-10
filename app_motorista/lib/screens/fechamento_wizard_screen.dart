@@ -226,9 +226,9 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
     }
   }
 
-  Future<void> _tirarFotoHodometro() async {
+  Future<void> _capturarFotoHodometro(ImageSource source) async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera);
+    final picked = await picker.pickImage(source: source);
     if (picked == null) return;
 
     setState(() {
@@ -236,26 +236,54 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
     });
 
     try {
-      // Faz upload usando api_service
-      final url = await ApiService.uploadFile(picked.path, 'hodometro');
-      if (url != null) {
-        setState(() {
-          _fotoKmFinalUrl = url;
-        });
-        if (!mounted) return;
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto do hodômetro salva com sucesso!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Lendo hodômetro com IA Gemini 3.5...')),
         );
       }
+      
+      final res = await ApiService.processarFotoOdometro(picked.path, contexto: 'km_final');
+      if (res != null) {
+        final url = res['foto_url'];
+        final kmLido = res['km_lido'];
+        
+        setState(() {
+          if (url != null) _fotoKmFinalUrl = url;
+          if (kmLido != null) {
+            _kmFinalCtrl.text = (kmLido as num).toDouble().toStringAsFixed(1);
+          }
+        });
+        
+        if (mounted) {
+          if (kmLido != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('IA Gemini leu ${(kmLido as num).toDouble().toStringAsFixed(1)} KM no hodômetro!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Foto salva com sucesso! Digite a leitura do hodômetro abaixo.'),
+                backgroundColor: Colors.blue,
+              ),
+            );
+          }
+        }
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro de conexão: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao ler foto do hodômetro: $e')),
+        );
+      }
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -1020,22 +1048,44 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
 
         // DADOS DO FECHAMENTO HODOMETRO
         const Text(
-          'Foto do Hodômetro Final (Comprovante Visual)',
+          'Foto do Hodômetro Final (Leitura Automática IA)',
           style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          height: 48,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _fotoKmFinalUrl != null ? const Color(0xFF10B981) : const Color(0xFF1E293B),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _fotoKmFinalUrl != null ? const Color(0xFF10B981) : const Color(0xFF1E293B),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => _capturarFotoHodometro(ImageSource.camera),
+                  icon: Icon(_fotoKmFinalUrl != null ? Icons.check_circle : Icons.camera_alt, color: Colors.blueAccent, size: 18),
+                  label: const Text('CÂMERA (IA)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ),
             ),
-            onPressed: _tirarFotoHodometro,
-            icon: Icon(_fotoKmFinalUrl != null ? Icons.check_circle : Icons.camera_alt, color: _fotoKmFinalUrl != null ? Colors.white : Colors.blueAccent),
-            label: Text(_fotoKmFinalUrl != null ? 'FOTO DO HODÔMETRO SALVA ✓' : 'FOTOGRAFAR HODÔMETRO (CÂMERA)'),
-          ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFF334155)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => _capturarFotoHodometro(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library, color: Color(0xFF38BDF8), size: 18),
+                  label: const Text('GALERIA (IA)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         TextField(
