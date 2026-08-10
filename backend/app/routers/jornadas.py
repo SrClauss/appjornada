@@ -1220,7 +1220,7 @@ async def upload_e_processar_extrato_video(
     from app.routers.ocr import _extrair_frames_video, _chamar_gemini_extrato_video
 
     video_url = await _salvar_arquivo(arquivo, "extrato_video")
-    frames = _extrair_frames_video(conteudo_bytes, max_frames=6)
+    frames = _extrair_frames_video(conteudo_bytes, max_frames=10)
     if not frames:
         raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
 

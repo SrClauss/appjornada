@@ -158,35 +158,68 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 8) -> list:
     return frames_b64
 
 
+def _limpar_e_parsear_json_gemini(raw_text: str) -> dict:
+    if not raw_text:
+        return {}
+    
+    cleaned = re.sub(r"^```json\s*", "", raw_text.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.IGNORECASE).strip()
+    
+    try:
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            return data
+        elif isinstance(data, list):
+            return {"corridas": data}
+    except Exception:
+        pass
+
+    match_dict = re.search(r'\{.*\}', raw_text, re.DOTALL)
+    if match_dict:
+        try:
+            txt = re.sub(r',\s*([\}\]])', r'\1', match_dict.group(0))
+            data = json.loads(txt)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+    match_arr = re.search(r'\[.*\]', raw_text, re.DOTALL)
+    if match_arr:
+        try:
+            txt = re.sub(r',\s*([\}\]])', r'\1', match_arr.group(0))
+            arr = json.loads(txt)
+            if isinstance(arr, list):
+                return {"corridas": arr}
+        except Exception:
+            pass
+
+    return {}
+
+
 def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
     api_key = settings.GEMINI_API_KEY
     if not api_key:
         return {"sucesso": False, "mensagem": "GEMINI_API_KEY não configurada", "corridas": []}
 
     prompt = (
-        "Analise esta sequência de capturas de tela (frames) gravadas do histórico de corridas/ganhos de aplicativo de motorista (Uber / 99). "
-        "Extraia a lista COMPLETA de corridas visíveis nas imagens, eliminando itens duplicados entre os frames. "
-        "AVALIE TAMBÉM se os frames fornecidos foram suficientes para cobrir toda a rolagem de tela sem lacunas de imagens ou cortes entre uma corrida e outra. "
-        "Responda EXCLUSIVAMENTE em formato JSON com a estrutura:\n"
+        "Analise esta sequência de capturas de tela (frames) gravadas do histórico de corridas e ganhos de aplicativo de motorista (Uber / 99 / 99Pop / InDrive).\n"
+        "Identifique e extraia TODAS as corridas visíveis (mesmo que parciais ou resumidas), eliminando duplicadas idênticas entre os quadros.\n"
+        "Para cada corrida encontrada, extraia:\n"
+        "- horario (ex: '11:18' ou 'Ontem 14:30')\n"
+        "- plataforma ('Uber' ou '99')\n"
+        "- valor_reais (valor recebido em R$ como número decimal ex: 15.50)\n"
+        "- origem e destino (endereços ou bairros se visíveis, senão null)\n"
+        "IMPORTANTE: Se houver qualquer corrida visível com valor em R$, inclua-a obrigatoriamente na lista 'corridas'.\n"
+        "Responda EXCLUSIVAMENTE em formato JSON puro:\n"
         "{\n"
         '  "sucesso": true,\n'
-        '  "historico_completo": true,\n'
-        '  "necessita_mais_frames": false,\n'
         '  "total_corridas": 2,\n'
         '  "faturamento_total": 45.80,\n'
         '  "corridas": [\n'
-        "    {\n"
-        '      "horario": "11:18",\n'
-        '      "plataforma": "Uber",\n'
-        '      "categoria": "Comfort",\n'
-        '      "valor_reais": 8.99,\n'
-        '      "distancia_km": 2.93,\n'
-        '      "duracao_min": 7.7,\n'
-        '      "origem": "Praia do Canto, Vitória - ES",\n'
-        '      "destino": "Jardim da Penha, Vitória - ES",\n'
-        '      "cancelada": false\n'
-        "    }\n"
-        "  ]\n"
+        '    {"horario": "11:18", "plataforma": "Uber", "valor_reais": 15.50, "origem": "Vitoria", "destino": "Vila Velha"}\n'
+        '  ]\n'
         "}"
     )
 
@@ -206,12 +239,17 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
                     data = json.loads(resp.read().decode())
                     raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                     
-                    cleaned = re.sub(r"^```json\s*", "", raw_text.strip(), flags=re.IGNORECASE)
-                    cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.IGNORECASE)
-                    cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.IGNORECASE).strip()
-
-                    parsed = json.loads(cleaned)
-                    if isinstance(parsed, dict) and "corridas" in parsed:
+                    parsed = _limpar_e_parsear_json_gemini(raw_text)
+                    corridas = (
+                        parsed.get("corridas") or
+                        parsed.get("rides") or
+                        parsed.get("trips") or
+                        parsed.get("faturamentos") or
+                        parsed.get("historico") or
+                        parsed.get("itens")
+                    )
+                    if isinstance(corridas, list):
+                        parsed["corridas"] = corridas
                         parsed["sucesso"] = True
                         return parsed
             except Exception as e:
@@ -220,7 +258,6 @@ def _chamar_gemini_extrato_video(frames_b64_list: list) -> dict:
                     import time
                     time.sleep(2)
                     continue
-                break
 
     return {"sucesso": False, "mensagem": "Não foi possível processar o vídeo do extrato", "corridas": []}
 
