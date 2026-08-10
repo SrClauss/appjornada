@@ -570,7 +570,7 @@ function UnifiedTimeline({ journey }: { journey: Jornada }) {
 }
 
 export function JornadasView() {
-  const [activeTab, setActiveTab] = useState<'painel' | 'realtime' | 'importar'>('painel');
+  const [activeTab, setActiveTab] = useState<'painel' | 'realtime'>('painel');
   const [search, setSearch] = useState('');
   const [dataFiltro, setDataFiltro] = useState(() => {
     const today = new Date();
@@ -941,15 +941,39 @@ export function JornadasView() {
   }, [liveEvents]);
 
   const handleOpenJornada = async (j: Jornada) => {
-    setSelectedMotoristaId(j.motorista_id);
-    if (j.data) {
-      setDatetimeInicio(`${j.data}T00:00`);
-      setDatetimeFim(`${j.data}T23:59`);
+    // 1. Encontra o ID correto do motorista
+    let targetMotId = String(j.motorista_id || '');
+    if (!targetMotId || targetMotId === 'undefined') {
+      const foundMot = motoristas.find(m => m.nome === j.motorista_nome);
+      if (foundMot) {
+        targetMotId = String(foundMot.id || foundMot._id);
+      }
     }
+    
+    // 2. Garante a data da jornada ou a data de hoje (YYYY-MM-DD)
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    const targetDate = j.data || todayStr;
+
+    // 3. Define os estados para o motorista selecionado e opções default
+    setSelectedMotoristaId(targetMotId);
+    setDatetimeInicio(`${targetDate}T00:00`);
+    setDatetimeFim(`${targetDate}T23:59`);
+    setFiltroTipoEvento('');
+    setFiltroIntervalo('all');
+    setSelectedEvents([]);
+    setRealtimePage(1);
+
+    // 4. Alterna para a aba de Eventos em Tempo Real
     setActiveTab('realtime');
+
+    // 5. Carrega a telemetria correspondente
     const jId = j.id || (j as any)._id;
-    if (j.motorista_id && jId) {
-      fetchGpsForJornada(j.motorista_id, jId, true);
+    if (targetMotId && jId) {
+      fetchGpsForJornada(targetMotId, jId, true);
     }
   };
 
@@ -1141,20 +1165,6 @@ export function JornadasView() {
               <span>Eventos em Tempo Real</span>
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
             </div>
-          </div>
-        </button>
-
-        <button
-          onClick={() => { setActiveTab('importar'); setSelectedJornada(null); }}
-          className={`pb-3 font-semibold text-sm transition-all relative ${
-            activeTab === 'importar' 
-              ? 'text-primary border-b-2 border-blue-600' 
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <UploadSimple size={18} />
-            <span>Importação Uber/99</span>
           </div>
         </button>
       </div>
@@ -2011,94 +2021,10 @@ export function JornadasView() {
                 </div>
               </Card>
             )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'importar' && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800">Importação de Relatórios de Ganhos</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Importar dados de faturamento externo da Uber e 99 para cruzamento e auditoria da telemetria
-            </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 p-8 border-2 border-dashed border-slate-200 hover:border-slate-300 transition-all rounded-2xl flex flex-col items-center justify-center text-center gap-4 bg-slate-50/50">
-              <div className="p-4 bg-blue-50 text-blue-500 rounded-full">
-                <FileArrowUp size={36} />
-              </div>
-              <div className="space-y-1 max-w-sm">
-                <h4 className="text-sm font-semibold text-slate-800">Selecione o Extrato de Ganhos</h4>
-                <p className="text-xs text-muted-foreground">
-                  Arraste e solte o arquivo CSV ou PDF oficial do seu aplicativo ou clique para navegar
-                </p>
-              </div>
-              <input type="file" className="hidden" id="file-uploader" disabled />
-              <Button onClick={() => document.getElementById('file-uploader')?.click()} disabled className="mt-2 text-xs">
-                Selecionar Arquivo
-              </Button>
-            </Card>
-
-            <Card className="p-6 border border-slate-100 shadow-sm rounded-2xl space-y-4">
-              <div className="flex items-center gap-2.5 text-amber-600 bg-amber-50 px-3 py-2 rounded-xl border border-amber-100">
-                <Warning size={20} weight="fill" />
-                <span className="text-xs font-bold uppercase tracking-wide">Planejamento [TODO]</span>
-              </div>
-              
-              <div className="space-y-3 text-xs leading-relaxed text-slate-600">
-                <p className="font-semibold text-slate-800">Integração dos Extratos de Apps:</p>
-                <p>
-                  Esta seção conterá o parser automático dos extratos mensais e diários exportados pelos motoristas. 
-                </p>
-                <p>
-                  O motorista carrega o relatório de rendimentos, e o algoritmo de backend mapeará as coordenadas de cada corrida (`id_viagem`) para bater com as posições registradas no GPS do veículo da frota no mesmo instante.
-                </p>
-                <div className="flex items-center gap-2 text-emerald-600 font-semibold pt-1">
-                  <ShieldCheck size={16} weight="fill" />
-                  <span>Auditoria e Comparação de Km/Ganhos</span>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          <Card className="p-6">
-            <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Histórico de Importações Recentes</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data de Importação</TableHead>
-                  <TableHead>Aplicativo</TableHead>
-                  <TableHead>Arquivo</TableHead>
-                  <TableHead>Corridas Mapeadas</TableHead>
-                  <TableHead>Valor Total</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="opacity-60">
-                  <TableCell className="font-mono text-xs">27/06/2026 14:32</TableCell>
-                  <TableCell><Badge variant="outline">UBER</Badge></TableCell>
-                  <TableCell className="font-mono text-xs">extrato_uber_carlos_junio.csv</TableCell>
-                  <TableCell>14 corridas</TableCell>
-                  <TableCell>{formatCurrency(384.20)}</TableCell>
-                  <TableCell><Badge variant="default" className="bg-emerald-500">Mapeado</Badge></TableCell>
-                </TableRow>
-                <TableRow className="opacity-60">
-                  <TableCell className="font-mono text-xs">26/06/2026 18:15</TableCell>
-                  <TableCell><Badge variant="outline">99APP</Badge></TableCell>
-                  <TableCell className="font-mono text-xs">relatorio_99_bruno.xlsx</TableCell>
-                  <TableCell>9 corridas</TableCell>
-                  <TableCell>{formatCurrency(245.90)}</TableCell>
-                  <TableCell><Badge variant="default" className="bg-emerald-500">Mapeado</Badge></TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    )}
+  </div>
+);
 }
