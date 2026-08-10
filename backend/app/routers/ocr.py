@@ -434,14 +434,20 @@ async def processar_ocr_nota_fiscal(
     Recebe imagem de nota/cupom fiscal de abastecimento, faz upload para o MinIO/Armazenamento
     e extrai os dados via IA Gemini para autopreenchimento no aplicativo.
     """
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="O arquivo enviado precisa ser uma imagem (JPEG/PNG).")
+    content_type = file.content_type or ""
+    if not content_type.startswith("image/"):
+        import mimetypes
+        inferred, _ = mimetypes.guess_type(file.filename or "")
+        if inferred and inferred.startswith("image/"):
+            content_type = inferred
+        else:
+            content_type = "image/jpeg"
 
     img_bytes = await file.read()
     file.file.seek(0)
 
-    foto_url = await _salvar_arquivo(file, "abastecimento")
-    res_ai = _chamar_gemini_nota_fiscal(img_bytes, file.content_type)
+    foto_url = await _salvar_arquivo(file, "abastecimentos")
+    res_ai = _chamar_gemini_nota_fiscal(img_bytes, content_type)
 
     return RespostaOcrNotaFiscal(
         sucesso=res_ai.get("sucesso", False),
