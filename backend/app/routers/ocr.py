@@ -116,7 +116,6 @@ async def processar_odometro_foto(
     )
 
 
-def _extrair_frames_video(video_bytes: bytes, max_frames: int = 8) -> list:
 def _salvar_bytes_em_midias(jpg_bytes: bytes, contexto: str, extensao: str = ".jpg") -> str:
     from app.routers.uploads import _resolver_dir, MINIO_ENABLED, MINIO_CLIENT, MINIO_BUCKET, _build_minio_url
     import io
