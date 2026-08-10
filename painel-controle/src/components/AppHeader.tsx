@@ -20,13 +20,13 @@ export function AppHeader() {
       <div className="h-full px-6 flex items-center justify-end gap-4">
         {/* Botão de Download do App Motorista APK Versionado */}
         <a
-          href="/app-jornada-v1.0.4.apk"
-          download="app-jornada-v1.0.4.apk"
+          href="/app-jornada-v1.0.5.apk"
+          download="app-jornada-v1.0.5.apk"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all shadow-sm"
-          title="Baixar App Motorista Versão v1.0.4 (APK)"
+          title="Baixar App Motorista Versão v1.0.5 (APK)"
         >
           <DownloadSimple size={16} className="text-emerald-500" />
-          <span>Baixar App v1.0.4 (APK)</span>
+          <span>Baixar App v1.0.5 (APK)</span>
         </a>
         <button className="relative p-2 hover:bg-muted rounded-lg transition-colors">
           <Bell size={20} className="text-foreground" />

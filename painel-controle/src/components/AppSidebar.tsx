@@ -78,15 +78,15 @@ export function AppSidebar({ activeView, onNavigate }: AppSidebarProps) {
       
       <div className="p-4 border-t border-primary-foreground/10 flex flex-col gap-2">
         <a
-          href="/app-jornada-v1.0.4.apk"
-          download="app-jornada-v1.0.4.apk"
+          href="/app-jornada-v1.0.5.apk"
+          download="app-jornada-v1.0.5.apk"
           className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 font-semibold transition-all duration-150 border border-emerald-500/30 shadow-sm"
-          title="Baixar App Motorista Versão v1.0.4 (APK)"
+          title="Baixar App Motorista Versão v1.0.5 (APK)"
         >
           <DownloadSimple size={20} className="flex-shrink-0 text-emerald-400 animate-pulse" />
           <div className="flex flex-col">
             <span className="font-bold">Baixar App Motorista</span>
-            <span className="text-[10px] text-emerald-300/80">Versão v1.0.4 (APK)</span>
+            <span className="text-[10px] text-emerald-300/80">Versão v1.0.5 (APK)</span>
           </div>
         </a>
         <button
@@ -97,7 +97,7 @@ export function AppSidebar({ activeView, onNavigate }: AppSidebarProps) {
           <span>Sair do Sistema</span>
         </button>
         <div className="text-xs text-primary-foreground/60 mt-1">
-          v1.0.4 • 2026
+          v1.0.5 • 2026
         </div>
       </div>
     </aside>
