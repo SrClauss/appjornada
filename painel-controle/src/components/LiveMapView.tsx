@@ -11,12 +11,14 @@ interface LiveMapViewProps {
   selectedJornadaId?: string | null;
   onSelectJornada?: (jornada: Jornada) => void;
   onStartReplay?: (jornada: Jornada) => void;
+  onShowCompleteRoute?: (jornada: Jornada) => void;
   // Replay Mode Props
   replayMode?: boolean;
   replayPoints?: TelemetriaPoint[];
   osrmRouteCoords?: [number, number][];
   currentReplayIndex?: number;
   followVehicle?: boolean;
+  onFitCompleteRoute?: () => void;
 }
 
 export function LiveMapView({ 
@@ -26,11 +28,13 @@ export function LiveMapView({
   selectedJornadaId,
   onSelectJornada,
   onStartReplay,
+  onShowCompleteRoute,
   replayMode = false,
   replayPoints = [],
   osrmRouteCoords = [],
   currentReplayIndex = 0,
   followVehicle = true,
+  onFitCompleteRoute,
 }: LiveMapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,6 +47,7 @@ export function LiveMapView({
   const isInitialFitRef = useRef<boolean>(false);
   const prevBaseFocoRef = useRef<BaseOperacao | null | undefined>(baseFoco);
   const prevSelectedJornadaIdRef = useRef<string | null | undefined>(selectedJornadaId);
+  const initialRouteFittedRef = useRef<boolean>(false);
 
   const basePrincipal = bases.find((b) => b.is_principal) || bases[0];
   const targetBase = baseFoco || basePrincipal;
@@ -66,6 +71,22 @@ export function LiveMapView({
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     } else if (targetBase && targetBase.lat && targetBase.lon) {
       map.setView([targetBase.lat, targetBase.lon], targetBase.zoom_padrao || 13);
+    }
+  };
+
+  const fitCompleteRoute = () => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    const bounds = L.latLngBounds([]);
+
+    if (osrmRouteCoords.length > 0) {
+      osrmRouteCoords.forEach((c) => bounds.extend(c));
+    } else if (replayPoints.length > 0) {
+      replayPoints.forEach((p) => bounds.extend([p.lat, p.lng]));
+    }
+
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50] });
     }
   };
 
@@ -198,15 +219,18 @@ export function LiveMapView({
       const jIdStr = j.id || (j as any)._id;
 
       const popupContent = `
-        <div style="color: #0f172a; font-family: sans-serif; padding: 6px; min-width: 180px;">
+        <div style="color: #0f172a; font-family: sans-serif; padding: 6px; min-width: 200px;">
           <h4 style="margin:0 0 4px 0; font-weight:bold; font-size:14px; color:#0f172a;">${j.motorista_nome || 'Motorista'}</h4>
           <p style="margin:0; font-size:12px; color:#475569;">Veículo: <strong style="color:#0f172a;">${j.veiculo_id}</strong></p>
           <p style="margin:2px 0; font-size:12px; color:#475569;">Status: <span style="color:${statusColor}; font-weight:bold;">${j.status}</span></p>
           ${j.km?.rodados ? `<p style="margin:2px 0; font-size:12px;">Rodados: <strong>${j.km.rodados} km</strong></p>` : ''}
-          <div style="margin-top: 8px; display: flex; gap: 4px;">
+          <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+            <button id="btn-popup-route-${jIdStr}" style="
+              background: #0284c7; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;
+            ">🗺️ Ver Rota Completa</button>
             <button id="btn-popup-replay-${jIdStr}" style="
-              background: #0284c7; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; flex: 1;
-            ">🎥 Refazer Trajeto</button>
+              background: #4f46e5; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;
+            ">🎥 Refazer Caminho (Replay)</button>
           </div>
         </div>
       `;
@@ -214,9 +238,17 @@ export function LiveMapView({
       marker.bindPopup(popupContent);
       
       marker.on('popupopen', () => {
-        const btn = document.getElementById(`btn-popup-replay-${jIdStr}`);
-        if (btn && onStartReplay) {
-          btn.onclick = () => {
+        const btnRoute = document.getElementById(`btn-popup-route-${jIdStr}`);
+        if (btnRoute && onShowCompleteRoute) {
+          btnRoute.onclick = () => {
+            onShowCompleteRoute(j);
+            marker.closePopup();
+          };
+        }
+
+        const btnReplay = document.getElementById(`btn-popup-replay-${jIdStr}`);
+        if (btnReplay && onStartReplay) {
+          btnReplay.onclick = () => {
             onStartReplay(j);
             marker.closePopup();
           };
@@ -238,7 +270,6 @@ export function LiveMapView({
 
     // Fit map bounds on initial load
     const baseFocoMudou = prevBaseFocoRef.current !== baseFoco;
-    const selectedMudou = prevSelectedJornadaIdRef.current !== selectedJornadaId;
     prevBaseFocoRef.current = baseFoco;
     prevSelectedJornadaIdRef.current = selectedJornadaId;
 
@@ -269,6 +300,7 @@ export function LiveMapView({
       }
       replayGpsMarkersRef.current.forEach((m) => m.remove());
       replayGpsMarkersRef.current = [];
+      initialRouteFittedRef.current = false;
       return;
     }
 
@@ -315,6 +347,12 @@ export function LiveMapView({
       }
     }
 
+    // Fit complete route on initial load of replay mode
+    if (!initialRouteFittedRef.current) {
+      fitCompleteRoute();
+      initialRouteFittedRef.current = true;
+    }
+
     // 3. Update Vehicle Pulsing Position
     if (replayPoints.length > 0) {
       const currentPoint = replayPoints[currentReplayIndex] || replayPoints[0];
@@ -343,7 +381,6 @@ export function LiveMapView({
         });
 
         replayVehicleMarkerRef.current = L.marker(pos, { icon: vehicleIcon }).addTo(map);
-        map.setView(pos, 15);
       } else {
         replayVehicleMarkerRef.current.setLatLng(pos);
         if (followVehicle) {
@@ -357,8 +394,15 @@ export function LiveMapView({
     <div className="relative w-full h-[460px] md:h-[520px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#0d1117]">
       <div ref={containerRef} className="w-full h-full z-10" />
 
-      {/* Re-center Button */}
-      {!replayMode && (
+      {/* Buttons top right */}
+      {replayMode ? (
+        <button
+          onClick={fitCompleteRoute}
+          className="absolute top-3 right-3 z-[400] bg-slate-900/90 hover:bg-slate-800 text-cyan-300 px-3 py-1.5 rounded-xl border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95"
+        >
+          🗺️ Ver Rota Completa
+        </button>
+      ) : (
         <button
           onClick={centralizarMapa}
           className="absolute top-3 right-3 z-[400] bg-slate-900/90 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95"

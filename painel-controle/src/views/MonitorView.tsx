@@ -19,7 +19,7 @@ import {
   Sparkle,
   Play,
   Crosshair,
-  MapPin
+  MapTrifold
 } from '@phosphor-icons/react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -42,12 +42,14 @@ function MotoristaMonitorRow({
   formatCurrency,
   isFocado,
   onSelect,
+  onShowCompleteRoute,
   onStartReplay
 }: { 
   initialJornada: Jornada; 
   formatCurrency: (v: number) => string;
   isFocado?: boolean;
   onSelect?: (jornada: Jornada) => void;
+  onShowCompleteRoute?: (jornada: Jornada) => void;
   onStartReplay?: (jornada: Jornada) => void;
 }) {
   const isRodandoInicial = initialJornada.status === 'EM_ANDAMENTO' || initialJornada.status === 'ABERTA';
@@ -133,7 +135,7 @@ function MotoristaMonitorRow({
       {/* Action Buttons & Revenue */}
       <div className="flex items-center gap-3 border-t sm:border-t-0 border-slate-800/80 pt-2 sm:pt-0 shrink-0 justify-between sm:justify-end">
         {/* Actions */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => onSelect && onSelect(jornada)}
             className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border transition-all ${
@@ -148,9 +150,18 @@ function MotoristaMonitorRow({
           </button>
 
           <button
+            onClick={() => onShowCompleteRoute && onShowCompleteRoute(jornada)}
+            className="px-2.5 py-1.5 rounded-lg bg-sky-900/40 hover:bg-sky-800/60 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1 transition-all"
+            title="Exibir a Rota Completa Enquadrada no Mapa"
+          >
+            <MapTrifold size={14} className="text-cyan-400" />
+            <span>Ver Rota Completa</span>
+          </button>
+
+          <button
             onClick={() => onStartReplay && onStartReplay(jornada)}
-            className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 text-xs font-bold flex items-center gap-1 transition-all"
-            title="Refazer o Trajeto Completo do Motorista com OSRM"
+            className="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-bold flex items-center gap-1 transition-all shadow-sm"
+            title="Refazer o Trajeto em Tempo Real com Animação"
           >
             <Play size={14} weight="fill" />
             <span>Refazer Trajeto</span>
@@ -193,7 +204,6 @@ export function MonitorView() {
   const [loadingReplay, setLoadingReplay] = useState<boolean>(false);
 
   const replayTimerRef = useRef<any>(null);
-
 
   useEffect(() => {
     const updateTime = () => {
@@ -241,12 +251,11 @@ export function MonitorView() {
         setSelectedJornadaId(jIdParam);
         const targetJ = jornadas.find((j) => (j.id || (j as any)._id) === jIdParam);
         if (targetJ && !replayJornada) {
-          handleStartReplay(targetJ);
+          handleStartReplay(targetJ, true);
         }
       }
     }
   }, [jornadas, replayJornada]);
-
 
   const { 
     data: veiculos = [], 
@@ -418,13 +427,13 @@ export function MonitorView() {
 
   const [filtroStatus, setFiltroStatus] = useState<'ATIVAS' | 'TODAS' | 'ENCERRADAS'>('ATIVAS');
 
-  // Trigger Replay for Driver
-  const handleStartReplay = async (jornada: Jornada) => {
+  // Trigger Replay / Complete Route for Driver
+  const handleStartReplay = async (jornada: Jornada, autoPlay: boolean = true) => {
     const motoristaId = (jornada as any).motorista_id || jornada.id;
     const jId = jornada.id || (jornada as any)._id;
 
     setLoadingReplay(true);
-    toast.info(`Buscando telemetria de ${jornada.motorista_nome || 'Motorista'}...`);
+    toast.info(`Carregando rota de ${jornada.motorista_nome || 'Motorista'}...`);
 
     try {
       // 1. Fetch raw telemetry from Backend API
@@ -517,15 +526,24 @@ export function MonitorView() {
       setReplayPoints(points);
       setReplayJornada(jornada);
       setCurrentReplayIndex(0);
-      setIsPlayingReplay(true);
+      setIsPlayingReplay(autoPlay);
+      setFollowVehicle(autoPlay);
       setLoadingReplay(false);
 
-      toast.success(`Iniciando Replay de ${jornada.motorista_nome || 'Motorista'} (${points.length} pontos de GPS)!`);
+      if (autoPlay) {
+        toast.success(`Iniciando Replay de ${jornada.motorista_nome || 'Motorista'} (${points.length} pontos GPS)!`);
+      } else {
+        toast.success(`Exibindo Rota Completa de ${jornada.motorista_nome || 'Motorista'}! Clique em "Refazer Caminho" para animar.`);
+      }
     } catch (err) {
-      console.error('Erro ao iniciar replay:', err);
+      console.error('Erro ao buscar rota do motorista:', err);
       toast.error('Erro ao buscar dados de telemetria do motorista.');
       setLoadingReplay(false);
     }
+  };
+
+  const handleShowCompleteRoute = (jornada: Jornada) => {
+    handleStartReplay(jornada, false);
   };
 
   // Replay Animation Timer Loop
@@ -754,7 +772,7 @@ export function MonitorView() {
                     variant="outline" 
                     className={replayJornada ? 'bg-sky-500/20 border-sky-500/40 text-sky-300 font-mono' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 text-[10px]'}
                   >
-                    {replayJornada ? 'REPLAY ATIVO (OSRM)' : 'SSE ONLINE'}
+                    {replayJornada ? 'ROTA / REPLAY ATIVO (OSRM)' : 'SSE ONLINE'}
                   </Badge>
                 </h2>
 
@@ -805,7 +823,8 @@ export function MonitorView() {
                 baseFoco={selectedBase} 
                 selectedJornadaId={selectedJornadaId}
                 onSelectJornada={(j) => setSelectedJornadaId(j.id || (j as any)._id)}
-                onStartReplay={handleStartReplay}
+                onStartReplay={(j) => handleStartReplay(j, true)}
+                onShowCompleteRoute={handleShowCompleteRoute}
                 replayMode={!!replayJornada}
                 replayPoints={replayPoints}
                 osrmRouteCoords={osrmRouteCoords}
@@ -828,6 +847,7 @@ export function MonitorView() {
                   onTogglePlay={() => setIsPlayingReplay(!isPlayingReplay)}
                   onRestart={() => setCurrentReplayIndex(0)}
                   onToggleFollow={() => setFollowVehicle(!followVehicle)}
+                  onFitCompleteRoute={() => setFollowVehicle(false)}
                   onSpeedChange={(spd) => setReplaySpeed(spd)}
                   onClose={handleCloseReplay}
                 />
@@ -981,7 +1001,8 @@ export function MonitorView() {
                         formatCurrency={formatCurrency}
                         isFocado={isFocado}
                         onSelect={(selected) => setSelectedJornadaId(selected.id || (selected as any)._id)}
-                        onStartReplay={handleStartReplay}
+                        onShowCompleteRoute={handleShowCompleteRoute}
+                        onStartReplay={(selected) => handleStartReplay(selected, true)}
                       />
                     );
                   })}

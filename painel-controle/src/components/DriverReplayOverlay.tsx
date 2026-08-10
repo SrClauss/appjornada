@@ -8,6 +8,7 @@ import {
   MapPin, 
   Clock, 
   Pulse, 
+  MapTrifold,
   X 
 } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +37,7 @@ interface DriverReplayOverlayProps {
   onTogglePlay: () => void;
   onRestart: () => void;
   onToggleFollow: () => void;
+  onFitCompleteRoute: () => void;
   onSpeedChange: (speed: number) => void;
   onClose: () => void;
 }
@@ -53,6 +55,7 @@ export function DriverReplayOverlay({
   onTogglePlay,
   onRestart,
   onToggleFollow,
+  onFitCompleteRoute,
   onSpeedChange,
   onClose,
 }: DriverReplayOverlayProps) {
@@ -157,7 +160,16 @@ export function DriverReplayOverlay({
 
         {/* Buttons Row */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={onFitCompleteRoute}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              title="Enquadrar a Rota Completa no Mapa"
+            >
+              <MapTrifold size={16} className="text-cyan-400" />
+              <span>Ver Rota Completa</span>
+            </button>
+
             <button
               onClick={onTogglePlay}
               className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-lg ${
@@ -167,7 +179,7 @@ export function DriverReplayOverlay({
               }`}
             >
               {isPlaying ? <Pause size={16} weight="fill" /> : <Play size={16} weight="fill" />}
-              <span>{isPlaying ? 'Pausar' : 'Iniciar Replay'}</span>
+              <span>{isPlaying ? 'Pausar' : 'Refazer Caminho (Replay)'}</span>
             </button>
 
             <button
@@ -185,7 +197,7 @@ export function DriverReplayOverlay({
                   ? 'bg-sky-500/15 border-sky-500/40 text-sky-300'
                   : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
               }`}
-              title="Centralizar Câmera no Veículo"
+              title="Seguir Câmera no Veículo"
             >
               <Crosshair size={16} className={followVehicle ? 'animate-pulse text-sky-400' : ''} />
               <span>Seguir Câmera</span>
