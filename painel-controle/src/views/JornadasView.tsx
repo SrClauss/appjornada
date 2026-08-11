@@ -50,7 +50,7 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const hasFittedBoundsRef = useRef<boolean>(false);
 
-  const latLngs = coordinates.map((c) => [c[1], c[0]] as [number, number]);
+  const latLngs = (coordinates || []).map((c) => [c[1], c[0]] as [number, number]);
   let base: [number, number] | null = null;
   
   const finalSegments: { coords: [number, number][]; color: string; label: string }[] = [];
@@ -114,7 +114,7 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
         mapRef.current = null;
       }
     };
-  }, [coordinates.length === 0, !corridasParticulares || corridasParticulares.length === 0]);
+  }, [!coordinates || coordinates.length === 0, !corridasParticulares || corridasParticulares.length === 0]);
 
   useEffect(() => {
     const map = mapRef.current;
