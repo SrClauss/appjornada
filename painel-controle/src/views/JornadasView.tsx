@@ -660,6 +660,37 @@ export function JornadasView() {
 
   const queryClient = useQueryClient();
 
+  const [resumoClassificacao, setResumoClassificacao] = useState<any | null>(null);
+  const [classificando, setClassificando] = useState(false);
+
+  const handleClassificarTrajetos = async () => {
+    if (!selectedJornada) return;
+    const jId = selectedJornada.id || (selectedJornada as any)._id;
+    setClassificando(true);
+    try {
+      const { data } = await api.post(`/jornadas/${jId}/classificar-trajetos`);
+      setResumoClassificacao(data.resumo_km);
+      // Recarregar segmentos do mapa
+      const { data: routeData } = await api.get(`/gps/motorista/${selectedJornada.motorista_id || 'all'}/rota-ajustada`, {
+        params: { jornada_id: jId }
+      });
+      if (routeData && routeData.segmentos_rota) {
+        setRouteSegments(routeData.segmentos_rota.map((s: any) => ({
+          is_produtivo: s.is_produtivo,
+          status: s.status,
+          rotulo: s.rotulo,
+          cor: s.cor,
+          coords: s.coords || s.coordinates || []
+        })));
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert('Erro ao classificar trajetos: ' + (e?.response?.data?.detail || e.message));
+    } finally {
+      setClassificando(false);
+    }
+  };
+
   const handleAprovarAuditoria = async () => {
     if (!selectedJornada) return;
     const jId = selectedJornada.id || (selectedJornada as any)._id;
@@ -1289,6 +1320,17 @@ export function JornadasView() {
                     {selectedJornada.score_auditoria ? ` (${selectedJornada.score_auditoria.score_risco} pts)` : ''}
                   </Badge>
 
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={classificando}
+                    onClick={handleClassificarTrajetos}
+                    className="border-indigo-500 text-indigo-600 hover:bg-indigo-600 hover:text-white font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <Compass size={18} className={classificando ? "animate-spin" : ""} />
+                    {classificando ? "Classificando..." : "⚡ Classificar Trajetos"}
+                  </Button>
+
                   {selectedJornada.status === 'ENCERRADA' && selectedJornada.auditoria_status !== 'APROVADA' && (
                     <Button 
                       size="sm" 
@@ -1302,6 +1344,60 @@ export function JornadasView() {
                   )}
                 </div>
               </div>
+
+              {/* Feedback Card da Classificação dos Trajetos */}
+              {(resumoClassificacao || selectedJornada.resumo_trajetos_km) && (
+                <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl text-white shadow-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-slate-200 flex items-center gap-2">
+                      <Compass size={18} className="text-indigo-400" />
+                      Resumo da Auditoria dos Trajetos (Quilometragem por Categoria):
+                    </span>
+                    {selectedJornada.trajetos_classificados_em && (
+                      <span className="text-[11px] text-slate-400">
+                        Classificado em: {new Date(selectedJornada.trajetos_classificados_em).toLocaleTimeString('pt-BR')}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-1">
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-lg text-center">
+                      <div className="text-[11px] text-emerald-400 font-bold uppercase">🟢 Produtivo</div>
+                      <div className="text-lg font-bold text-emerald-300">
+                        {(resumoClassificacao?.produtivo ?? selectedJornada.resumo_trajetos_km?.produtivo ?? 0).toFixed(1)} km
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg text-center">
+                      <div className="text-[11px] text-amber-400 font-bold uppercase">🟡 Deslocamento</div>
+                      <div className="text-lg font-bold text-amber-300">
+                        {(resumoClassificacao?.deslocamento ?? selectedJornada.resumo_trajetos_km?.deslocamento ?? 0).toFixed(1)} km
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-500/10 border border-blue-500/30 p-2.5 rounded-lg text-center">
+                      <div className="text-[11px] text-blue-400 font-bold uppercase">🔵 A favor da Base</div>
+                      <div className="text-lg font-bold text-blue-300">
+                        {(resumoClassificacao?.improdutivo_a_favor_base ?? selectedJornada.resumo_trajetos_km?.improdutivo_a_favor_base ?? 0).toFixed(1)} km
+                      </div>
+                    </div>
+
+                    <div className="bg-rose-500/10 border border-rose-500/30 p-2.5 rounded-lg text-center">
+                      <div className="text-[11px] text-rose-400 font-bold uppercase">🔴 Contra a Base</div>
+                      <div className="text-lg font-bold text-rose-300">
+                        {(resumoClassificacao?.improdutivo_contra_base ?? selectedJornada.resumo_trajetos_km?.improdutivo_contra_base ?? 0).toFixed(1)} km
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-500/10 border border-slate-500/30 p-2.5 rounded-lg text-center">
+                      <div className="text-[11px] text-slate-400 font-bold uppercase">⚪ Não Identificado</div>
+                      <div className="text-lg font-bold text-slate-300">
+                        {(resumoClassificacao?.nao_identificado ?? selectedJornada.resumo_trajetos_km?.nao_identificado ?? 0).toFixed(1)} km
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Triggers / Motivos do Risco de Auditoria */}
               {selectedJornada.score_auditoria?.motivos_risco && selectedJornada.score_auditoria.motivos_risco.length > 0 && (

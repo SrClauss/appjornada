@@ -11,7 +11,7 @@ from app.models.historico_gps import GeoPoint, HistoricoGPS, HistoricoGPSCreate,
 from app.models.user import Role, UserPublic
 from app.core.dependencies import get_current_user, require_roles
 from app.core.config import settings
-from app.services.segment_classifier import classificar_jornada_segmentos, BASE_OPERACOES_PADRAO
+from app.services.segment_classifier import classificar_jornada_segmentos, obter_pontos_jornada, BASE_OPERACOES_PADRAO
 
 # Limiar para considerar motorista parado (metros)
 LIMIAR_PARADO_M = 50
@@ -548,42 +548,11 @@ async def rota_ajustada_motorista(
     total_horas_seg = _safe_float(jornada.get("horario", {}).get("total_horas_segundos") if jornada else 0.0)
     comprovantes = jornada.get("faturamento", {}).get("comprovantes_processados", []) if jornada else []
 
-    # 1) Prioridade máxima: segmentos_rota compactados da jornada (que contêm todos os milhares de pontos gravados)
-    if jornada and jornada.get("segmentos_rota"):
-        segmentos_db = jornada["segmentos_rota"]
-        pontos_reconstruidos = []
-        
-        for seg in segmentos_db:
-            try:
-                decoded = decode_polyline(seg.get("polyline", ""))
-                is_prod = seg.get("is_produtivo", False)
-                for lat, lon in decoded:
-                    pontos_reconstruidos.append({
-                        "localizacao": {"coordinates": [lon, lat]},
-                        "produtivo": is_prod
-                    })
-            except Exception as e:
-                print("Erro ao decodificar polyline do segmento:", e)
-
-        if pontos_reconstruidos:
-            classified_segments = classificar_jornada_segmentos(pontos_reconstruidos, comprovantes, base_coords)
-            if classified_segments:
-                return {
-                    "status": "ok",
-                    "snapped": True,
-                    "segmentos_rota": classified_segments,
-                    "coordinates": [],
-                    "base_operacoes": {"lat": base_lat, "lon": base_lon},
-                    "distance_m": km_rodados * 1000.0,
-                    "duration_s": total_horas_seg
-                }
-
-    # 2) Fallback: histórico de GPS ativo em tempo real
-    filtro_gps = {"jornada_id": str(jornada_id)}
-    pontos = await db["historico_gps"].find(filtro_gps).sort("timestamp", 1).to_list(100000)
+    jornada_data = jornada.get("data") if jornada else None
+    pontos = await obter_pontos_jornada(jornada, db) if jornada else []
 
     if pontos:
-        classified_segments = classificar_jornada_segmentos(pontos, comprovantes, base_coords)
+        classified_segments = classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
         if classified_segments:
             return {
                 "status": "ok",

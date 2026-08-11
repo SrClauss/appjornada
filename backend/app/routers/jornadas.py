@@ -2456,3 +2456,101 @@ async def limpar_dados_antigos(
     await registrar_auditoria(db, user_dict, "LIMPAR_DADOS_ANTIGOS", relatorio)
         
     return relatorio
+
+
+@router.post("/{jornada_id}/classificar-trajetos")
+async def classificar_trajetos_jornada(
+    jornada_id: str,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """
+    Executa manualmente a classificação inteligente de trajetos para uma jornada,
+    salva os segmentos classificados com cores/rótulos no banco e retorna o resumo de KM.
+    """
+    try:
+        q_j = {"$or": [{"_id": jornada_id}, {"_id": ObjectId(jornada_id)}]}
+    except Exception:
+        q_j = {"_id": jornada_id}
+
+    jornada = await db["jornadas"].find_one(q_j)
+    if not jornada:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+
+    base_doc = await db["bases_operacoes"].find_one({"is_principal": True})
+    if not base_doc:
+        base_doc = await db["bases_operacoes"].find_one({})
+    base_lat = base_doc.get("lat", -20.26548) if base_doc else -20.26548
+    base_lon = base_doc.get("lon", -40.29589) if base_doc else -40.29589
+    base_coords = (base_lat, base_lon)
+
+    from app.services.segment_classifier import classificar_jornada_segmentos, obter_pontos_jornada, calcular_distancia_m
+    from app.routers.gps import encode_polyline
+
+    pontos = await obter_pontos_jornada(jornada, db)
+    if not pontos:
+        raise HTTPException(status_code=400, detail="Nenhum ponto de telemetria/GPS encontrado para esta jornada.")
+
+    comprovantes = jornada.get("faturamento", {}).get("comprovantes_processados", [])
+    jornada_data = jornada.get("data")
+
+    segmentos_classificados = classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
+
+    resumo_km = {
+        "produtivo": 0.0,
+        "deslocamento": 0.0,
+        "improdutivo_a_favor_base": 0.0,
+        "improdutivo_contra_base": 0.0,
+        "nao_identificado": 0.0
+    }
+
+    segmentos_para_salvar = []
+    for seg in segmentos_classificados:
+        status = seg.get("status", "nao_identificado")
+        coords = seg.get("coords", [])
+        
+        dist_m = 0.0
+        for i in range(len(coords) - 1):
+            dist_m += calcular_distancia_m(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1])
+        
+        km_seg = round(dist_m / 1000.0, 2)
+        if status in resumo_km:
+            resumo_km[status] += km_seg
+        else:
+            resumo_km["nao_identificado"] += km_seg
+
+        if len(coords) >= 2:
+            try:
+                poly = encode_polyline(coords)
+                segmentos_para_salvar.append({
+                    "status": status,
+                    "rotulo": seg.get("rotulo"),
+                    "cor": seg.get("cor"),
+                    "is_produtivo": status == "produtivo",
+                    "polyline": poly,
+                    "km": km_seg
+                })
+            except Exception:
+                pass
+
+    for k in resumo_km:
+        resumo_km[k] = round(resumo_km[k], 2)
+
+    await db["jornadas"].update_one(
+        {"_id": jornada["_id"]},
+        {
+            "$set": {
+                "segmentos_rota": segmentos_para_salvar,
+                "resumo_trajetos_km": resumo_km,
+                "trajetos_classificados_em": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+
+    return {
+        "status": "ok",
+        "mensagem": "Classificação de trajetos executada com sucesso!",
+        "resumo_km": resumo_km,
+        "total_segmentos": len(segmentos_classificados),
+        "total_corridas_vinculadas": len(comprovantes)
+    }
