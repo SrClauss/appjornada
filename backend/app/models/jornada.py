@@ -31,10 +31,13 @@ class FotosJornada(BaseModel):
 
 
 class ComprovanteProcessado(BaseModel):
+    id: Optional[str] = None
     plataforma: str
     valor: float
     origem: Optional[str] = None
     destino: Optional[str] = None
+    horario: Optional[str] = None
+    url: Optional[str] = None
     url_comprovante: Optional[str] = None
     data_processamento: Optional[str] = None
 
