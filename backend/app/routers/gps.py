@@ -507,6 +507,13 @@ async def interpolar_lacunas_com_osrm(coords_raw: list) -> list:
     return coords_interpoladas
 
 
+def _safe_float(val) -> float:
+    try:
+        return float(val) if val is not None else 0.0
+    except (ValueError, TypeError):
+        return 0.0
+
+
 @router.get("/motorista/{motorista_id}/rota-ajustada")
 async def rota_ajustada_motorista(
     motorista_id: str,

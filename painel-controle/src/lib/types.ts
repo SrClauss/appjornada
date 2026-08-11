@@ -162,13 +162,16 @@ export interface DREJornada {
 }
 
 export interface ComprovanteProcessado {
+  id?: string;
   plataforma: string;
   valor: number;
   origem?: string;
   destino?: string;
+  horario?: string;
   data_hora?: string;
-  url_comprovante: string;
-  data_processamento: string;
+  url_comprovante?: string;
+  url?: string;
+  data_processamento?: string;
   match_produtivo_status?: 'PENDENTE' | 'SUCESSO' | 'FALHA';
 }
 

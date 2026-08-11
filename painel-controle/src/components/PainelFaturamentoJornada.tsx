@@ -247,8 +247,8 @@ export const PainelFaturamentoJornada: React.FC<PainelFaturamentoJornadaProps> =
                     <td className="py-2.5 px-3 max-w-xs truncate text-slate-500">
                       {comp.origem || comp.destino ? `${comp.origem || '—'} ➔ ${comp.destino || '—'}` : 'N/A'}
                     </td>
-                    <td className="py-2.5 px-3 text-slate-400">
-                      {comp.data_processamento ? new Date(comp.data_processamento).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    <td className="py-2.5 px-3 font-semibold text-slate-700">
+                      {comp.horario || comp.data_hora || (comp.data_processamento ? new Date(comp.data_processamento).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—')}
                     </td>
                     <td className="py-2.5 px-3 text-right">
                       {comp.url_comprovante ? (

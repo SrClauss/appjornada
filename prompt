@@ -1,0 +1,67 @@
+então vamos pegar o que ja temos, e fazer a estatégia hibrida de modo que quando eu for olhar as jornadas eu consiga ver o que é deslocamento produtivo, ou não. Eu quero ser possivel identificar estes tipos de trajetos
+nao identificado ; são trajetos antes da prestação de contsa
+produtivos:  são trajetos identificados como corridas
+deslocament: são trajetos deslocando para onde começa a corrida
+improdutivo contra a base de operaçoes: é m deslocamento que não é a favor do inicio de uma corrida e se distancia da base de operações
+improdutivo a favor da bse, deslocamento que n~qo é a favor do inicio de uma corrida mas vai até a base de operaçẽs
+
+para isto vamos determinar que a nova base de operaçoes é 20.26548, Lon: -40.29589, modifique isto no banco de dados
+
+e nas estruturas que mostram o trajeto, como  e evento em tempo real e visualizar jornada , queria que ficasse identificado estes delocamento (com esquema de cores em linha indicada no mapa) e com marcações mesmo>
+
+Navigated to https://rafael.arkana.fun/
+XHR finished loading: GET "<URL>".
+XHR finished loading: GET "<URL>".
+XHR finished loading: GET "<URL>".
+XHR finished loading: GET "<URL>".
+XHR finished loading: GET "<URL>".
+XHR finished loading: GET "<URL>".
+index-De2nCC4z.js:11  GET https://rafael.arkana.fun/api/gps/motorista/6a70a650d070ab1f8b3f887d/rota-ajustada?jornada_id=Ronaldo+Patr%C3%ADcio+da+Silva-SIC-4C92-10082026135601 500 (Internal Server Error)
+(anonymous) @ index-De2nCC4z.js:11
+xhr @ index-De2nCC4z.js:11
+tS @ index-De2nCC4z.js:13
+Promise.then
+_request @ index-De2nCC4z.js:17
+request @ index-De2nCC4z.js:13
+ec.<computed> @ index-De2nCC4z.js:17
+(anonymous) @ index-De2nCC4z.js:9
+Cr @ index-De2nCC4z.js:137
+onClick @ index-De2nCC4z.js:137
+Vw @ index-De2nCC4z.js:8
+(anonymous) @ index-De2nCC4z.js:8
+T0 @ index-De2nCC4z.js:8
+Ug @ index-De2nCC4z.js:8
+ov @ index-De2nCC4z.js:9
+IZ @ index-De2nCC4z.js:9
+index-De2nCC4z.js:137 Erro ao carregar telemetria da jornada: AxiosError: Request failed with status code 500
+    at LT (index-De2nCC4z.js:11:10140)
+    at XMLHttpRequest.N (index-De2nCC4z.js:11:15681)
+Cr @ index-De2nCC4z.js:137
+await in Cr
+onClick @ index-De2nCC4z.js:137
+Vw @ index-De2nCC4z.js:8
+(anonymous) @ index-De2nCC4z.js:8
+T0 @ index-De2nCC4z.js:8
+Ug @ index-De2nCC4z.js:8
+ov @ index-De2nCC4z.js:9
+IZ @ index-De2nCC4z.js:9
+index-De2nCC4z.js:11 XHR failed loading: GET "https://rafael.arkana.fun/api/gps/motorista/6a70a650d070ab1f8b3f887d/rota-ajustada?jornada_id=Ronaldo+Patr%C3%ADcio+da+Silva-SIC-4C92-10082026135601".
+(anonymous) @ index-De2nCC4z.js:11
+xhr @ index-De2nCC4z.js:11
+tS @ index-De2nCC4z.js:13
+Promise.then
+_request @ index-De2nCC4z.js:17
+request @ index-De2nCC4z.js:13
+ec.<computed> @ index-De2nCC4z.js:17
+(anonymous) @ index-De2nCC4z.js:9
+Cr @ index-De2nCC4z.js:137
+onClick @ index-De2nCC4z.js:137
+Vw @ index-De2nCC4z.js:8
+(anonymous) @ index-De2nCC4z.js:8
+T0 @ index-De2nCC4z.js:8
+Ug @ index-De2nCC4z.js:8
+ov @ index-De2nCC4z.js:9
+IZ @ index-De2nCC4z.js:9
+
+
+corrija este erro aqui

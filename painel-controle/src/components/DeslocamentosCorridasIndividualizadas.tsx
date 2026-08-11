@@ -79,7 +79,7 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
       plataformaNome: comp.plataforma || 'Plataforma',
       origem: comp.origem || 'Extrato Lido',
       destino: comp.destino || 'Destino Lido',
-      horarioInicio: comp.data_processamento ? new Date(comp.data_processamento).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : undefined,
+      horarioInicio: comp.horario || comp.data_hora || (comp.data_processamento ? new Date(comp.data_processamento).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : undefined),
       valor: comp.valor || 0,
       urlComprovante: comp.url_comprovante,
     });
