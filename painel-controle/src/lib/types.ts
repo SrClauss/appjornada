@@ -176,8 +176,11 @@ export interface ComprovanteProcessado {
 }
 
 export interface SegmentoRota {
-  is_produtivo: boolean;
-  polyline: string;
+  status?: 'nao_identificado' | 'produtivo' | 'deslocamento' | 'improdutivo_contra_base' | 'improdutivo_a_favor_base';
+  rotulo?: string;
+  cor?: string;
+  is_produtivo?: boolean;
+  coords: [number, number][];
 }
 
 export interface ScoreAuditoria {

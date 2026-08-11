@@ -11,6 +11,7 @@ from app.models.historico_gps import GeoPoint, HistoricoGPS, HistoricoGPSCreate,
 from app.models.user import Role, UserPublic
 from app.core.dependencies import get_current_user, require_roles
 from app.core.config import settings
+from app.services.segment_classifier import classificar_jornada_segmentos, BASE_OPERACOES_PADRAO
 
 # Limiar para considerar motorista parado (metros)
 LIMIAR_PARADO_M = 50
@@ -535,7 +536,37 @@ async def rota_ajustada_motorista(
 
     jornada = await db["jornadas"].find_one(q_j)
 
-    # 1) Prioridade máxima: segmentos_rota compactados (polyline OSRM calculada no encerramento)
+    # Obter base de operações principal do banco
+    base_doc = await db["bases_operacoes"].find_one({"is_principal": True})
+    if not base_doc:
+        base_doc = await db["bases_operacoes"].find_one({})
+    base_lat = base_doc.get("lat", -20.26548) if base_doc else -20.26548
+    base_lon = base_doc.get("lon", -40.29589) if base_doc else -40.29589
+    base_coords = (base_lat, base_lon)
+
+    # Buscar pontos GPS e comprovantes para classificação completa
+    filtro_gps = {"jornada_id": str(jornada_id)}
+    pontos = await db["historico_gps"].find(filtro_gps).sort("timestamp", 1).to_list(100000)
+    comprovantes = jornada.get("faturamento", {}).get("comprovantes_processados", []) if jornada else []
+
+    classified_segments = classificar_jornada_segmentos(pontos, comprovantes, base_coords)
+
+    km_rodados = _safe_float(jornada.get("km", {}).get("rodados") if jornada else 0.0)
+    total_horas_seg = _safe_float(jornada.get("horario", {}).get("total_horas_segundos") if jornada else 0.0)
+
+    # 1) Prioridade máxima: segmentos classificados a partir do histórico GPS
+    if classified_segments:
+        return {
+            "status": "ok",
+            "snapped": True,
+            "segmentos_rota": classified_segments,
+            "coordinates": [],
+            "base_operacoes": {"lat": base_lat, "lon": base_lon},
+            "distance_m": km_rodados * 1000.0,
+            "duration_s": total_horas_seg
+        }
+
+    # 2) Fallback: segmentos_rota compactados legados
     if jornada and jornada.get("segmentos_rota"):
         segmentos = jornada["segmentos_rota"]
         decoded_segments = []
@@ -543,14 +574,15 @@ async def rota_ajustada_motorista(
             try:
                 decoded = decode_polyline(seg.get("polyline", ""))
                 if len(decoded) >= 2:
+                    is_prod = seg.get("is_produtivo", False)
                     decoded_segments.append({
-                        "is_produtivo": seg.get("is_produtivo"),
-                        "coordinates": decoded
+                        "status": "produtivo" if is_prod else "improdutivo_contra_base",
+                        "rotulo": "Corrida Produtiva" if is_prod else "Deslocamento Sem Corrida",
+                        "cor": "#10b981" if is_prod else "#ef4444",
+                        "coords": decoded
                     })
             except Exception:
                 pass
-        km_rodados = _safe_float(jornada.get("km", {}).get("rodados") if jornada else 0.0)
-        total_horas_seg = _safe_float(jornada.get("horario", {}).get("total_horas_segundos") if jornada else 0.0)
 
         if len(decoded_segments) > 0:
             return {
@@ -558,6 +590,7 @@ async def rota_ajustada_motorista(
                 "snapped": True,
                 "segmentos_rota": decoded_segments,
                 "coordinates": [],
+                "base_operacoes": {"lat": base_lat, "lon": base_lon},
                 "distance_m": km_rodados * 1000.0,
                 "duration_s": total_horas_seg
             }

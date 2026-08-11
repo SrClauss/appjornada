@@ -39,7 +39,7 @@ import 'leaflet/dist/leaflet.css';
 
 interface MapViewProps {
   coordinates: [number, number][];
-  routeSegments?: { is_produtivo: boolean, coords: [number, number][] }[];
+  routeSegments?: SegmentoRota[];
   corridasParticulares?: any[];
   selectedCorrida?: CorridaIndividual | null;
 }
@@ -53,17 +53,46 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
   const latLngs = (coordinates || []).map((c) => [c[1], c[0]] as [number, number]);
   let base: [number, number] | null = null;
   
-  const finalSegments: { coords: [number, number][]; color: string; label: string }[] = [];
+  const finalSegments: { coords: [number, number][]; color: string; label: string; status: string }[] = [];
 
   if (routeSegments && routeSegments.length > 0) {
     routeSegments.forEach(seg => {
       const segCoords = seg.coords || (seg as any).coordinates || [];
       if (segCoords.length > 0) {
         if (!base) base = segCoords[0];
+        
+        let color = seg.cor || '#94a3b8';
+        let label = seg.rotulo || 'Trajeto Não Identificado';
+        
+        if (!seg.cor) {
+          switch (seg.status) {
+            case 'produtivo':
+              color = '#10b981';
+              label = 'Corrida Produtiva';
+              break;
+            case 'deslocamento':
+              color = '#f59e0b';
+              label = 'Deslocamento p/ Início de Corrida';
+              break;
+            case 'improdutivo_contra_base':
+              color = '#ef4444';
+              label = 'Improdutivo (Afastando da Base)';
+              break;
+            case 'improdutivo_a_favor_base':
+              color = '#3b82f6';
+              label = 'Deslocamento em Direção à Base';
+              break;
+            default:
+              color = seg.is_produtivo ? '#10b981' : '#94a3b8';
+              label = seg.is_produtivo ? 'Corrida Produtiva' : 'Trajeto Não Identificado';
+          }
+        }
+
         finalSegments.push({
           coords: segCoords,
-          color: seg.is_produtivo ? '#10b981' : '#64748b',
-          label: seg.is_produtivo ? 'Deslocamento Produtivo (Corrida)' : 'Deslocamento Improdutivo (Vazio)'
+          color,
+          label,
+          status: seg.status || (seg.is_produtivo ? 'produtivo' : 'nao_identificado')
         });
       }
     });
@@ -72,7 +101,8 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
     finalSegments.push({
       coords: latLngs,
       color: '#3b82f6',
-      label: 'Deslocamento Contínuo e Direção da Rota'
+      label: 'Deslocamento Contínuo da Rota',
+      status: 'deslocamento'
     });
   }
 
@@ -282,34 +312,36 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
       <div ref={mapContainerRef} className="w-full h-full rounded-lg" />
       
       <div className="absolute bottom-4 right-4 z-[1000] bg-white/95 backdrop-blur-sm px-3.5 py-2.5 rounded-xl shadow-lg border border-slate-200 flex flex-col gap-2 text-xs font-semibold text-slate-700">
-        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Sentido do Deslocamento</div>
+        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Classificação de Trajetos</div>
         <div className="flex items-center gap-2.5">
           <div className="w-3.5 h-1.5 bg-[#10b981] rounded-full" />
-          <span>Deslocamento Produtivo (Verde)</span>
+          <span>Corrida Produtiva (Verde)</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <div className="w-3.5 h-1.5 bg-[#64748b] rounded-full" />
-          <span>Improdutivo / Vazio (Cinza)</span>
+          <div className="w-3.5 h-1.5 bg-[#f59e0b] rounded-full" />
+          <span>Deslocamento p/ Corrida (Amarelo)</span>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="w-3.5 h-1.5 bg-[#3b82f6] rounded-full" />
-          <span>Distanciamento da Base (Azul)</span>
+          <span>A favor da Base de Operações (Azul)</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <div className="w-2.5 h-2.5 bg-[#3b82f6] rounded-full border border-white" />
-          <span>Base de Operações</span>
+          <div className="w-3.5 h-1.5 bg-[#ef4444] rounded-full" />
+          <span>Improdutivo contra a Base (Vermelho)</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <div className="w-2.5 h-2.5 bg-[#ef4444] rounded-full border border-white" />
-          <span>Último Ponto Registrado</span>
+          <div className="w-3.5 h-1.5 bg-[#94a3b8] rounded-full" />
+          <span>Não Identificado / Pré-prestação (Cinza)</span>
         </div>
-        <div className="flex items-center gap-2.5">
-          <div className="w-2.5 h-2.5 bg-[#6366F1] rounded-full border border-white" />
-          <span>Partida Corrida Particular</span>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <div className="w-3.5 h-3.5 bg-[#EC4899] rounded-sm border border-white" />
-          <span>Destino Corrida Particular</span>
+        <div className="pt-1.5 border-t border-slate-100 flex flex-col gap-1 text-[11px] text-slate-500">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 bg-[#3b82f6] rounded-full border border-white" />
+            <span>Início / Base (-20.265, -40.295)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 bg-[#ef4444] rounded-full border border-white" />
+            <span>Última Posição</span>
+          </div>
         </div>
       </div>
     </div>

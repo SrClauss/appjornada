@@ -87,12 +87,12 @@ async def listar_bases_operacoes():
     docs = await db["bases_operacoes"].find().to_list(100)
     if not docs:
         initial_doc = {
-            "_id": "base_sao_mateus",
-            "nome": "Base Operacional São Mateus",
-            "cidade": "São Mateus",
+            "_id": "base_vitoria_serra",
+            "nome": "Base Operacional Vitória/Serra",
+            "cidade": "Serra",
             "estado": "ES",
-            "lat": -18.716,
-            "lon": -39.858,
+            "lat": -20.26548,
+            "lon": -40.29589,
             "zoom_padrao": 13,
             "is_principal": True,
         }
