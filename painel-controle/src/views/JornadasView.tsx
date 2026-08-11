@@ -301,11 +301,10 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
       if (corridaBounds) {
         map.fitBounds(corridaBounds, { padding: [50, 50], maxZoom: 16 });
       }
-    } else if (mainBounds && !hasFittedBoundsRef.current) {
-      map.fitBounds(mainBounds, { padding: [30, 30], maxZoom: 16 });
-      hasFittedBoundsRef.current = true;
+    } else if (mainBounds) {
+      map.fitBounds(mainBounds, { padding: [40, 40], maxZoom: 16 });
     }
-  }, [coordinates, corridasParticulares, selectedCorrida]);
+  }, [coordinates, routeSegments, corridasParticulares, selectedCorrida]);
 
   return (
     <div className="relative w-full h-full">
