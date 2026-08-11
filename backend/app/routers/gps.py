@@ -552,7 +552,7 @@ async def rota_ajustada_motorista(
     pontos = await obter_pontos_jornada(jornada, db) if jornada else []
 
     if pontos:
-        classified_segments = classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
+        classified_segments = await classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
         if classified_segments:
             return {
                 "status": "ok",

@@ -6,6 +6,8 @@ from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, date, time, timedelta, timezone
 
 from app.db.database import get_db
+from app.core.config import settings
+from app.services.matching import geocode_address
 
 
 BASE_OPERACOES_PADRAO = (-20.26548, -40.29589)  # (lat, lon)
@@ -147,18 +149,23 @@ def classificar_segmento(
         }
 
 
-def classificar_jornada_segmentos(
+async def classificar_jornada_segmentos(
     pontos_gps: List[Dict[str, Any]],
     comprovantes: List[Dict[str, Any]],
     base_coords: Tuple[float, float] = BASE_OPERACOES_PADRAO,
     jornada_data_str: Optional[str] = None
 ) -> List[Dict[str, Any]]:
+    """
+    Processa os pontos de GPS e cruza com os comprovantes (usando Horário PADRÃO OURO + Google Geocoding).
+    """
     if not pontos_gps or len(pontos_gps) < 2:
         return []
 
     tem_prestacao = len(comprovantes) > 0
+    api_key = settings.GOOGLE_API_KEY or settings.GEMINI_API_KEY
 
-    janelas_corridas: List[Tuple[datetime, datetime]] = []
+    # 1. Construir janelas de tempo de corridas (PADRÃO OURO - HORÁRIO) + Geocoding Google
+    janelas_corridas: List[Dict[str, Any]] = []
     ref_date = date.today()
     if jornada_data_str:
         try:
@@ -166,7 +173,7 @@ def classificar_jornada_segmentos(
         except Exception:
             pass
 
-    for c in comprovantes:
+    for idx_c, c in enumerate(comprovantes):
         horario_str = c.get("horario") or c.get("data_hora")
         if not horario_str:
             continue
@@ -188,10 +195,42 @@ def classificar_jornada_segmentos(
             
             dt_inicio = c_dt - timedelta(minutes=2)
             dt_fim = c_dt + timedelta(minutes=duracao_mins)
-            janelas_corridas.append((dt_inicio, dt_fim))
-        except Exception as err:
-            print(f"[CLASSIFIER] Erro ao parsear horário comprovante '{horario_str}': {err}")
 
+            # Geocodificar origem e destino via Google Locals se necessário
+            orig_coords = c.get("origem_coords")
+            dest_coords = c.get("destino_coords")
+
+            if not orig_coords and c.get("origem") and api_key:
+                try:
+                    res_orig = await geocode_address(c["origem"], api_key)
+                    if res_orig:
+                        orig_coords = list(res_orig)
+                        c["origem_coords"] = orig_coords
+                except Exception:
+                    pass
+
+            if not dest_coords and c.get("destino") and api_key:
+                try:
+                    res_dest = await geocode_address(c["destino"], api_key)
+                    if res_dest:
+                        dest_coords = list(res_dest)
+                        c["destino_coords"] = dest_coords
+                except Exception:
+                    pass
+
+            janelas_corridas.append({
+                "idx": idx_c,
+                "dt_inicio": dt_inicio,
+                "dt_fim": dt_fim,
+                "origem_coords": orig_coords,
+                "destino_coords": dest_coords
+            })
+        except Exception as err:
+            print(f"[CLASSIFIER] Erro ao processar comprovante #{idx_c} '{horario_str}': {err}")
+
+    comprovantes_vinculados_map = {}
+
+    # 2. Atribuir flag produtivo para pontos GPS que caem no Horário Padrão Ouro + Proximidade Google Locals
     pontos_processados = []
     for p in pontos_gps:
         lat = p.get("lat") or p.get("localizacao", {}).get("coordinates", [0, 0])[1]
@@ -200,9 +239,28 @@ def classificar_jornada_segmentos(
 
         is_prod = p.get("produtivo", False)
         if not is_prod and ts_dt and janelas_corridas:
-            for j_ini, j_fim in janelas_corridas:
+            for item in janelas_corridas:
+                idx_c = item["idx"]
+                j_ini = item["dt_inicio"]
+                j_fim = item["dt_fim"]
+
                 if j_ini <= ts_dt <= j_fim:
                     is_prod = True
+                    match_type = "HORARIO_EXATO"
+
+                    # Se tiver coordenadas Google Places, validar proximidade geográfica (verificação dupla)
+                    o_c = item.get("origem_coords")
+                    d_c = item.get("destino_coords")
+                    if o_c:
+                        dist_o = calcular_distancia_m(lat, lon, o_c[0], o_c[1])
+                        if dist_o <= 600:
+                            match_type = "HORARIO_E_GOOGLE_LOCALS"
+                    if d_c:
+                        dist_d = calcular_distancia_m(lat, lon, d_c[0], d_c[1])
+                        if dist_d <= 600:
+                            match_type = "HORARIO_E_GOOGLE_LOCALS"
+
+                    comprovantes_vinculados_map[idx_c] = match_type
                     break
 
         pontos_processados.append({
@@ -212,6 +270,16 @@ def classificar_jornada_segmentos(
             "produtivo": is_prod
         })
 
+    # 3. Atualizar cada comprovante com o selo de verificação de telemetria
+    for idx_c, c in enumerate(comprovantes):
+        if idx_c in comprovantes_vinculados_map:
+            c["identificado_telemetria"] = True
+            c["match_status"] = comprovantes_vinculados_map[idx_c]
+        else:
+            c["identificado_telemetria"] = False
+            c["match_status"] = "SEM_TELEMETRIA"
+
+    # 4. Agrupar em segmentos homogêneos de rota
     raw_segments = []
     curr_segment = []
     curr_flag = pontos_processados[0]["produtivo"]

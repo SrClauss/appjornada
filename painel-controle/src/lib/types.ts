@@ -163,8 +163,8 @@ export interface DREJornada {
 
 export interface ComprovanteProcessado {
   id?: string;
-  plataforma: string;
-  valor: number;
+  plataforma?: string;
+  valor?: number;
   origem?: string;
   destino?: string;
   horario?: string;
@@ -172,6 +172,7 @@ export interface ComprovanteProcessado {
   url_comprovante?: string;
   url?: string;
   data_processamento?: string;
+  identificado_telemetria?: boolean;
   match_produtivo_status?: 'PENDENTE' | 'SUCESSO' | 'FALHA';
 }
 

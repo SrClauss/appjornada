@@ -82,7 +82,8 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
       horarioInicio: comp.horario || comp.data_hora || (comp.data_processamento ? new Date(comp.data_processamento).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : undefined),
       valor: comp.valor || 0,
       urlComprovante: comp.url_comprovante,
-    });
+      identificadoTelemetria: comp.identificado_telemetria,
+    } as any);
   });
 
   if (corridas.length === 0) {
@@ -128,7 +129,7 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
 
       {/* Grid de Lista de Corridas */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {corridas.map((c) => {
+        {corridas.map((c: any) => {
           const isSelected = selectedCorridaId === c.id;
 
           const getBadgeClass = (tipo: CorridaIndividual['tipo']) => {
@@ -155,10 +156,22 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
               }`}
             >
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide ${getBadgeClass(c.tipo)}`}>
-                    {c.plataformaNome}
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide ${getBadgeClass(c.tipo)}`}>
+                      {c.plataformaNome}
+                    </span>
+                    {c.identificadoTelemetria === true && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/30">
+                        🟢 GPS Confirmado
+                      </span>
+                    )}
+                    {c.identificadoTelemetria === false && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/30">
+                        ⚠️ Sem GPS
+                      </span>
+                    )}
+                  </div>
                   <span className="text-sm font-black font-mono text-slate-900">
                     {formatCurrency(c.valor)}
                   </span>

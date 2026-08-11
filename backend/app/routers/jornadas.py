@@ -2493,7 +2493,7 @@ async def classificar_trajetos_jornada(
     comprovantes = jornada.get("faturamento", {}).get("comprovantes_processados", [])
     jornada_data = jornada.get("data")
 
-    segmentos_classificados = classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
+    segmentos_classificados = await classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
 
     resumo_km = {
         "produtivo": 0.0,
@@ -2535,10 +2535,15 @@ async def classificar_trajetos_jornada(
     for k in resumo_km:
         resumo_km[k] = round(resumo_km[k], 2)
 
+    # Salvar segmentos e comprovantes atualizados no banco
+    fat = jornada.get("faturamento", {})
+    fat["comprovantes_processados"] = comprovantes
+
     await db["jornadas"].update_one(
         {"_id": jornada["_id"]},
         {
             "$set": {
+                "faturamento.comprovantes_processados": comprovantes,
                 "segmentos_rota": segmentos_para_salvar,
                 "resumo_trajetos_km": resumo_km,
                 "trajetos_classificados_em": datetime.now(timezone.utc).isoformat()
