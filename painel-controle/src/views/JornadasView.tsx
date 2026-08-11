@@ -56,13 +56,12 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
   const finalSegments: { coords: [number, number][]; color: string; label: string }[] = [];
 
   if (routeSegments && routeSegments.length > 0) {
-    if (routeSegments[0].coords.length > 0) {
-      base = routeSegments[0].coords[0];
-    }
     routeSegments.forEach(seg => {
-      if (seg.coords.length > 0) {
+      const segCoords = seg.coords || (seg as any).coordinates || [];
+      if (segCoords.length > 0) {
+        if (!base) base = segCoords[0];
         finalSegments.push({
-          coords: seg.coords,
+          coords: segCoords,
           color: seg.is_produtivo ? '#10b981' : '#64748b',
           label: seg.is_produtivo ? 'Deslocamento Produtivo (Corrida)' : 'Deslocamento Improdutivo (Vazio)'
         });
@@ -161,7 +160,7 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
         L.marker(base, { icon: startIcon }).addTo(layerGroup).bindPopup('Início da Rota / Base');
       }
       const lastSegment = finalSegments[finalSegments.length - 1];
-      const lastPoint = lastSegment.coords[lastSegment.coords.length - 1];
+      const lastPoint = lastSegment?.coords && lastSegment.coords.length > 0 ? lastSegment.coords[lastSegment.coords.length - 1] : null;
       if (lastPoint) {
         L.marker(lastPoint, { icon: endIcon }).addTo(layerGroup).bindPopup('Última coordenada registrada');
       }
@@ -1007,8 +1006,15 @@ export function JornadasView() {
           params: { jornada_id: jId }
         });
         if (routeData) {
-          setRouteCoordinates(routeData.coordenadas || []);
-          setRouteSegments(routeData.segmentos_rota || []);
+          setRouteCoordinates(routeData.coordinates || routeData.coordenadas || []);
+          if (routeData.segmentos_rota) {
+            setRouteSegments(routeData.segmentos_rota.map((s: any) => ({
+              is_produtivo: s.is_produtivo,
+              coords: s.coords || s.coordinates || []
+            })));
+          } else {
+            setRouteSegments([]);
+          }
         }
       } catch (err) {
         console.error("Erro ao carregar telemetria da jornada:", err);
@@ -1030,11 +1036,13 @@ export function JornadasView() {
       if (routeData && routeData.segmentos_rota) {
         setRouteSegments(routeData.segmentos_rota.map((s: any) => ({
           is_produtivo: s.is_produtivo,
-          coords: s.coordinates
+          coords: s.coords || s.coordinates || []
         })));
+      } else {
+        setRouteSegments([]);
       }
-      if (routeData && routeData.coordinates) {
-        setRouteCoordinates(routeData.coordinates);
+      if (routeData) {
+        setRouteCoordinates(routeData.coordinates || routeData.coordenadas || []);
       }
     } catch (e) {
       console.error('Erro ao abrir jornada do evento:', e);
