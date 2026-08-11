@@ -884,7 +884,11 @@ export function MonitorView() {
                           const realIdx = replayPoints.findIndex((p) => p.timestamp === pt.timestamp && p.lat === pt.lat);
                           const isSelected = realIdx === currentReplayIndex;
                           const isParado = pt.status === 'PARADO';
-                          const timeOnly = new Date(pt.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                          let cleanedTs = String(pt.timestamp || '').trim().replace(' ', 'T');
+                          if (cleanedTs && !cleanedTs.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(cleanedTs)) {
+                            cleanedTs += 'Z';
+                          }
+                          const timeOnly = cleanedTs ? new Date(cleanedTs).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--';
 
                           return (
                             <div

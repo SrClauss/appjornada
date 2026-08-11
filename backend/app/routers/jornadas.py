@@ -687,6 +687,30 @@ async def atualizar_jornada(
     
     normalized = _normalizar_jornada(atualizado)
     await _populate_motorista_nome(normalized, db)
+@router.patch("/{jornada_id}/reabrir", response_model=Jornada)
+async def reabrir_jornada(
+    jornada_id: str,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    doc = await db["jornadas"].find_one({"_id": jornada_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+
+    await db["jornadas"].update_one(
+        {"_id": jornada_id},
+        {
+            "$set": {
+                "status": "ABERTA",
+                "horario.fim": None,
+                "observacoes": None
+            }
+        }
+    )
+    atualizado = await db["jornadas"].find_one({"_id": jornada_id})
+    normalized = _normalizar_jornada(atualizado)
+    await _populate_motorista_nome(normalized, db)
+    await event_manager.broadcast("jornada_atualizada", {"jornada_id": jornada_id, "status": "ABERTA"})
     return Jornada(**normalized)
 
 

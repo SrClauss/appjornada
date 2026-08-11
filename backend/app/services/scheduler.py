@@ -18,28 +18,9 @@ MINUTO_ENCERRAMENTO = 30
 
 
 async def _encerrar_jornadas_abertas() -> None:
-    """Fecha todas as jornadas ainda abertas. Chamado pelo scheduler."""
-    db = get_db()
-    agora = datetime.now(timezone.utc)
-    hora_str = agora.time().isoformat(timespec="seconds")
-
-    resultado = await db["jornadas"].update_many(
-        {"status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]}},
-        {
-            "$set": {
-                "status": "ENCERRADA",
-                "horario.fim": hora_str,
-                "observacoes": f"⚠️ Encerrado automaticamente pelo sistema às {hora_str}",
-            }
-        },
-    )
-
-    if resultado.modified_count > 0:
-        # Registra no log — em produção substitua por logger estruturado
-        print(
-            f"[scheduler] {resultado.modified_count} jornada(s) encerrada(s) "
-            f"automaticamente às {hora_str}"
-        )
+    """Função desativada: encerramento automático de jornadas desativado."""
+    print("[scheduler] Encerramento automático de jornadas desativado.")
+    return
 
 
 def criar_scheduler() -> AsyncIOScheduler:

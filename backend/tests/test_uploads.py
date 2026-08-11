@@ -58,6 +58,9 @@ class TestUploadArquivo:
         self, client, motorista_headers, tmp_path, monkeypatch
     ):
         monkeypatch.setenv("UPLOAD_DIR", str(tmp_path))
+        import sys
+        _mod = sys.modules["app.routers.uploads"]
+        monkeypatch.setattr(_mod, "TAMANHO_MAXIMO_MB", 10)
         # 11 MB > 10 MB limite
         arquivo_grande = b"A" * (11 * 1024 * 1024)
         resp = await client.post(

@@ -65,7 +65,11 @@ export function DriverReplayOverlay({
   const formatTimeStr = (iso?: string) => {
     if (!iso) return '--:--:--';
     try {
-      return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      let cleaned = iso.trim().replace(' ', 'T');
+      if (!cleaned.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(cleaned)) {
+        cleaned += 'Z';
+      }
+      return new Date(cleaned).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     } catch {
       return iso;
     }

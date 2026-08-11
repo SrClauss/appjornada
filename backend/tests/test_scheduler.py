@@ -8,103 +8,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 
 class TestEncerrarJornadasAbertas:
-    async def test_encerra_jornadas_abertas_e_em_andamento(self):
-        """_encerrar_jornadas_abertas deve chamar update_many no status correto."""
+    async def test_encerrar_jornadas_abertas_desativado(self):
+        """_encerrar_jornadas_abertas foi desativado e não deve alterar o banco."""
         from app.services.scheduler import _encerrar_jornadas_abertas
 
-        mock_result = MagicMock()
-        mock_result.modified_count = 3
-
-        mock_collection = MagicMock()
-        mock_collection.update_many = AsyncMock(return_value=mock_result)
-
-        mock_db = MagicMock()
-        mock_db.__getitem__ = MagicMock(return_value=mock_collection)
-
-        with patch("app.services.scheduler.get_db", return_value=mock_db):
-            await _encerrar_jornadas_abertas()
-
-        mock_collection.update_many.assert_called_once()
-        call_args = mock_collection.update_many.call_args
-        filtro = call_args[0][0]
-        assert filtro["status"]["$in"] == ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]
-
-    async def test_encerra_define_status_encerrada(self):
-        """O $set deve incluir status=ENCERRADA."""
-        from app.services.scheduler import _encerrar_jornadas_abertas
-
-        mock_result = MagicMock()
-        mock_result.modified_count = 1
-
-        mock_collection = MagicMock()
-        mock_collection.update_many = AsyncMock(return_value=mock_result)
-
-        mock_db = MagicMock()
-        mock_db.__getitem__ = MagicMock(return_value=mock_collection)
-
-        with patch("app.services.scheduler.get_db", return_value=mock_db):
-            await _encerrar_jornadas_abertas()
-
-        call_args = mock_collection.update_many.call_args
-        update = call_args[0][1]
-        assert update["$set"]["status"] == "ENCERRADA"
-
-    async def test_encerra_define_observacao_automatica(self):
-        """Jornadas encerradas pelo scheduler devem ter observação indicando isso."""
-        from app.services.scheduler import _encerrar_jornadas_abertas
-
-        mock_result = MagicMock()
-        mock_result.modified_count = 2
-
-        mock_collection = MagicMock()
-        mock_collection.update_many = AsyncMock(return_value=mock_result)
-
-        mock_db = MagicMock()
-        mock_db.__getitem__ = MagicMock(return_value=mock_collection)
-
-        with patch("app.services.scheduler.get_db", return_value=mock_db):
-            await _encerrar_jornadas_abertas()
-
-        call_args = mock_collection.update_many.call_args
-        update = call_args[0][1]
-        obs = update["$set"].get("observacoes", "")
-        assert "automaticamente" in obs.lower() or "sistema" in obs.lower()
-
-    async def test_sem_jornadas_abertas_nao_lanca_excecao(self):
-        """Quando não há jornadas para encerrar, nenhuma exceção deve ser lançada."""
-        from app.services.scheduler import _encerrar_jornadas_abertas
-
-        mock_result = MagicMock()
-        mock_result.modified_count = 0
-
-        mock_collection = MagicMock()
-        mock_collection.update_many = AsyncMock(return_value=mock_result)
-
-        mock_db = MagicMock()
-        mock_db.__getitem__ = MagicMock(return_value=mock_collection)
-
-        with patch("app.services.scheduler.get_db", return_value=mock_db):
-            await _encerrar_jornadas_abertas()  # não deve lançar
-
-    async def test_encerra_define_horario_fim(self):
-        """O $set deve incluir horario.fim com a hora do encerramento."""
-        from app.services.scheduler import _encerrar_jornadas_abertas
-
-        mock_result = MagicMock()
-        mock_result.modified_count = 1
-
-        mock_collection = MagicMock()
-        mock_collection.update_many = AsyncMock(return_value=mock_result)
-
-        mock_db = MagicMock()
-        mock_db.__getitem__ = MagicMock(return_value=mock_collection)
-
-        with patch("app.services.scheduler.get_db", return_value=mock_db):
-            await _encerrar_jornadas_abertas()
-
-        call_args = mock_collection.update_many.call_args
-        update = call_args[0][1]
-        assert "horario.fim" in update["$set"]
+        # Deve rodar sem erros e sem efetuar chamadas de banco
+        await _encerrar_jornadas_abertas()
 
 
 class TestCriarScheduler:

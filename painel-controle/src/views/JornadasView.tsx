@@ -24,7 +24,8 @@ import {
   Trash,
   Calendar,
   Camera,
-  Play
+  Play,
+  LockOpen
 } from '@phosphor-icons/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useQueryClient } from '@tanstack/react-query';
@@ -641,6 +642,20 @@ export function JornadasView() {
     }
   };
 
+  const handleReabrirJornada = async (jId: string) => {
+    if (!window.confirm("Deseja alterar o status desta jornada de ENCERRADA para ABERTA?")) {
+      return;
+    }
+    try {
+      await api.patch(`/jornadas/${jId}/reabrir`);
+      alert("Jornada reaberta com sucesso! Status alterado para ABERTA.");
+      window.location.reload();
+    } catch (e: any) {
+      console.error("Erro ao reabrir jornada:", e);
+      alert("Erro ao reabrir jornada: " + (e?.response?.data?.detail || "Erro de conexão"));
+    }
+  };
+
   const handleDeleteTelemetry = async (jId: string) => {
     if (!window.confirm(`Tem certeza que deseja apagar toda a telemetria (GPS) e a própria jornada para a ID: ${jId}?`)) {
       return;
@@ -727,25 +742,22 @@ export function JornadasView() {
     setDatetimeFim('');
   }, [activeTab]);
 
-  // Função utilitária para conversão de datas livre de fuso horário
-  const getSafeTime = (ts: any): number => {
-    if (!ts) return 0;
-    if (typeof ts === 'string') {
-      const cleaned = ts.trim().replace(' ', 'T');
-      const d = new Date(cleaned);
-      if (!isNaN(d.getTime())) return d.getTime();
-    }
-    return new Date(ts).getTime();
-  };
-
+  // Função utilitária para conversão de datas garantindo fuso horário de São Paulo
   const getSafeDate = (ts: any): Date => {
     if (!ts) return new Date();
     if (typeof ts === 'string') {
-      const cleaned = ts.trim().replace(' ', 'T');
+      let cleaned = ts.trim().replace(' ', 'T');
+      if (!cleaned.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(cleaned)) {
+        cleaned += 'Z';
+      }
       const d = new Date(cleaned);
       if (!isNaN(d.getTime())) return d;
     }
     return new Date(ts);
+  };
+
+  const getSafeTime = (ts: any): number => {
+    return getSafeDate(ts).getTime();
   };
 
   const formatDateTime = (ts: any): string => {
@@ -1619,6 +1631,18 @@ export function JornadasView() {
                                   >
                                     <Play size={16} weight="fill" />
                                   </Button>
+                                  {j.status === 'ENCERRADA' && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost" 
+                                      title="Reabrir Jornada (Alterar para ABERTA)" 
+                                      onClick={() => handleReabrirJornada(j.id || (j as any)._id)} 
+                                      className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 flex items-center gap-1 font-semibold text-xs"
+                                    >
+                                      <LockOpen size={16} className="text-emerald-600" />
+                                      Reabrir
+                                    </Button>
+                                  )}
                                   <Button size="sm" variant="ghost" title="Excluir Jornada" onClick={() => handleDeleteJornada(j.id || (j as any)._id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
                                     <Trash size={16} />
                                   </Button>
