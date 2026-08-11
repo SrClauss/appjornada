@@ -259,6 +259,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
 
             const SizedBox(height: 24),
+            // PAINEL DE FATURAMENTO DA JORNADA
+            _buildFaturamentoPanel(),
+
+            const SizedBox(height: 24),
             // CARDS ACUMULADOS
             Row(
               children: [
@@ -278,6 +282,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     title: 'Faturamento Particular',
                     value: () {
                       final pFat = double.tryParse('${widget.jornada['faturamento']?['corridas_particulares']}') ??
+                          double.tryParse('${widget.jornada['faturamento']?['outros']}') ??
                           double.tryParse('${widget.jornada['faturamento']?['particular']}') ?? 0.0;
                       if (pFat > 0) {
                         return 'R\$ ${pFat.toStringAsFixed(2).replaceAll('.', ',')}';
@@ -504,6 +509,132 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFaturamentoPanel() {
+    final fat = widget.jornada['faturamento'] as Map<String, dynamic>? ?? {};
+
+    final double uberVal = double.tryParse('${fat['uber']}') ?? 0.0;
+    final double noventaNoveVal = double.tryParse('${fat['noventa_nove']}') ?? 0.0;
+    final double outrosVal = double.tryParse('${fat['outros']}') ?? double.tryParse('${fat['corridas_particulares']}') ?? 0.0;
+    final double totalVal = double.tryParse('${fat['total_dia']}') ?? (uberVal + noventaNoveVal + outrosVal);
+
+    final int uberCorr = int.tryParse('${fat['corridas_uber']}') ?? 0;
+    final int noventaNoveCorr = int.tryParse('${fat['corridas_99']}') ?? 0;
+    final int outrosCorr = int.tryParse('${fat['corridas_outros']}') ?? (widget.jornada['corridas_particulares'] as List?)?.length ?? 0;
+
+    String fmt(double v) => 'R\$ ${v.toStringAsFixed(2).replaceAll('.', ',')}';
+
+    return Card(
+      color: const Color(0xFF1E293B),
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Color(0xFF334155))),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.account_balance_wallet, color: Color(0xFF34D399), size: 22),
+                    SizedBox(width: 8),
+                    Text(
+                      'Faturamento da Jornada',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF10B981)),
+                  ),
+                  child: Text(
+                    'Total: ${fmt(totalVal)}',
+                    style: const TextStyle(fontWeight: FontWeight.black, fontSize: 12, color: Color(0xFF34D399)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                // UBER CARD
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('UBER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.black, color: Colors.white70)),
+                        const SizedBox(height: 4),
+                        Text(fmt(uberVal), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const SizedBox(height: 2),
+                        Text('$uberCorr corrida${uberCorr != 1 ? 's' : ''}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 99 CARD
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF78350F).withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('99', style: TextStyle(fontSize: 10, fontWeight: FontWeight.black, color: Colors.amberAccent)),
+                        const SizedBox(height: 4),
+                        Text(fmt(noventaNoveVal), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+                        const SizedBox(height: 2),
+                        Text('$noventaNoveCorr corrida${noventaNoveCorr != 1 ? 's' : ''}', style: const TextStyle(fontSize: 10, color: Colors.amber)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // PARTICULAR CARD
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF064E3B).withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF34D399).withOpacity(0.5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('PARTICULAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.black, color: Color(0xFF34D399))),
+                        const SizedBox(height: 4),
+                        Text(fmt(outrosVal), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF34D399))),
+                        const SizedBox(height: 2),
+                        Text('$outrosCorr corrida${outrosCorr != 1 ? 's' : ''}', style: const TextStyle(fontSize: 10, color: Color(0xFFA7F3D0))),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

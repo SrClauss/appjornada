@@ -32,6 +32,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useJornadas } from '@/hooks/useJornadas';
 import type { Jornada, JourneyStatus } from '@/lib/types';
 import api from '@/lib/api';
+import { PainelFaturamentoJornada } from '@/components/PainelFaturamentoJornada';
+import { DeslocamentosCorridasIndividualizadas, CorridaIndividual } from '@/components/DeslocamentosCorridasIndividualizadas';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -39,9 +41,10 @@ interface MapViewProps {
   coordinates: [number, number][];
   routeSegments?: { is_produtivo: boolean, coords: [number, number][] }[];
   corridasParticulares?: any[];
+  selectedCorrida?: CorridaIndividual | null;
 }
 
-function JourneyMap({ coordinates, routeSegments, corridasParticulares }: MapViewProps) {
+function JourneyMap({ coordinates, routeSegments, corridasParticulares, selectedCorrida }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -230,11 +233,50 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares }: MapVie
       });
     }
 
-    if (mainBounds && !hasFittedBoundsRef.current) {
+    // Destaque para corrida individualizada selecionada
+    if (selectedCorrida) {
+      let corridaBounds: L.LatLngBounds | null = null;
+      if (selectedCorrida.origemCoords) {
+        const origLL = L.latLng(selectedCorrida.origemCoords[0], selectedCorrida.origemCoords[1]);
+        const startIcon = L.divIcon({
+          className: 'custom-marker-corrida-start',
+          html: '<div style="background-color: #10B981; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); text-align: center; color: white; font-weight: bold; font-size: 11px; line-height: 14px;">A</div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        });
+        L.marker(origLL, { icon: startIcon }).addTo(layerGroup).bindPopup(`<strong>Origem (${selectedCorrida.plataformaNome})</strong><br/>${selectedCorrida.origem || ''}`);
+        corridaBounds = L.latLngBounds(origLL, origLL);
+      }
+
+      if (selectedCorrida.destinoCoords) {
+        const destLL = L.latLng(selectedCorrida.destinoCoords[0], selectedCorrida.destinoCoords[1]);
+        const destIcon = L.divIcon({
+          className: 'custom-marker-corrida-dest',
+          html: '<div style="background-color: #EF4444; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); text-align: center; color: white; font-weight: bold; font-size: 11px; line-height: 14px;">B</div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        });
+        L.marker(destLL, { icon: destIcon }).addTo(layerGroup).bindPopup(`<strong>Destino (${selectedCorrida.plataformaNome})</strong><br/>${selectedCorrida.destino || ''}`);
+        if (!corridaBounds) corridaBounds = L.latLngBounds(destLL, destLL);
+        else corridaBounds.extend(destLL);
+
+        if (selectedCorrida.origemCoords) {
+          L.polyline([selectedCorrida.origemCoords, selectedCorrida.destinoCoords], {
+            color: selectedCorrida.tipo === 'UBER' ? '#0f172a' : selectedCorrida.tipo === '99' ? '#f59e0b' : '#10b981',
+            weight: 6,
+            opacity: 0.9,
+          }).addTo(layerGroup);
+        }
+      }
+
+      if (corridaBounds) {
+        map.fitBounds(corridaBounds, { padding: [50, 50], maxZoom: 16 });
+      }
+    } else if (mainBounds && !hasFittedBoundsRef.current) {
       map.fitBounds(mainBounds, { padding: [30, 30], maxZoom: 16 });
       hasFittedBoundsRef.current = true;
     }
-  }, [coordinates, corridasParticulares]);
+  }, [coordinates, corridasParticulares, selectedCorrida]);
 
   return (
     <div className="relative w-full h-full">
@@ -581,6 +623,7 @@ export function JornadasView() {
     return `${yyyy}-${mm}-${dd}`;
   });
   const [selectedJornada, setSelectedJornada] = useState<Jornada | null>(null);
+  const [selectedCorrida, setSelectedCorrida] = useState<CorridaIndividual | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
   const [routeSegments, setRouteSegments] = useState<{ is_produtivo: boolean, coords: [number, number][] }[]>([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
@@ -953,39 +996,25 @@ export function JornadasView() {
   }, [liveEvents]);
 
   const handleOpenJornada = async (j: Jornada) => {
-    // 1. Encontra o ID correto do motorista
-    let targetMotId = String(j.motorista_id || '');
-    if (!targetMotId || targetMotId === 'undefined') {
-      const foundMot = motoristas.find(m => m.nome === j.motorista_nome);
-      if (foundMot) {
-        targetMotId = String(foundMot.id || foundMot._id);
-      }
-    }
-    
-    // 2. Garante a data da jornada ou a data de hoje (YYYY-MM-DD)
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
-    const targetDate = j.data || todayStr;
-
-    // 3. Define os estados para o motorista selecionado e opções default
-    setSelectedMotoristaId(targetMotId);
-    setDatetimeInicio(`${targetDate}T00:00`);
-    setDatetimeFim(`${targetDate}T23:59`);
-    setFiltroTipoEvento('');
-    setFiltroIntervalo('all');
-    setSelectedEvents([]);
-    setRealtimePage(1);
-
-    // 4. Alterna para a aba de Eventos em Tempo Real
-    setActiveTab('realtime');
-
-    // 5. Carrega a telemetria correspondente
+    setSelectedCorrida(null);
+    setSelectedJornada(j);
+    setActiveTab('painel');
     const jId = j.id || (j as any)._id;
-    if (targetMotId && jId) {
-      fetchGpsForJornada(targetMotId, jId, true);
+    if (jId) {
+      setLoadingRoute(true);
+      try {
+        const { data: routeData } = await api.get(`/gps/motorista/${j.motorista_id || 'all'}/rota-ajustada`, {
+          params: { jornada_id: jId }
+        });
+        if (routeData) {
+          setRouteCoordinates(routeData.coordenadas || []);
+          setRouteSegments(routeData.segmentos_rota || []);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar telemetria da jornada:", err);
+      } finally {
+        setLoadingRoute(false);
+      }
     }
   };
 
@@ -1298,6 +1327,16 @@ export function JornadasView() {
                 </Card>
               </div>
 
+              {/* PAINEL DE FATURAMENTO POR PLATAFORMA (UBER, 99, PARTICULARES & TOTAL) */}
+              <PainelFaturamentoJornada jornada={selectedJornada} />
+
+              {/* DESLOCAMENTOS DE CORRIDAS INDIVIDUALIZADAS */}
+              <DeslocamentosCorridasIndividualizadas 
+                jornada={selectedJornada} 
+                selectedCorridaId={selectedCorrida?.id}
+                onSelectCorrida={setSelectedCorrida}
+              />
+
               {/* Main Content Layout */}
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="xl:col-span-2 space-y-3">
@@ -1317,6 +1356,7 @@ export function JornadasView() {
                           coordinates={routeCoordinates} 
                           routeSegments={routeSegments}
                           corridasParticulares={(selectedJornada as any).corridas_particulares}
+                          selectedCorrida={selectedCorrida}
                         />
                       </div>
                     )}
@@ -1610,13 +1650,29 @@ export function JornadasView() {
                               <TableCell>{j.horario?.inicio ?? '—'}</TableCell>
                               <TableCell>{j.horario?.fim ?? '—'}</TableCell>
                               <TableCell>{j.km?.rodados ?? 0} km</TableCell>
-                              <TableCell>{formatCurrency(j.faturamento?.total_dia ?? 0)}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-900">{formatCurrency(j.faturamento?.total_dia ?? 0)}</span>
+                                  <div className="flex flex-wrap gap-1 text-[10px] mt-0.5">
+                                    {(j.faturamento?.uber ?? 0) > 0 && (
+                                      <span className="bg-slate-900 text-white px-1.5 py-0.2 rounded font-semibold" title={`Uber: ${formatCurrency(j.faturamento?.uber)}`}>
+                                        Uber: R${j.faturamento?.uber}
+                                      </span>
+                                    )}
+                                    {(j.faturamento?.noventa_nove ?? 0) > 0 && (
+                                      <span className="bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black" title={`99: ${formatCurrency(j.faturamento?.noventa_nove)}`}>
+                                        99: R${j.faturamento?.noventa_nove}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Badge variant={statusBadgeVariant(j.status)}>{j.status}</Badge>
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
-                                  <Button size="sm" variant="ghost" title="Ver Eventos em Tempo Real / Telemetria" onClick={() => handleOpenJornada(j)}>
+                                  <Button size="sm" variant="ghost" title="Ver Painel de Faturamento e Deslocamentos da Jornada" onClick={() => handleOpenJornada(j)}>
                                     <Eye size={16} className="text-sky-600" />
                                   </Button>
                                   <Button 

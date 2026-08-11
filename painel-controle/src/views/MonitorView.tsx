@@ -170,12 +170,24 @@ function MotoristaMonitorRow({
 
         {/* Revenue Badge */}
         <div className="text-right">
-          <span className="text-xs text-slate-500 uppercase tracking-wider block font-mono">
+          <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-mono">
             Faturado Hoje
           </span>
           <span className="text-base font-black text-emerald-400 font-mono">
             {formatCurrency(jornada.faturamento?.total_dia ?? 0)}
           </span>
+          <div className="flex justify-end gap-1 text-[9px] mt-0.5">
+            {(jornada.faturamento?.uber ?? 0) > 0 && (
+              <span className="bg-slate-900 text-white px-1.5 py-0.2 rounded font-semibold">
+                Uber: R${jornada.faturamento?.uber}
+              </span>
+            )}
+            {(jornada.faturamento?.noventa_nove ?? 0) > 0 && (
+              <span className="bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-bold">
+                99: R${jornada.faturamento?.noventa_nove}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

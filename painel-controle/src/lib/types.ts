@@ -208,6 +208,9 @@ export interface Jornada {
     noventa_nove?: number;
     outros?: number;
     total_dia?: number;
+    corridas_uber?: number;
+    corridas_99?: number;
+    corridas_outros?: number;
     comprovante_uber_url?: string;
     comprovante_99_url?: string;
     comprovante_outros_url?: string;
