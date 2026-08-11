@@ -27,10 +27,10 @@ def _parse_timestamp(ts_val: Any) -> Optional[datetime]:
     if not ts_val:
         return None
     if isinstance(ts_val, datetime):
-        return ts_val
+        return ts_val.replace(tzinfo=None)
     try:
         dt = datetime.fromisoformat(str(ts_val).replace("Z", "+00:00"))
-        return dt
+        return dt.replace(tzinfo=None)
     except Exception:
         return None
 
@@ -172,12 +172,12 @@ def classificar_jornada_segmentos(
             continue
         try:
             if "T" in str(horario_str):
-                c_dt = datetime.fromisoformat(str(horario_str).replace("Z", "+00:00"))
+                c_dt = datetime.fromisoformat(str(horario_str).replace("Z", "+00:00")).replace(tzinfo=None)
             else:
                 parts = str(horario_str).strip().split(":")
                 h = int(parts[0])
                 m = int(parts[1])
-                c_dt = datetime.combine(ref_date, time(h, m), tzinfo=timezone.utc)
+                c_dt = datetime.combine(ref_date, time(h, m))
             
             duracao_mins = 20
             valor = float(c.get("valor", 0.0))

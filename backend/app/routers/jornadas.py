@@ -2485,7 +2485,6 @@ async def classificar_trajetos_jornada(
     base_coords = (base_lat, base_lon)
 
     from app.services.segment_classifier import classificar_jornada_segmentos, obter_pontos_jornada, calcular_distancia_m
-    from app.routers.gps import encode_polyline
 
     pontos = await obter_pontos_jornada(jornada, db)
     if not pontos:
