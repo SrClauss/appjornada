@@ -233,20 +233,22 @@ def _limpar_e_parsear_json_gemini(raw_text: str) -> dict:
     return {}
 
 
-def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None) -> dict:
+def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None, plataforma_esperada: str = None) -> dict:
     api_key = settings.GEMINI_API_KEY
     if not api_key:
         return {"sucesso": False, "mensagem": "GEMINI_API_KEY não configurada", "corridas": []}
 
+    plat_instrucao = f" Foco prioritário na plataforma: {plataforma_esperada.upper()}." if plataforma_esperada else ""
+
     print("\n==================================================================")
-    print(f"🎬 [OCR Video] Iniciando análise de {len(frames_b64_list)} quadros do vídeo...")
+    print(f"🎬 [OCR Video] Iniciando análise de {len(frames_b64_list)} quadros do vídeo ({plataforma_esperada or 'GERAL'})...")
     if frame_urls:
         for idx, f_url in enumerate(frame_urls):
             print(f"   📸 Frame {idx+1}/{len(frame_urls)} salvo em Mídias: {f_url}")
     print("------------------------------------------------------------------")
 
     prompt = (
-        "Analise esta sequência de capturas de tela (frames) gravadas do histórico de corridas e ganhos de aplicativo de motorista (Uber / 99 / 99Pop / InDrive).\n"
+        f"Analise esta sequência de capturas de tela (frames) gravadas do histórico de corridas e ganhos de aplicativo de motorista (Uber / 99 / 99Pop / InDrive).{plat_instrucao}\n"
         "Identifique e extraia TODAS as corridas visíveis (mesmo que parciais ou resumidas), eliminando duplicadas idênticas entre os quadros.\n"
         "Para cada corrida encontrada, extraia:\n"
         "- horario (ex: '11:18' ou 'Ontem 14:30')\n"

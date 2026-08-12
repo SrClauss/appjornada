@@ -4,10 +4,12 @@ import 'package:app_motorista/core/api_service.dart';
 
 class AiTerminalConsoleScreen extends StatefulWidget {
   final String videoPath;
+  final String? plataforma;
 
   const AiTerminalConsoleScreen({
     super.key,
     required this.videoPath,
+    this.plataforma,
   });
 
   @override
@@ -56,7 +58,8 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
   }
 
   Future<void> _startProcess() async {
-    _addLog(">>> INICIANDO PROCESSAMENTO MULTIMODAL DE VÍDEO DO EXTRATO <<<");
+    final platTag = widget.plataforma != null ? " [PLATAFORMA: ${widget.plataforma!.toUpperCase()}]" : "";
+    _addLog(">>> INICIANDO PROCESSAMENTO MULTIMODAL DE VÍDEO DO EXTRATO$platTag <<<");
     _addLog("Modelo Primário Selecionado: gemini-3.5-flash-lite");
     _addLog("Arquivo local: ${widget.videoPath.split('/').last}");
 
@@ -72,38 +75,45 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
 
     // Passo 3: Envio para o Backend + IA
     _addLog("[REDE] Transmitindo quadros para a API Gemini (gemini-3.5-flash-lite)...");
-    _addLog("[IA] Processando prompt de extração e deduplicação multimodal...");
+    _addLog("[IA] Processando prompt de extração e deduplicação multimodal para ${widget.plataforma ?? 'todas as plataformas'}...");
 
     try {
       final startTime = DateTime.now();
-      final res = await ApiService.processarVideoExtrato(widget.videoPath);
+      final res = await ApiService.processarVideoExtrato(widget.videoPath, plataforma: widget.plataforma);
       final elapsed = DateTime.now().difference(startTime).inMilliseconds / 1000.0;
 
       if (!mounted) return;
 
-      if (res != null && (res['sucesso'] == true || (res['corridas'] != null && res['corridas'].isNotEmpty))) {
+      if (res != null && (res['sucesso'] == true || (res['corridas'] != null && (res['corridas'] as List).isNotEmpty))) {
         _addLog("[IA] Resposta recebida da API Gemini em ${elapsed.toStringAsFixed(1)}s.");
         _addLog("[IA] Modelo de Execução: gemini-3.5-flash-lite (Status 200 OK)");
 
         final corridas = res['corridas'] as List? ?? [];
-        final totalCorridas = corridas.length;
-        final fatTotal = res['faturamento_total'] ?? res['faturamento'] ?? 0.0;
+        final totalCorridas = res['corridas_adicionadas'] ?? corridas.length;
+        
+        final fatPlat = res['faturamento_plataforma'] ?? res['faturamento_acumulado'] ?? res['faturamento_total'] ?? (res['faturamento']?['total']) ?? 0.0;
+        final fatTotalAcumulado = res['faturamento_acumulado'] ?? res['faturamento']?['total'] ?? fatPlat;
 
         _addLog("[DEDUPLICAÇÃO] Verificando padrão de rolagem de tela e duplicatas...");
-        _addLog("[DEDUPLICAÇÃO] Faturamento filtrado: $totalCorridas corrida(s) única(s) identificada(s).");
+        _addLog("[DEDUPLICAÇÃO] Faturamento filtrado: $totalCorridas corrida(s) identificada(s).");
         
         for (var i = 0; i < corridas.length; i++) {
           final c = corridas[i];
-          _addLog("  #${i + 1} -> ${c['horario'] ?? '--:--'} | ${c['categoria'] ?? 'Corrida'} | R\$ ${c['valor_reais'] ?? c['valor'] ?? '0.00'} | ${c['origem'] ?? 'Origem N/A'} -> ${c['destino'] ?? 'Destino N/A'}");
+          final val = c['valor_reais'] ?? c['valor'] ?? '0.00';
+          final platName = c['plataforma'] ?? widget.plataforma ?? 'Uber/99';
+          _addLog("  #${i + 1} -> [$platName] ${c['horario'] ?? '--:--'} | ${c['categoria'] ?? 'Corrida'} | R\$ ${fatValFormatted(val)} | ${c['origem'] ?? 'Origem N/A'} -> ${c['destino'] ?? 'Destino N/A'}");
         }
 
-        _addLog("[BACKEND] Faturamento total acumulado: R\$ ${fatValFormatted(fatTotal)}");
+        if (widget.plataforma != null) {
+          _addLog("[BACKEND] Faturamento detectado para ${widget.plataforma!.toUpperCase()}: R\$ ${fatValFormatted(fatPlat)}");
+        }
+        _addLog("[BACKEND] Faturamento total acumulado da jornada: R\$ ${fatValFormatted(fatTotalAcumulado)}");
         _addLog("[SUCESSO] Processamento concluído com conformidade!");
 
         setState(() {
           _isProcessing = false;
           _success = true;
-          _statusMessage = 'Extrato Processado com Sucesso!';
+          _statusMessage = 'Extrato ${widget.plataforma ?? ""} Processado com Sucesso!';
           _resultData = res;
         });
       } else {
@@ -131,6 +141,10 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
 
   String fatValFormatted(dynamic val) {
     if (val is num) return val.toStringAsFixed(2);
+    if (val is String) {
+      final parsed = double.tryParse(val);
+      if (parsed != null) return parsed.toStringAsFixed(2);
+    }
     return '0.00';
   }
 

@@ -1232,6 +1232,7 @@ async def resumo_clt_mensal(
 @router.post("/aberta/extrato-video", status_code=201)
 async def upload_e_processar_extrato_video(
     arquivo: UploadFile = File(...),
+    plataforma: Optional[str] = Query(None),
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
@@ -1262,12 +1263,12 @@ async def upload_e_processar_extrato_video(
     from app.routers.ocr import _extrair_frames_video, _chamar_gemini_extrato_video
 
     video_url = await _salvar_arquivo(arquivo, "extrato_video")
-    print(f"📹 [OCR Video Upload] Vídeo gravado em Mídias: {video_url}")
+    print(f"📹 [OCR Video Upload] Vídeo gravado em Mídias: {video_url} | Plataforma Esperada: {plataforma}")
     frames, frame_urls = _extrair_frames_video(conteudo_bytes, max_frames=10)
     if not frames:
         raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
 
-    res_ai = _chamar_gemini_extrato_video(frames, frame_urls=frame_urls)
+    res_ai = _chamar_gemini_extrato_video(frames, frame_urls=frame_urls, plataforma_esperada=plataforma)
     corridas_lidas = res_ai.get("corridas", [])
 
     if not corridas_lidas:
@@ -1276,6 +1277,7 @@ async def upload_e_processar_extrato_video(
             "mensagem": "Nenhuma corrida legível foi identificada no vídeo enviado.",
             "corridas_adicionadas": 0,
             "faturamento_total": 0.0,
+            "corridas": [],
         }
 
     fat = jornada_doc.get("faturamento", {}) or {}
@@ -1292,7 +1294,10 @@ async def upload_e_processar_extrato_video(
 
     for c in corridas_lidas:
         valor_c = float(c.get("valor_reais") or 0.0)
-        plat_c = str(c.get("plataforma") or "UBER").upper()
+        plat_fallback = (plataforma or "UBER").upper()
+        plat_c = str(c.get("plataforma") or plat_fallback).upper()
+        if plat_c in ("99POP", "NOVENTA_NOVEM"):
+            plat_c = "99"
         if valor_c <= 0:
             continue
 
@@ -1336,8 +1341,8 @@ async def upload_e_processar_extrato_video(
 
     # Recalcula totais acumulados por plataforma
     total_uber = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") == "UBER")
-    total_99 = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") in ("99", "NOVENTA_NOVEM"))
-    total_outros = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") not in ("UBER", "99", "NOVENTA_NOVEM"))
+    total_99 = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") in ("99", "NOVENTA_NOVEM", "99POP"))
+    total_outros = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") not in ("UBER", "99", "NOVENTA_NOVEM", "99POP"))
 
     fat["uber"] = round(total_uber, 2)
     fat["noventa_nove"] = round(total_99, 2)
@@ -1349,6 +1354,7 @@ async def upload_e_processar_extrato_video(
         "id": str(uuid.uuid4()),
         "evento": "GRAVACAO_EXTRATO_VIDEO",
         "modo_captura": "APLICATIVO_UNICO_ANDROID_14",
+        "plataforma": plataforma or "DESCONHECIDA",
         "timestamp": now_iso,
         "video_url": video_url,
         "corridas_extraidas": adicionadas_count,
@@ -1363,11 +1369,19 @@ async def upload_e_processar_extrato_video(
         }
     )
 
+    fat_plat_alvo = fat.get("uber", 0.0) if (plataforma == "UBER") else (fat.get("noventa_nove", 0.0) if plataforma in ("99", "NOVENTA_NOVEM") else fat["total"])
+
     return {
         "sucesso": True,
         "mensagem": f"{adicionadas_count} corridas extraídas e computadas com sucesso!",
         "corridas_adicionadas": adicionadas_count,
         "faturamento_acumulado": fat["total"],
+        "faturamento_plataforma": fat_plat_alvo,
+        "faturamento": fat,
+        "corridas": novos_comprovantes if novos_comprovantes else [
+            {"valor_reais": comp["valor"], "plataforma": comp["plataforma"], "horario": comp.get("horario"), "origem": comp.get("origem"), "destino": comp.get("destino")}
+            for comp in todos_comprovantes
+        ],
         "corridas_detalhe": novos_comprovantes,
     }
 

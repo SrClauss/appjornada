@@ -559,7 +559,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   child: Text(
                     'Total: ${fmt(totalVal)}',
-                    style: const TextStyle(fontWeight: FontWeight.black, fontSize: 12, color: Color(0xFF34D399)),
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF34D399)),
                   ),
                 ),
               ],
@@ -579,7 +579,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('UBER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.black, color: Colors.white70)),
+                        const Text('UBER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white70)),
                         const SizedBox(height: 4),
                         Text(fmt(uberVal), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
                         const SizedBox(height: 2),
@@ -601,7 +601,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('99', style: TextStyle(fontSize: 10, fontWeight: FontWeight.black, color: Colors.amberAccent)),
+                        const Text('99', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.amberAccent)),
                         const SizedBox(height: 4),
                         Text(fmt(noventaNoveVal), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
                         const SizedBox(height: 2),
@@ -623,7 +623,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('PARTICULAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.black, color: Color(0xFF34D399))),
+                        const Text('PARTICULAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF34D399))),
                         const SizedBox(height: 4),
                         Text(fmt(outrosVal), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF34D399))),
                         const SizedBox(height: 2),

@@ -133,9 +133,12 @@ class ApiService {
   }
 
   // Envia vídeo gravado da tela do extrato para a IA analisar frames no backend
-  static Future<Map<String, dynamic>?> processarVideoExtrato(String videoPath) async {
+  static Future<Map<String, dynamic>?> processarVideoExtrato(String videoPath, {String? plataforma}) async {
     try {
-      final uri = Uri.parse('$baseUrl/jornadas/aberta/extrato-video');
+      final urlStr = plataforma != null
+          ? '$baseUrl/jornadas/aberta/extrato-video?plataforma=$plataforma'
+          : '$baseUrl/jornadas/aberta/extrato-video';
+      final uri = Uri.parse(urlStr);
       final request = http.MultipartRequest('POST', uri);
 
       if (token != null) {

@@ -778,10 +778,14 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () async {
+                          final currentPlat = _currentStep == 1 ? 'UBER' : (_currentStep == 2 ? '99' : null);
                           final res = await Navigator.push<Map<String, dynamic>>(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => AiTerminalConsoleScreen(videoPath: _recordedVideoPath!),
+                              builder: (context) => AiTerminalConsoleScreen(
+                                videoPath: _recordedVideoPath!,
+                                plataforma: currentPlat,
+                              ),
                             ),
                           );
                           if (mounted && res != null) {
