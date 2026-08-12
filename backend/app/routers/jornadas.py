@@ -2,7 +2,7 @@ import uuid
 import zoneinfo
 from datetime import date, datetime, timezone, time
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form, Query
 from bson import ObjectId
 
 from app.db.database import get_db
