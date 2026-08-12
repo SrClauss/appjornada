@@ -105,6 +105,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Colors.greenAccent;
   }
 
+  void _confirmarEIniciarPausa() {
+    if (_loading) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.pause_circle_outline, color: Colors.amber, size: 28),
+            SizedBox(width: 10),
+            Text('Pausar Jornada?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Deseja realmente iniciar a sua pausa (descanso/almoço) agora?',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCELAR', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber[800],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _iniciarPausa();
+            },
+            child: const Text('CONFIRMAR PAUSA', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _iniciarPausa() async {
     if (_loading) return;
     setState(() {
@@ -411,7 +451,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               subtitle: 'Almoço, descanso ou lanche',
               icon: Icons.pause_circle_outline,
               color: Colors.amber,
-              onPressed: _iniciarPausa,
+              onPressed: _confirmarEIniciarPausa,
             ),
             const SizedBox(height: 16),
             _buildActionButton(
