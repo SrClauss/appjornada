@@ -43,7 +43,8 @@ class _MetasDashboardScreenState extends State<MetasDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final acumulado = _dadosMetas?['acumulado_mes'] ?? {};
+    final acumuladoRaw = _dadosMetas?['acumulado_mes'];
+    final Map<String, dynamic> acumulado = acumuladoRaw is Map ? Map<String, dynamic>.from(acumuladoRaw) : {};
     final metas = (_dadosMetas?['metas'] as List<dynamic>?) ?? [];
 
     return Scaffold(
@@ -107,7 +108,10 @@ class _MetasDashboardScreenState extends State<MetasDashboardScreen> {
                         ),
                       )
                     else
-                      ...metas.map((m) => _buildMetaProgressCard(m)).toList(),
+                      ...metas.map((m) {
+                        final Map<String, dynamic> itemMap = m is Map ? Map<String, dynamic>.from(m) : {};
+                        return _buildMetaProgressCard(itemMap);
+                      }),
                   ],
                 ),
               ),

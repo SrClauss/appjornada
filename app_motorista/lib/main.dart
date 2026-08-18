@@ -278,7 +278,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       );
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
-        return body;
+        return body is Map ? Map<String, dynamic>.from(body) : null;
       } else if (res.statusCode == 401) {
         throw Exception('UNAUTHENTICATED');
       }
@@ -296,7 +296,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       );
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
-        return body;
+        return body is Map ? Map<String, dynamic>.from(body) : null;
       }
     } catch (e) {
       print('[main] Erro ao buscar jornada pendente de fechamento: $e');
@@ -621,11 +621,12 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
 
       if (res.statusCode == 201) {
         final body = json.decode(res.body);
+        final Map<String, dynamic> jornadaObj = body is Map ? Map<String, dynamic>.from(body) : {};
         setState(() {
-          _jornadaAberta = body;
+          _jornadaAberta = jornadaObj;
           _currentScreen = 'dashboard';
         });
-        GpsService.startTracking(body['_id'] ?? body['id']);
+        GpsService.startTracking(jornadaObj['_id'] ?? jornadaObj['id']);
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

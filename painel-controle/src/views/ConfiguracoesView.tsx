@@ -59,6 +59,7 @@ export function ConfiguracoesView() {
   const [inatividadeForm, setInatividadeForm] = useState({
     tempo_inatividade_minutos: 25,
     raio_mudanca_metros: 30,
+    tempo_maximo_abastecimento_minutos: 30,
   });
   const [savingInatividade, setSavingInatividade] = useState(false);
 
@@ -138,6 +139,7 @@ export function ConfiguracoesView() {
           setInatividadeForm({
             tempo_inatividade_minutos: res.data.tempo_inatividade_minutos ?? 25,
             raio_mudanca_metros: res.data.raio_mudanca_metros ?? 30,
+            tempo_maximo_abastecimento_minutos: res.data.tempo_maximo_abastecimento_minutos ?? 30,
           });
         }
       })
@@ -479,6 +481,17 @@ export function ConfiguracoesView() {
                   onChange={(e) => setInatividadeForm({ ...inatividadeForm, raio_mudanca_metros: Number(e.target.value) })}
                 />
                 <p className="text-xs text-muted-foreground">Padrão: 30 metros. Movimentações iguais ou abaixo deste valor contam como inatividade acumulada.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tempo Máximo de Abastecimento (minutos)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={inatividadeForm.tempo_maximo_abastecimento_minutos}
+                  onChange={(e) => setInatividadeForm({ ...inatividadeForm, tempo_maximo_abastecimento_minutos: Number(e.target.value) })}
+                />
+                <p className="text-xs text-muted-foreground">Padrão: 30 minutos. Limite de tempo permitido para parada de abastecimento sem ser considerada inatividade indesejada.</p>
               </div>
 
               <Button type="submit" disabled={savingInatividade} className="w-full">

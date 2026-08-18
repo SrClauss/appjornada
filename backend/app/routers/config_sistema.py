@@ -11,12 +11,14 @@ router = APIRouter(prefix="/config", tags=["configuracoes"])
 DEFAULT_TEMPO_INATIVIDADE_MINUTOS = 25
 DEFAULT_RAIO_MUDANCA_METROS = 30.0
 DEFAULT_LIMITE_KM_MORTA_PCT = 20.0
+DEFAULT_TEMPO_MAXIMO_ABASTECIMENTO_MINUTOS = 30
 
 
 class ConfigInatividadeSchema(BaseModel):
     tempo_inatividade_minutos: int = Field(default=25, ge=1, description="Tempo limite de inatividade em minutos")
     raio_mudanca_metros: float = Field(default=30.0, ge=1.0, description="Raio de mudança de posição em metros")
     limite_km_morta_pct: float = Field(default=20.0, ge=0.0, le=100.0, description="Limite máximo aceitável de Razão KM Morta (%) pelo Gestor")
+    tempo_maximo_abastecimento_minutos: int = Field(default=30, ge=1, description="Tempo máximo de parada para abastecimento em minutos")
 
 
 class BaseOperacaoSchema(BaseModel):
@@ -56,11 +58,13 @@ async def get_config_inatividade():
             tempo_inatividade_minutos=DEFAULT_TEMPO_INATIVIDADE_MINUTOS,
             raio_mudanca_metros=DEFAULT_RAIO_MUDANCA_METROS,
             limite_km_morta_pct=DEFAULT_LIMITE_KM_MORTA_PCT,
+            tempo_maximo_abastecimento_minutos=DEFAULT_TEMPO_MAXIMO_ABASTECIMENTO_MINUTOS,
         )
     return ConfigInatividadeSchema(
         tempo_inatividade_minutos=doc.get("tempo_inatividade_minutos", DEFAULT_TEMPO_INATIVIDADE_MINUTOS),
         raio_mudanca_metros=float(doc.get("raio_mudanca_metros", DEFAULT_RAIO_MUDANCA_METROS)),
         limite_km_morta_pct=float(doc.get("limite_km_morta_pct", DEFAULT_LIMITE_KM_MORTA_PCT)),
+        tempo_maximo_abastecimento_minutos=int(doc.get("tempo_maximo_abastecimento_minutos", DEFAULT_TEMPO_MAXIMO_ABASTECIMENTO_MINUTOS)),
     )
 
 

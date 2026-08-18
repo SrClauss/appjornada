@@ -824,16 +824,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.account_balance_wallet, color: Color(0xFF34D399), size: 22),
-                    SizedBox(width: 8),
-                    Text(
-                      'Faturamento Mensal (Acumulado)',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
-                    ),
-                  ],
+                const Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_balance_wallet, color: Color(0xFF34D399), size: 22),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Faturamento Mensal (Acumulado)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(

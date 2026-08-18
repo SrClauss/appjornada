@@ -26,7 +26,8 @@ class ApiService {
     try {
       final res = await http.get(Uri.parse('$baseUrl/config/versao-app'));
       if (res.statusCode == 200) {
-        return json.decode(res.body);
+        final decoded = json.decode(res.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       }
     } catch (e) {
       print('[ApiService] Erro ao verificar versão do app: $e');
@@ -85,7 +86,8 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       } else {
         print('[ApiService] Erro OCR Odômetro (${response.statusCode}): ${response.body}');
       }
@@ -134,7 +136,8 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode == 201) {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       } else {
         print('[ApiService] Erro no processamento (${response.statusCode}): ${response.body}');
       }
@@ -168,7 +171,8 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       } else {
         print('[ApiService] Erro no vídeo extrato (${response.statusCode}): ${response.body}');
       }
@@ -199,7 +203,8 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       } else {
         print('[ApiService] Erro no OCR Nota Fiscal (${response.statusCode}): ${response.body}');
       }
@@ -235,7 +240,8 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode == 201) {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       } else {
         print('[ApiService] Erro na revisão (${response.statusCode}): ${response.body}');
       }
@@ -261,7 +267,8 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       } else {
         print('[ApiService] Erro ao deletar comprovante (${response.statusCode}): ${response.body}');
       }
@@ -279,7 +286,8 @@ class ApiService {
         headers: headers,
       );
       if (res.statusCode == 200) {
-        return json.decode(res.body);
+        final decoded = json.decode(res.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       }
     } catch (e) {
       print('[ApiService] Erro ao buscar configs de inatividade: $e');
@@ -339,7 +347,8 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode == 201 || response.statusCode == 200) {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       } else {
         print('[ApiService] Erro ao enviar vídeo do extrato (${response.statusCode}): ${response.body}');
       }
@@ -375,7 +384,8 @@ class ApiService {
         headers: headers,
       );
       if (res.statusCode == 200) {
-        return json.decode(res.body);
+        final decoded = json.decode(res.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       }
     } catch (e) {
       print('[ApiService] Erro ao buscar metricas da jornada: $e');
@@ -390,7 +400,8 @@ class ApiService {
           : '$baseUrl/metricas/motorista/$motoristaId/acumulado';
       final res = await http.get(Uri.parse(url), headers: headers);
       if (res.statusCode == 200) {
-        return json.decode(res.body);
+        final decoded = json.decode(res.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       }
     } catch (e) {
       print('[ApiService] Erro ao buscar acumulado do motorista: $e');
@@ -405,7 +416,8 @@ class ApiService {
         headers: headers,
       );
       if (res.statusCode == 200) {
-        return json.decode(res.body);
+        final decoded = json.decode(res.body);
+        return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
       }
     } catch (e) {
       print('[ApiService] Erro ao buscar progresso de metas: $e');
