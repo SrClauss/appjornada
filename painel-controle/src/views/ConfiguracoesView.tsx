@@ -424,6 +424,7 @@ export function ConfiguracoesView() {
                 <Label>Nova Senha</Label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Digite a nova senha"
                   value={pwForm.nova}
                   onChange={(e) => setPwForm({ ...pwForm, nova: e.target.value })}
@@ -433,6 +434,7 @@ export function ConfiguracoesView() {
                 <Label>Confirmar Nova Senha</Label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Repita a nova senha"
                   value={pwForm.confirmar}
                   onChange={(e) => setPwForm({ ...pwForm, confirmar: e.target.value })}

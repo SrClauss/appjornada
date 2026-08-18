@@ -83,6 +83,7 @@ void onStart(ServiceInstance service) async {
 
     int tempoInatividadeMinutos = prefs.getInt('tempo_inatividade_minutos') ?? 25;
     double raioMudancaMetros = prefs.getDouble('raio_mudanca_metros') ?? 30.0;
+    int tempoMaximoAbastecimentoMinutos = prefs.getInt('tempo_maximo_abastecimento_minutos') ?? 30;
 
     try {
       final cfgRes = await http.get(
@@ -101,6 +102,10 @@ void onStart(ServiceInstance service) async {
         if (cfgData['raio_mudanca_metros'] != null) {
           raioMudancaMetros = (cfgData['raio_mudanca_metros'] as num).toDouble();
           await prefs.setDouble('raio_mudanca_metros', raioMudancaMetros);
+        }
+        if (cfgData['tempo_maximo_abastecimento_minutos'] != null) {
+          tempoMaximoAbastecimentoMinutos = (cfgData['tempo_maximo_abastecimento_minutos'] as num).toInt();
+          await prefs.setInt('tempo_maximo_abastecimento_minutos', tempoMaximoAbastecimentoMinutos);
         }
       }
     } catch (_) {}

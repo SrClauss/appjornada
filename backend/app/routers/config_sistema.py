@@ -71,12 +71,13 @@ async def get_config_inatividade():
 @router.put("/inatividade", response_model=ConfigInatividadeSchema)
 async def update_config_inatividade(
     payload: ConfigInatividadeSchema,
-    current_user: dict = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     """
     Atualiza as configurações globais de inatividade e limite de KM morta. Apenas gestores ou admins têm permissão.
     """
-    if current_user.get("role") not in ["ADMIN", "GESTOR"]:
+    user_role = getattr(current_user, "role", None) if not isinstance(current_user, dict) else current_user.get("role")
+    if user_role not in ["ADMIN", "GESTOR"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Apenas administradores e gestores podem alterar as configurações.",
