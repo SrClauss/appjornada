@@ -126,11 +126,25 @@ export function MapaCalorView() {
 
     if (!data || !data.pontos || data.pontos.length === 0) return;
 
+    let validCount = 0;
     const bounds = L.latLngBounds([]);
 
     data.pontos.forEach((p) => {
-      if (!p.lat || !p.lon) return;
+      let lat = Number(p.lat);
+      let lon = Number(p.lon);
+      if (!lat || !lon) return;
 
+      // Inversão se lat/lon estiverem trocados
+      if (Math.abs(lat) > 34.0 && Math.abs(lon) <= 34.0) {
+        const temp = lat;
+        lat = lon;
+        lon = temp;
+      }
+
+      // Validar limites geográficos do Brasil (Vitória / ES)
+      if (lat < -34.0 || lat > 5.0 || lon < -75.0 || lon > -30.0) return;
+
+      validCount++;
       const valor = p.valor || 0;
       let color = '#10b981'; // Verde (< R$ 15)
       if (valor >= 100) {
@@ -146,7 +160,7 @@ export function MapaCalorView() {
       // Raio proporcional ao valor
       const radius = Math.max(8, Math.min(26, Math.round(valor / 4.0)));
 
-      const circle = L.circleMarker([p.lat, p.lon], {
+      const circle = L.circleMarker([lat, lon], {
         radius,
         fillColor: color,
         color: '#ffffff',
@@ -163,11 +177,13 @@ export function MapaCalorView() {
         </div>
       `);
 
-      bounds.extend([p.lat, p.lon]);
+      bounds.extend([lat, lon]);
     });
 
-    if (data.pontos.length > 0 && bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40] });
+    if (validCount > 0 && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    } else {
+      map.setView([-20.3155, -40.3128], 13);
     }
   }, [data]);
 

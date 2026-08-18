@@ -1619,16 +1619,31 @@ async def obter_mapa_calor(
     total_valor = 0.0
     maior_ticket = 0.0
 
+    def _normalizar_lat_lon(raw_lat, raw_lon):
+        try:
+            v1, v2 = float(raw_lat), float(raw_lon)
+            if v1 == 0 or v2 == 0:
+                return None, None
+            # Se v1 for longitude (ex -40) e v2 latitude (ex -20), inverte
+            if abs(v1) > 34.0 and abs(v2) <= 34.0:
+                v1, v2 = v2, v1
+            if -34.0 <= v1 <= 5.0 and -75.0 <= v2 <= -30.0:
+                return v1, v2
+        except Exception:
+            pass
+        return None, None
+
     for j in jornadas:
         j_data = j.get("data")
         # 1. Corridas Particulares
         for cp in j.get("corridas_particulares", []):
             loc_inicio = cp.get("localizacao_inicio") or {}
-            lat = loc_inicio.get("lat")
-            lon = loc_inicio.get("lon")
+            raw_lat = loc_inicio.get("lat")
+            raw_lon = loc_inicio.get("lon")
+            lat, lon = _normalizar_lat_lon(raw_lat, raw_lon)
             valor = float(cp.get("valor_calculado") or 0.0)
 
-            if lat and lon and lat != 0 and lon != 0:
+            if lat and lon:
                 total_valor += valor
                 if valor > maior_ticket:
                     maior_ticket = valor
@@ -1680,7 +1695,8 @@ async def obter_mapa_calor(
                             except Exception:
                                 pass
 
-            if lat and lon and lat != 0 and lon != 0:
+            lat, lon = _normalizar_lat_lon(lat, lon)
+            if lat and lon:
                 total_valor += valor
                 if valor > maior_ticket:
                     maior_ticket = valor
