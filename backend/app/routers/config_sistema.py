@@ -40,7 +40,7 @@ async def get_versao_app():
     return {
         "versao_mais_recente": "1.0.8",
         "versao_minima": "1.0.0",
-        "url_download": "http://2.24.121.189:3000/app-release.apk",
+        "url_download": "https://minhajornada.lysia.tech/app-release.apk",
         "notas": "Versão com Microsoft Fluent Design 2, Métricas de Ticket Médio e Mapa de Calor."
     }
 
