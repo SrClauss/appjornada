@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import type { User as UserType, Role, Situacao } from '@/lib/types';
 import api from '@/lib/api';
+import { ConviteModal } from '@/components/ConviteModal';
+import { QrCode } from 'lucide-react';
 
 export function ConfiguracoesView() {
   const { user } = useAuth();
@@ -24,6 +26,29 @@ export function ConfiguracoesView() {
 
   const [openCreateAdmin, setOpenCreateAdmin] = useState(false);
   const [editAdmin, setEditAdmin] = useState<UserType | null>(null);
+
+  const [conviteModalOpen, setConviteModalOpen] = useState(false);
+  const [inviteData, setInviteData] = useState<{
+    token: string;
+    invite_url: string;
+    role: string;
+    expira_em: string;
+  } | null>(null);
+  const [gerandoConvite, setGerandoConvite] = useState(false);
+
+  const handleGerarConvite = async (role: 'ADMIN' | 'GESTOR') => {
+    setGerandoConvite(true);
+    try {
+      const res = await api.post('/auth/convites/gerar', { role });
+      setInviteData(res.data);
+      setConviteModalOpen(true);
+      toast.success('Convite de Administrador gerado com sucesso!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Erro ao gerar convite.');
+    } finally {
+      setGerandoConvite(false);
+    }
+  };
 
   const [adminForm, setAdminForm] = useState({
     nome: '',
@@ -513,9 +538,21 @@ export function ConfiguracoesView() {
               <Shield className="text-primary" size={24} />
               <CardTitle>Administradores e Gestores</CardTitle>
             </div>
-            <Button size="sm" onClick={() => setOpenCreateAdmin(true)} className="flex items-center gap-1">
-              <Plus size={16} /> Novo Administrador
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleGerarConvite('ADMIN')}
+                disabled={gerandoConvite}
+                className="flex items-center gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+              >
+                <QrCode size={16} />
+                {gerandoConvite ? 'Gerando...' : 'Gerar Convite (QR Code 24h)'}
+              </Button>
+              <Button size="sm" onClick={() => setOpenCreateAdmin(true)} className="flex items-center gap-1">
+                <Plus size={16} /> Cadastro Direto
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingUsers ? (
@@ -1188,6 +1225,12 @@ export function ConfiguracoesView() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConviteModal
+        open={conviteModalOpen}
+        onOpenChange={setConviteModalOpen}
+        inviteData={inviteData}
+      />
     </div>
   );
 }

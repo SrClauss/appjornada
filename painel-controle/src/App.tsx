@@ -16,6 +16,7 @@ import { PrecosParticularesView } from '@/views/PrecosParticularesView';
 import { MediaManagementView } from '@/views/MediaManagementView';
 import { MonitorView } from '@/views/MonitorView';
 import { MapaCalorView } from '@/views/MapaCalorView';
+import { RegistroAdminView } from '@/views/RegistroAdminView';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -44,6 +45,15 @@ function App() {
     window.location.hash = `/${view}`;
     setIsMobileMenuOpen(false);
   };
+
+  if (activeView.startsWith('registro-admin')) {
+    return (
+      <>
+        <RegistroAdminView />
+        <Toaster />
+      </>
+    );
+  }
 
   if (isLoading) {
     return (
