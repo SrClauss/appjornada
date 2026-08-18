@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:app_motorista/core/api_service.dart';
+import 'package:app_motorista/core/fluent_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   final Function(String, String, String, String) onLoginSuccess;
@@ -132,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0F172A), Color(0xFF1E1B4B)],
+            colors: [FluentColors.background, Color(0xFF141B2D)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -150,11 +151,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6366F1).withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(16),
+                      decoration: FluentDecorations.glowCard(
+                        glowColor: FluentColors.primaryTeal,
+                        borderRadius: 16,
                       ),
-                      child: const Icon(Icons.airport_shuttle, size: 36, color: Color(0xFF818CF8)),
+                      child: const Icon(Icons.airport_shuttle, size: 36, color: FluentColors.primaryTeal),
                     ),
                     const SizedBox(width: 16),
                     const Column(
