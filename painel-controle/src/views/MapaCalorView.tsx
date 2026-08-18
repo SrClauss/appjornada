@@ -96,9 +96,11 @@ export function MapaCalorView() {
     if (!mapContainerRef.current) return;
 
     if (!mapRef.current) {
-      const map = L.map(mapContainerRef.current).setView([-20.3155, -40.2944], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
+      const map = L.map(mapContainerRef.current).setView([-20.3155, -40.3128], 13);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19,
       }).addTo(map);
 
       const layerGroup = L.layerGroup().addTo(map);
