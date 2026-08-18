@@ -13,6 +13,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:app_motorista/screens/metas_dashboard_screen.dart';
 import 'package:app_motorista/core/fluent_theme.dart';
 import 'package:app_motorista/core/gps_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> jornada;
@@ -37,6 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isWeekendOrHoliday = false;
   bool _loading = false;
   Map<String, dynamic>? _metricasJornada;
+  Map<String, dynamic>? _infoAtualizacao;
 
   @override
   void initState() {
@@ -44,6 +46,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _checkWeekendOrHoliday();
     _startTimer();
     _carregarMetricas();
+    _checkNovaVersao();
+  }
+
+  Future<void> _checkNovaVersao() async {
+    final info = await ApiService.getVersaoApp();
+    if (mounted && info != null) {
+      final versaoRemota = info['versao_mais_recente'] ?? '1.0.0';
+      const versaoAtual = '1.0.8';
+      if (versaoRemota != versaoAtual) {
+        setState(() {
+          _infoAtualizacao = info;
+        });
+      }
+    }
+  }
+
+  Future<void> _abrirLinkDownload(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _carregarMetricas() async {

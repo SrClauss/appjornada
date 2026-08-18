@@ -30,6 +30,19 @@ class BaseOperacaoSchema(BaseModel):
     is_principal: bool = Field(default=False, description="Indica se é a base principal de centralização da frota")
 
 
+@router.get("/versao-app")
+async def get_versao_app():
+    """
+    Retorna a versão mais recente do aplicativo mobile do motorista e o link de download direto do APK.
+    """
+    return {
+        "versao_mais_recente": "1.0.8",
+        "versao_minima": "1.0.0",
+        "url_download": "http://2.24.121.189:3000/app-release.apk",
+        "notas": "Versão com Microsoft Fluent Design 2, Métricas de Ticket Médio e Mapa de Calor."
+    }
+
+
 @router.get("/inatividade", response_model=ConfigInatividadeSchema)
 async def get_config_inatividade():
     """

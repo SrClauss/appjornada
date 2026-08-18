@@ -22,6 +22,18 @@ class ApiService {
         if (token != null) 'Authorization': 'Bearer $token',
       };
 
+  static Future<Map<String, dynamic>?> getVersaoApp() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/config/versao-app'));
+      if (res.statusCode == 200) {
+        return json.decode(res.body);
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao verificar versão do app: $e');
+    }
+    return null;
+  }
+
   // Upload de arquivo para o MinIO / Servidor
   static Future<String?> uploadFile(String filePath, String contexto) async {
     try {

@@ -27,6 +27,8 @@ function App() {
     return hash.startsWith('#/') ? hash.slice(2) : 'dashboard';
   });
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
@@ -40,6 +42,7 @@ function App() {
 
   const handleNavigate = (view: string) => {
     window.location.hash = `/${view}`;
+    setIsMobileMenuOpen(false);
   };
 
   if (isLoading) {
@@ -101,13 +104,18 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <AppSidebar activeView={activeView} onNavigate={handleNavigate} />
+    <div className="flex h-screen bg-background overflow-hidden">
+      <AppSidebar
+        activeView={activeView}
+        onNavigate={handleNavigate}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+      />
 
-      <div className="flex-1 flex flex-col ml-64">
-        <AppHeader />
+      <div className="flex-1 flex flex-col md:ml-64 ml-0 min-w-0">
+        <AppHeader onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)} />
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {renderView()}
         </main>
       </div>

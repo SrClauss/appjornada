@@ -1,11 +1,15 @@
-import { Bell, SignOut, DownloadSimple } from '@phosphor-icons/react';
+import { Bell, SignOut, DownloadSimple, List } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/hooks/useDashboard';
 
-export function AppHeader() {
+interface AppHeaderProps {
+  onToggleMobileMenu?: () => void;
+}
+
+export function AppHeader({ onToggleMobileMenu }: AppHeaderProps) {
   const { user, logout } = useAuth();
   const { kpis } = useDashboard();
 
@@ -16,17 +20,34 @@ export function AppHeader() {
   const alertCount = kpis.totalAlertas;
 
   return (
-    <header className="sticky top-0 z-40 h-16 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-md">
-      <div className="h-full px-6 flex items-center justify-end gap-4">
+    <header className="sticky top-0 z-40 h-16 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-md px-4 md:px-6 flex items-center justify-between">
+      {/* Botão de Menu Mobile */}
+      <div className="flex items-center gap-3">
+        {onToggleMobileMenu && (
+          <button
+            onClick={onToggleMobileMenu}
+            className="md:hidden p-2 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-colors"
+            title="Abrir Menu"
+          >
+            <List size={24} />
+          </button>
+        )}
+        <div className="md:hidden font-bold text-sm text-teal-400 tracking-wide">
+          App Jornada
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 md:gap-4">
         {/* Botão de Download do App Motorista APK Versionado */}
         <a
           href="/app-jornada-v1.0.8.apk"
           download="app-jornada-v1.0.8.apk"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all shadow-sm"
+          className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all shadow-sm"
           title="Baixar App Motorista Versão v1.0.8 (APK)"
         >
           <DownloadSimple size={16} className="text-emerald-400" />
-          <span>Baixar App v1.0.8 (APK)</span>
+          <span className="hidden sm:inline">Baixar App v1.0.8 (APK)</span>
+          <span className="sm:hidden">APK v1.0.8</span>
         </a>
         
         <button className="relative p-2 hover:bg-slate-800/60 rounded-xl transition-colors text-slate-300">
@@ -41,8 +62,8 @@ export function AppHeader() {
           )}
         </button>
 
-        <div className="flex items-center gap-3 pl-4 border-l border-slate-800">
-          <div className="text-right">
+        <div className="flex items-center gap-2 md:gap-3 pl-3 md:pl-4 border-l border-slate-800">
+          <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold text-white">{user?.nome ?? 'Admin'}</p>
             <p className="text-[11px] text-teal-400 font-medium">{user?.role ?? 'ADMIN'}</p>
           </div>
