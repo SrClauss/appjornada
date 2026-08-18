@@ -420,6 +420,7 @@ export function ConfiguracoesView() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSavePassword} className="space-y-4">
+              <input type="text" name="username" value={user?.email || ''} autoComplete="username" className="sr-only" readOnly hidden />
               <div className="space-y-2">
                 <Label>Nova Senha</Label>
                 <Input
