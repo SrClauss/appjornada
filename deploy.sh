@@ -80,6 +80,7 @@ rsync -avz --delete \
   --exclude='app_motorista/build' \
   --exclude='app_motorista/.dart_tool' \
   --exclude='app_motorista/.flutter-plugins*' \
+  --exclude='backend/videos_extrato' \
   "$LOCAL_DIR/" \
   "$SERVER:$REMOTE_DIR/"
 

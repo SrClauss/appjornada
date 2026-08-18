@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Eye, 
   ArrowLeft, 
@@ -30,7 +33,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useJornadas } from '@/hooks/useJornadas';
-import type { Jornada, JourneyStatus } from '@/lib/types';
+import type { Jornada, JourneyStatus, SegmentoRota } from '@/lib/types';
 import api from '@/lib/api';
 import { PainelFaturamentoJornada } from '@/components/PainelFaturamentoJornada';
 import { DeslocamentosCorridasIndividualizadas, CorridaIndividual } from '@/components/DeslocamentosCorridasIndividualizadas';
@@ -42,9 +45,10 @@ interface MapViewProps {
   routeSegments?: SegmentoRota[];
   corridasParticulares?: any[];
   selectedCorrida?: CorridaIndividual | null;
+  onSegmentClick?: (index: number) => void;
 }
 
-function JourneyMap({ coordinates, routeSegments, corridasParticulares, selectedCorrida }: MapViewProps) {
+function JourneyMap({ coordinates, routeSegments, corridasParticulares, selectedCorrida, onSegmentClick }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -53,7 +57,7 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
   const latLngs = (coordinates || []).map((c) => [c[1], c[0]] as [number, number]);
   let base: [number, number] | null = null;
   
-  const finalSegments: { coords: [number, number][]; color: string; label: string; status: string }[] = [];
+  const finalSegments: { coords: [number, number][]; color: string; label: string; status: string; originalIndex?: number }[] = [];
 
   if (routeSegments && routeSegments.length > 0) {
     routeSegments.forEach(seg => {
@@ -92,7 +96,8 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
           coords: segCoords,
           color,
           label,
-          status: seg.status || (seg.is_produtivo ? 'produtivo' : 'nao_identificado')
+          status: seg.status || (seg.is_produtivo ? 'produtivo' : 'nao_identificado'),
+          originalIndex: seg.originalIndex
         });
       }
     });
@@ -178,6 +183,12 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
         }).addTo(layerGroup);
 
         poly.bindPopup(`<strong>Trecho: ${seg.label}</strong>`);
+        
+        if (seg.originalIndex !== undefined && onSegmentClick) {
+          poly.on('click', () => {
+            onSegmentClick(seg.originalIndex!);
+          });
+        }
 
         if (!mainBounds) {
           mainBounds = poly.getBounds();
@@ -491,8 +502,8 @@ function SelectedEventsMap({ routes }: SelectedEventsMapProps) {
   );
 }
 
-const formatCurrency = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const formatCurrency = (v?: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 
 const statusBadgeVariant = (status: JourneyStatus) => {
   if (status === 'ENCERRADA') return 'default' as const;
@@ -655,8 +666,13 @@ export function JornadasView() {
   const [selectedJornada, setSelectedJornada] = useState<Jornada | null>(null);
   const [selectedCorrida, setSelectedCorrida] = useState<CorridaIndividual | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
-  const [routeSegments, setRouteSegments] = useState<{ is_produtivo: boolean, coords: [number, number][] }[]>([]);
+  const [routeSegments, setRouteSegments] = useState<SegmentoRota[]>([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
+  const [selectedSegmentIndex, setSelectedSegmentIndex] = useState<number | null>(null);
+  const [reclassStatus, setReclassStatus] = useState<string>('produtivo');
+  const [reclassValor, setReclassValor] = useState<string>('');
+  const [reclassJustificativa, setReclassJustificativa] = useState<string>('');
+  const [reclassLoading, setReclassLoading] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -675,11 +691,9 @@ export function JornadasView() {
         params: { jornada_id: jId }
       });
       if (routeData && routeData.segmentos_rota) {
-        setRouteSegments(routeData.segmentos_rota.map((s: any) => ({
-          is_produtivo: s.is_produtivo,
-          status: s.status,
-          rotulo: s.rotulo,
-          cor: s.cor,
+        setRouteSegments(routeData.segmentos_rota.map((s: any, idx: number) => ({
+          ...s,
+          originalIndex: idx,
           coords: s.coords || s.coordinates || []
         })));
       }
@@ -1070,8 +1084,9 @@ export function JornadasView() {
         if (routeData) {
           setRouteCoordinates(routeData.coordinates || routeData.coordenadas || []);
           if (routeData.segmentos_rota) {
-            setRouteSegments(routeData.segmentos_rota.map((s: any) => ({
-              is_produtivo: s.is_produtivo,
+            setRouteSegments(routeData.segmentos_rota.map((s: any, idx: number) => ({
+              ...s,
+              originalIndex: idx,
               coords: s.coords || s.coordinates || []
             })));
           } else {
@@ -1096,8 +1111,9 @@ export function JornadasView() {
         params: { jornada_id: j.id || (j as any)._id }
       });
       if (routeData && routeData.segmentos_rota) {
-        setRouteSegments(routeData.segmentos_rota.map((s: any) => ({
-          is_produtivo: s.is_produtivo,
+        setRouteSegments(routeData.segmentos_rota.map((s: any, idx: number) => ({
+          ...s,
+          originalIndex: idx,
           coords: s.coords || s.coordinates || []
         })));
       } else {
@@ -1110,6 +1126,38 @@ export function JornadasView() {
       console.error('Erro ao abrir jornada do evento:', e);
     } finally {
       setLoadingRoute(false);
+    }
+  };
+  const handleSaveReclass = async () => {
+    if (!selectedJornada || selectedSegmentIndex === null) return;
+    const jId = selectedJornada.id || (selectedJornada as any)._id;
+    setReclassLoading(true);
+    try {
+      await api.post(`/jornadas/${jId}/segmentos/${selectedSegmentIndex}/reclassificar`, {
+        novo_status: reclassStatus,
+        valor: parseFloat(reclassValor.replace(',', '.')) || 0,
+        justificativa: reclassJustificativa
+      });
+      // reload jornada and route
+      const { data: j } = await api.get(`/jornadas/${jId}`);
+      setSelectedJornada(j);
+      
+      const { data: routeData } = await api.get(`/gps/motorista/${j.motorista_id}/rota-ajustada`, {
+        params: { jornada_id: jId }
+      });
+      if (routeData && routeData.segmentos_rota) {
+        setRouteSegments(routeData.segmentos_rota.map((s: any, idx: number) => ({
+          ...s,
+          originalIndex: idx,
+          coords: s.coords || s.coordinates || []
+        })));
+      }
+      setSelectedSegmentIndex(null);
+    } catch (e) {
+      console.error('Erro ao reclassificar segmento:', e);
+      alert('Erro ao reclassificar o trecho.');
+    } finally {
+      setReclassLoading(false);
     }
   };
 
@@ -1492,6 +1540,12 @@ export function JornadasView() {
                           routeSegments={routeSegments}
                           corridasParticulares={(selectedJornada as any).corridas_particulares}
                           selectedCorrida={selectedCorrida}
+                          onSegmentClick={(idx) => {
+                            setSelectedSegmentIndex(idx);
+                            setReclassStatus('produtivo');
+                            setReclassValor('');
+                            setReclassJustificativa('');
+                          }}
                         />
                       </div>
                     )}
@@ -2240,6 +2294,58 @@ export function JornadasView() {
         )}
       </div>
     )}
+    
+    <Dialog open={selectedSegmentIndex !== null} onOpenChange={(open) => !open && setSelectedSegmentIndex(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reclassificar Trecho Vago</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Nova Classificação</Label>
+            <Select value={reclassStatus} onValueChange={setReclassStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="produtivo">Corrida Particular (esquecida)</SelectItem>
+                <SelectItem value="extraordinario">Deslocamento Extraordinário</SelectItem>
+                <SelectItem value="improdutivo_a_favor_base">A favor da base (Voltando)</SelectItem>
+                <SelectItem value="improdutivo_contra_base">Contra a base (Afastando)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {reclassStatus === 'produtivo' && (
+            <div className="space-y-2">
+              <Label>Valor Cobrado (R$)</Label>
+              <Input 
+                type="text" 
+                placeholder="Ex: 50,00" 
+                value={reclassValor} 
+                onChange={(e) => setReclassValor(e.target.value)} 
+              />
+            </div>
+          )}
+          {reclassStatus === 'extraordinario' && (
+            <div className="space-y-2">
+              <Label>Justificativa</Label>
+              <Input 
+                type="text" 
+                placeholder="Ex: Ida à oficina" 
+                value={reclassJustificativa} 
+                onChange={(e) => setReclassJustificativa(e.target.value)} 
+              />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setSelectedSegmentIndex(null)}>Cancelar</Button>
+          <Button onClick={handleSaveReclass} disabled={reclassLoading}>
+            {reclassLoading ? 'Salvando...' : 'Salvar Reclassificação'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 );
 }

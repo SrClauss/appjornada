@@ -222,13 +222,18 @@ async def abrir_jornada(
                 detail="PIN incorreto",
             )
 
-    # Verifica se já existe jornada aberta para este motorista hoje
+    # Verifica se já existe jornada aberta ou pendente de fechamento para este motorista
     hoje = date.today().isoformat()
     aberta = await db["jornadas"].find_one({
         "motorista_id": ObjectId(str(dados.motorista_id)),
-        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]},
+        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA", "PRE_FECHAMENTO"]},
     })
     if aberta:
+        if aberta.get("status") == "PRE_FECHAMENTO":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Existe uma prestação de contas pendente para a jornada anterior. Conclua o pré-fechamento antes de iniciar uma nova jornada.",
+            )
         # Idempotência para cliques duplos: se foi criada há menos de 15 segundos, retorna ela
         try:
             inicio_str = aberta.get("horario", {}).get("inicio")
@@ -333,6 +338,24 @@ async def jornada_aberta(
     if not doc:
         doc = await db["jornadas"].find_one(filtro)
 
+    if doc:
+        normalized = _normalizar_jornada(doc)
+        await _populate_motorista_nome(normalized, db)
+        return Jornada(**normalized)
+    return None
+
+
+@router.get("/pendente-fechamento", response_model=Optional[Jornada])
+async def jornada_pendente_fechamento(
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Retorna a jornada do motorista que está aguardando prestação de contas (PRE_FECHAMENTO)."""
+    motorista_id = ObjectId(str(current_user.id))
+    doc = await db["jornadas"].find_one({
+        "motorista_id": motorista_id,
+        "status": "PRE_FECHAMENTO"
+    })
     if doc:
         normalized = _normalizar_jornada(doc)
         await _populate_motorista_nome(normalized, db)
@@ -714,6 +737,32 @@ async def reabrir_jornada(
     return Jornada(**normalized)
 
 
+# ─── Pre Fechar jornada ──────────────────────────────────────────────────────────
+
+@router.patch("/{jornada_id}/pre-fechar", response_model=Jornada)
+async def pre_fechar_jornada(
+    jornada_id: str,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    doc = await db["jornadas"].find_one({"_id": jornada_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+
+    if doc["status"] not in ("ABERTA", "EM_ANDAMENTO", "EM_PAUSA"):
+        raise HTTPException(status_code=409, detail="Jornada em estado inválido para iniciar pré-fechamento")
+
+    await db["jornadas"].update_one(
+        {"_id": jornada_id},
+        {"$set": {"status": "PRE_FECHAMENTO"}}
+    )
+    atualizado = await db["jornadas"].find_one({"_id": jornada_id})
+    normalized = _normalizar_jornada(atualizado)
+    await _populate_motorista_nome(normalized, db)
+    await event_manager.broadcast("jornada_atualizada", {"jornada_id": jornada_id, "status": "PRE_FECHAMENTO"})
+    return Jornada(**normalized)
+
+
 # ─── Fechar jornada ──────────────────────────────────────────────────────────
 
 @router.patch("/{jornada_id}/fechar", response_model=Jornada)
@@ -744,7 +793,7 @@ async def fechar_jornada(
         normalized = _normalizar_jornada(doc)
         await _populate_motorista_nome(normalized, db)
         return Jornada(**normalized)
-    if doc["status"] not in ("ABERTA", "EM_ANDAMENTO", "EM_PAUSA"):
+    if doc["status"] not in ("ABERTA", "EM_ANDAMENTO", "EM_PAUSA", "PRE_FECHAMENTO"):
         raise HTTPException(status_code=409, detail="Jornada em estado inválido para encerramento")
 
     fim = datetime.now(timezone.utc)
@@ -1233,6 +1282,8 @@ async def resumo_clt_mensal(
 async def upload_e_processar_extrato_video(
     arquivo: UploadFile = File(...),
     plataforma: Optional[str] = Query(None),
+    faturamento_ancora: Optional[float] = Query(None),
+    corridas_ancora: Optional[int] = Query(None),
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
@@ -1243,7 +1294,7 @@ async def upload_e_processar_extrato_video(
     """
     jornada_doc = await db["jornadas"].find_one({
         "motorista_id": ObjectId(str(current_user.id)),
-        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA", "EM_FECHAMENTO", "FECHAMENTO"]}
+        "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA", "PRE_FECHAMENTO", "EM_FECHAMENTO", "FECHAMENTO"]}
     })
     if not jornada_doc:
         jornada_doc = await db["jornadas"].find_one(
@@ -1268,7 +1319,13 @@ async def upload_e_processar_extrato_video(
     if not frames:
         raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
 
-    res_ai = _chamar_gemini_extrato_video(frames, frame_urls=frame_urls, plataforma_esperada=plataforma)
+    res_ai = _chamar_gemini_extrato_video(
+        frames, 
+        frame_urls=frame_urls, 
+        plataforma_esperada=plataforma,
+        faturamento_ancora=faturamento_ancora,
+        corridas_ancora=corridas_ancora
+    )
     corridas_lidas = res_ai.get("corridas", [])
 
     if not corridas_lidas:
@@ -1980,6 +2037,8 @@ async def iniciar_corrida_particular(
     destino_endereco: Optional[str] = None,
     destino_lat: Optional[float] = None,
     destino_lon: Optional[float] = None,
+    tipo_corrida: str = "NORMAL",
+    justificativa: Optional[str] = None,
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
@@ -2036,6 +2095,8 @@ async def iniciar_corrida_particular(
 
     nova_corrida = {
         "id": uuid.uuid4().hex[:8],
+        "tipo_corrida": tipo_corrida,
+        "justificativa": justificativa,
         "horario_inicio": datetime.now(timezone.utc).isoformat(),
         "horario_fim": None,
         "localizacao_inicio": {"lat": localizacao_lat, "lon": localizacao_lon} if localizacao_lat is not None else None,
@@ -2066,6 +2127,8 @@ async def iniciar_corrida_particular(
         "motorista_id": str(doc.get("motorista_id")) if doc.get("motorista_id") else None,
         "motorista_nome": motorista_nome,
         "veiculo_id": doc.get("veiculo_id"),
+        "tipo_corrida": tipo_corrida,
+        "justificativa": justificativa,
         "horario_inicio": nova_corrida["horario_inicio"],
         "horario_fim": None,
         "localizacao_inicio": nova_corrida["localizacao_inicio"],
@@ -2152,6 +2215,8 @@ async def finalizar_corrida_particular(
     _, preco_minuto = obter_preco_para_horario(hora_local_fim)
     
     valor_calculado = round((km_rodados * preco_km) + (duracao_minutos * preco_minuto), 2)
+    if corrida.get("tipo_corrida") == "EXTRAORDINARIA":
+        valor_calculado = 0.0
     
     # Atualizar a corrida na jornada
     await db["jornadas"].update_one(
@@ -2491,18 +2556,23 @@ async def classificar_trajetos_jornada(
     if not jornada:
         raise HTTPException(status_code=404, detail="Jornada não encontrada")
 
-    base_doc = await db["bases_operacoes"].find_one({"is_principal": True})
-    if not base_doc:
-        base_doc = await db["bases_operacoes"].find_one({})
-    base_lat = base_doc.get("lat", -20.26548) if base_doc else -20.26548
-    base_lon = base_doc.get("lon", -40.29589) if base_doc else -40.29589
-    base_coords = (base_lat, base_lon)
-
     from app.services.segment_classifier import classificar_jornada_segmentos, obter_pontos_jornada, calcular_distancia_m
 
     pontos = await obter_pontos_jornada(jornada, db)
     if not pontos:
         raise HTTPException(status_code=400, detail="Nenhum ponto de telemetria/GPS encontrado para esta jornada.")
+
+    # Extração Dinâmica da Base de Operações (Primeiro ponto GPS da Jornada)
+    base_lat = -20.26548
+    base_lon = -40.29589
+    primeiro = pontos[0]
+    p_lat = primeiro.get("lat") or primeiro.get("localizacao", {}).get("coordinates", [0, 0])[1]
+    p_lon = primeiro.get("lon") or primeiro.get("localizacao", {}).get("coordinates", [0, 0])[0]
+    if p_lat != 0 and p_lon != 0:
+        base_lat = p_lat
+        base_lon = p_lon
+    
+    base_coords = (base_lat, base_lon)
 
     comprovantes = jornada.get("faturamento", {}).get("comprovantes_processados", [])
     jornada_data = jornada.get("data")
@@ -2572,3 +2642,143 @@ async def classificar_trajetos_jornada(
         "total_segmentos": len(segmentos_classificados),
         "total_corridas_vinculadas": len(comprovantes)
     }
+
+class ReclassificarSegmentoPayload(BaseModel):
+    novo_status: str
+    valor: Optional[float] = 0.0
+    justificativa: Optional[str] = None
+
+@router.post("/{jornada_id}/segmentos/{segment_index}/reclassificar")
+async def reclassificar_segmento(
+    jornada_id: str,
+    segment_index: int,
+    payload: ReclassificarSegmentoPayload,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    try:
+        q_j = {"$or": [{"_id": jornada_id}, {"_id": ObjectId(jornada_id)}]}
+    except Exception:
+        q_j = {"_id": jornada_id}
+
+    jornada = await db["jornadas"].find_one(q_j)
+    if not jornada:
+        raise HTTPException(status_code=404, detail="Jornada não encontrada")
+
+    segmentos = jornada.get("segmentos_rota", [])
+    if segment_index < 0 or segment_index >= len(segmentos):
+        raise HTTPException(status_code=400, detail="Índice de segmento inválido")
+
+    segmento = segmentos[segment_index]
+    status_antigo = segmento.get("status")
+    km_segmento = segmento.get("km", 0.0)
+
+    novo_status = payload.novo_status
+    if novo_status == "produtivo":
+        segmento["status"] = "produtivo"
+        segmento["cor"] = "#10b981"
+        segmento["rotulo"] = "Corrida Particular (Manual)"
+        segmento["is_produtivo"] = True
+    elif novo_status == "extraordinario":
+        segmento["status"] = "extraordinario"
+        segmento["cor"] = "#a855f7"
+        segmento["rotulo"] = "Deslocamento Extraordinário"
+        segmento["is_produtivo"] = False
+    elif novo_status == "improdutivo_a_favor_base":
+        segmento["status"] = "improdutivo_a_favor_base"
+        segmento["cor"] = "#3b82f6"
+        segmento["rotulo"] = "Deslocamento em Direção à Base"
+        segmento["is_produtivo"] = False
+    elif novo_status == "improdutivo_contra_base":
+        segmento["status"] = "improdutivo_contra_base"
+        segmento["cor"] = "#ef4444"
+        segmento["rotulo"] = "Improdutivo (Afastando da Base)"
+        segmento["is_produtivo"] = False
+    else:
+        raise HTTPException(status_code=400, detail="Status inválido")
+
+    # Se for produtiva ou extraordinária, adiciona em corridas_particulares
+    if novo_status in ["produtivo", "extraordinario"]:
+        corridas_particulares = jornada.get("corridas_particulares", [])
+        
+        # Tentar extrair lat/lon do início e fim do polyline
+        lat_inicio, lon_inicio, lat_fim, lon_fim = None, None, None, None
+        try:
+            from app.routers.gps import decode_polyline
+            coords = decode_polyline(segmento.get("polyline", ""))
+            if coords:
+                lat_inicio, lon_inicio = coords[0]
+                lat_fim, lon_fim = coords[-1]
+        except:
+            pass
+
+        valor = payload.valor if novo_status == "produtivo" else 0.0
+        tipo_corrida = "NORMAL" if novo_status == "produtivo" else "EXTRAORDINARIA"
+        
+        nova_corrida = {
+            "id": str(ObjectId()),
+            "status": "FINALIZADA",
+            "tipo_corrida": tipo_corrida,
+            "data_inicio": datetime.now(timezone.utc).isoformat(),
+            "data_fim": datetime.now(timezone.utc).isoformat(),
+            "km_inicio": 0.0,
+            "km_fim": km_segmento,
+            "km_rodados": km_segmento,
+            "duracao_segundos": 0,
+            "localizacao_inicio": {"lat": lat_inicio, "lon": lon_inicio} if lat_inicio else None,
+            "localizacao_fim": {"lat": lat_fim, "lon": lon_fim} if lat_fim else None,
+            "valor_calculado": valor,
+            "justificativa": payload.justificativa
+        }
+        corridas_particulares.append(nova_corrida)
+        
+        # Atualiza faturamento
+        faturamento = jornada.get("faturamento", {})
+        fat_outros = float(faturamento.get("outros") or 0.0) + valor
+        faturamento["outros"] = fat_outros
+        faturamento["total_dia"] = (
+            float(faturamento.get("uber") or 0.0) +
+            float(faturamento.get("noventa_nove") or 0.0) +
+            fat_outros
+        )
+        faturamento["corridas_outros"] = int(faturamento.get("corridas_outros") or 0) + 1
+
+        await db["jornadas"].update_one(
+            {"_id": jornada["_id"]},
+            {
+                "$set": {
+                    "segmentos_rota": segmentos,
+                    "corridas_particulares": corridas_particulares,
+                    "faturamento": faturamento
+                }
+            }
+        )
+    else:
+        # Só atualiza a rota
+        await db["jornadas"].update_one(
+            {"_id": jornada["_id"]},
+            {"$set": {"segmentos_rota": segmentos}}
+        )
+
+    # Recalcula resumo_trajetos_km
+    resumo_km = jornada.get("resumo_trajetos_km", {})
+    if status_antigo in resumo_km:
+        resumo_km[status_antigo] -= km_segmento
+        if resumo_km[status_antigo] < 0:
+            resumo_km[status_antigo] = 0.0
+    
+    status_novo_resumo = segmento["status"]
+    if status_novo_resumo in resumo_km:
+        resumo_km[status_novo_resumo] += km_segmento
+    elif status_novo_resumo == "extraordinario":
+        # Se for extraordinario, pode agrupar em deslocamento ou criar nova chave
+        if "extraordinario" not in resumo_km:
+            resumo_km["extraordinario"] = 0.0
+        resumo_km["extraordinario"] += km_segmento
+
+    await db["jornadas"].update_one(
+        {"_id": jornada["_id"]},
+        {"$set": {"resumo_trajetos_km": {k: round(v, 2) for k, v in resumo_km.items()}}}
+    )
+
+    return {"status": "ok", "mensagem": "Segmento reclassificado com sucesso"}

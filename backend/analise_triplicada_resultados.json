@@ -1,0 +1,4238 @@
+{
+  "0efd6dfa85ea4db1a4e9a0ad22027f60.mp4": {
+    "tamanho_mb": 1.89,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 42.15,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 282.72,
+        "tempo_s": 14.0,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": null,
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": null,
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 240.57,
+        "tempo_s": 9.9,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 242.04,
+        "tempo_s": 8.9,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "11e5ce71d017480c865f0fb146a73946.mp4": {
+    "tamanho_mb": 2.37,
+    "consistencia_perfeita": true,
+    "variacao_faturamento_rs": 0.0,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 5,
+        "faturamento": 79.71,
+        "tempo_s": 6.3,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:37",
+            "plataforma": "99",
+            "valor_reais": 6.0,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "16:36",
+            "plataforma": "99",
+            "valor_reais": 13.01,
+            "origem": "Avenida Eldes Scherrer Souza, Parque Res. Laranjeiras, Serra - ES",
+            "destino": "Rua Dom Pedro II, Colina de Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "16:19",
+            "plataforma": "99",
+            "valor_reais": 14.0,
+            "origem": "Rua Rio Turiaçu, Novo Porto Canoa, Serra - ES",
+            "destino": "Laranjeiras II, salase Parque Res. Laranjeiras"
+          },
+          {
+            "horario": "11:12",
+            "plataforma": "99",
+            "valor_reais": 19.5,
+            "origem": "Av. Roza Helena Schorling Albuquerque, Republica, Vitória - ES",
+            "destino": "Rodoviária Águia Branca - Carapina, BR-101, Km 07 - Carapina, Serra - ES"
+          },
+          {
+            "horario": "08:32",
+            "plataforma": "99",
+            "valor_reais": 27.2,
+            "origem": "4, Cid Pomar, Serra - ES",
+            "destino": "Armarinho Sorte, Rua Euclides da Cunha, 684 - Loja 1 - Parque Res. Laranjeiras"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 5,
+        "faturamento": 79.71,
+        "tempo_s": 6.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:37",
+            "plataforma": "99",
+            "valor_reais": 6.0,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "16:36",
+            "plataforma": "99",
+            "valor_reais": 13.01,
+            "origem": "Avenida Eldes Scherrer Souza, Parque Res. Laranjeiras, Serra - ES",
+            "destino": "Rua Dom Pedro II, Colina de Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "16:19",
+            "plataforma": "99",
+            "valor_reais": 14.0,
+            "origem": "Rua Rio Turiaçu, Novo Porto Canoa, Serra - ES",
+            "destino": "Laranjeiras II, salase Parque Res. Laranjeiras"
+          },
+          {
+            "horario": "11:12",
+            "plataforma": "99",
+            "valor_reais": 19.5,
+            "origem": "Av. Roza Helena Schorling Albuquerque, Republica, Vitória - ES",
+            "destino": "Rodoviária Águia Branca - Carapina, BR-101, Km 07 - Carapina, Serra - ES"
+          },
+          {
+            "horario": "08:32",
+            "plataforma": "99",
+            "valor_reais": 27.2,
+            "origem": "4, Cid Pomar, Serra - ES",
+            "destino": "Armarinho Sorte, Rua Euclides da Cunha, 684 - Loja 1 - Parque Res. Laranjeiras"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 5,
+        "faturamento": 79.71,
+        "tempo_s": 6.5,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:37",
+            "plataforma": "99",
+            "valor_reais": 6.0,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "16:36",
+            "plataforma": "99",
+            "valor_reais": 13.01,
+            "origem": "Avenida Eldes Scherrer Souza, Parque Res. Laranjeiras, Serra - ES",
+            "destino": "Rua Dom Pedro II, Colina de Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "16:19",
+            "plataforma": "99",
+            "valor_reais": 14.0,
+            "origem": "Rua Rio Turiaçu, Novo Porto Canoa, Serra - ES",
+            "destino": "Laranjeiras II, salase Parque Res. Laranjeiras"
+          },
+          {
+            "horario": "11:12",
+            "plataforma": "99",
+            "valor_reais": 19.5,
+            "origem": "Av. Roza Helena Schorling Albuquerque, Republica, Vitória - ES",
+            "destino": "Rodoviária Águia Branca - Carapina, BR-101, Km 07 - Carapina, Serra - ES"
+          },
+          {
+            "horario": "08:32",
+            "plataforma": "99",
+            "valor_reais": 27.2,
+            "origem": "4, Cid Pomar, Serra - ES",
+            "destino": "Armarinho Sorte, Rua Euclides da Cunha, 684 - Loja 1 - Parque Res. Laranjeiras"
+          }
+        ]
+      }
+    ]
+  },
+  "1a54a3d557e94fc3ae9755189e83391a.mp4": {
+    "tamanho_mb": 9.18,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 16.3,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 15,
+        "faturamento": 313.18,
+        "tempo_s": 14.3,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "07:15",
+            "plataforma": "Uber",
+            "valor_reais": 33.38,
+            "origem": "Av. Primeira Avenida Laranjeiras Shopping, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rua Lavrador José Barbosa da Silva, Serra - ES"
+          },
+          {
+            "horario": "08:30",
+            "plataforma": "Uber",
+            "valor_reais": 26.12,
+            "origem": "rua bem-ti-vi, Balneário de Carapebus - Serra - ES",
+            "destino": "Av. Eldes Scherrer de Souza, Colina de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "08:52",
+            "plataforma": "Uber",
+            "valor_reais": 29.52,
+            "origem": "Avenida Coronel Manoel Nunes, Jardim Tropical - Serra - ES",
+            "destino": "Av. Antônio Azevedo Rodrigues, Nova Zelândia - Serra - ES"
+          },
+          {
+            "horario": "10:28",
+            "plataforma": "Uber",
+            "valor_reais": 17.59,
+            "origem": "Rua Sesostres Andrade, Jardim Camburi - Vitória - ES",
+            "destino": "Av. Talma Rodrigues Ribeiro, Centro Industrial do Município - Serra - ES"
+          },
+          {
+            "horario": "10:52",
+            "plataforma": "Uber",
+            "valor_reais": 27.15,
+            "origem": "Av. Talma Rodrigues Ribeiro, Portal de Jacaraípe - Serra - ES",
+            "destino": "R. Santa Rita, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:04",
+            "plataforma": "Uber",
+            "valor_reais": 41.31,
+            "origem": "Av. Henrique Moscoso, Centro de Vila Velha - Vila Velha - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "13:05",
+            "plataforma": "Uber",
+            "valor_reais": 17.39,
+            "origem": "Rua José Neves Cypreste, Jardim da Penha - Vitória - ES",
+            "destino": "R. Carlos Eduardo Monteiro de Lemos, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "14:15",
+            "plataforma": "Uber",
+            "valor_reais": 5.85,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:33",
+            "plataforma": "Uber",
+            "valor_reais": 16.12,
+            "origem": "Rua Pedro Daniel, Barro Redondo - Vitória - ES",
+            "destino": "Avenida José Rato, De Fatima - Vitória - ES"
+          },
+          {
+            "horario": "14:54",
+            "plataforma": "Uber",
+            "valor_reais": 11.77,
+            "origem": "R. O, Manoel Plaza - Serra - ES",
+            "destino": "Avenida Guarapari, Valparaíso - Serra - ES"
+          },
+          {
+            "horario": "15:54",
+            "plataforma": "Uber",
+            "valor_reais": 24.06,
+            "origem": "Rua Quaresmeira, Boulevard Lagoa - Serra - ES",
+            "destino": "Av. Eldes Scherrer de Souza, Colina de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "16:48",
+            "plataforma": "Uber",
+            "valor_reais": 7.75,
+            "origem": "Avenida Civit, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Av. Eudes Scherrer Souza Morar, Serra - ES"
+          },
+          {
+            "horario": "17:01",
+            "plataforma": "Uber",
+            "valor_reais": 18.54,
+            "origem": "Av. Braúna, Bairro Colina de Laranjeiras - Serra - ES",
+            "destino": "r. das rosas, Feu Rosa - Serra - ES"
+          },
+          {
+            "horario": "Desconhecido",
+            "plataforma": "Uber",
+            "valor_reais": 24.06,
+            "origem": "R. Marataizes, Valparaíso - Serra - ES",
+            "destino": null
+          },
+          {
+            "horario": "Desconhecido",
+            "plataforma": "Uber",
+            "valor_reais": 12.67,
+            "origem": null,
+            "destino": null
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 15,
+        "faturamento": 298.54,
+        "tempo_s": 29.6,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "07:15",
+            "plataforma": "Uber",
+            "valor_reais": 33.38,
+            "origem": "Av. Primeira Avenida Laranjeiras Shopping, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rua Lavrador José Barbosa da Silva, Serra - ES"
+          },
+          {
+            "horario": "07:50",
+            "plataforma": "Uber",
+            "valor_reais": 15.56,
+            "origem": "Jacaraípe, Espírito Santo - Serra - ES",
+            "destino": "Av. Papua, Vitória - ES"
+          },
+          {
+            "horario": "08:52",
+            "plataforma": "Uber",
+            "valor_reais": 29.52,
+            "origem": "Avenida Coronel Manoel Nunes, Jardim Tropical - Serra - ES",
+            "destino": "Av. Antônio Azevedo Rodrigues, Nova Zelândia - Serra - ES"
+          },
+          {
+            "horario": "09:34",
+            "plataforma": "Uber",
+            "valor_reais": 17.13,
+            "origem": "av. antônio azevedo rodrigues, Região de Laranjeiras - Serra - ES",
+            "destino": "Av. Terceira Avenida, São Diogo 1 - Serra - ES"
+          },
+          {
+            "horario": "10:28",
+            "plataforma": "Uber",
+            "valor_reais": 17.59,
+            "origem": "Bairro Polo Industrial Av. Brg. Eduardo Gomes, Parque Industrial - Serra - ES",
+            "destino": "Rua Orlando Caliman, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:52",
+            "plataforma": "Uber",
+            "valor_reais": 27.15,
+            "origem": "Rua Sesostres Andrade, Jardim Camburi - Vitória - ES",
+            "destino": "Av. Talma Rodrigues Ribeiro, Centro Industrial do Município - Serra - ES"
+          },
+          {
+            "horario": "11:19",
+            "plataforma": "Uber",
+            "valor_reais": 20.83,
+            "origem": "R. Marataizes, Valparaíso - Serra - ES",
+            "destino": "Rua Sete de Setembro, Centro - Vila Velha - ES"
+          },
+          {
+            "horario": "12:04",
+            "plataforma": "Uber",
+            "valor_reais": 41.31,
+            "origem": "Av. Henrique Moscoso, Centro de Vila Velha - Vila Velha - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "13:05",
+            "plataforma": "Uber",
+            "valor_reais": 17.39,
+            "origem": "Av. Henrique Moscoso, Centro de Vila Velha - Vila Velha - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "14:15",
+            "plataforma": "Uber",
+            "valor_reais": 5.85,
+            "origem": "Rua José Neves Cypreste, Jardim da Penha - Vitória - ES",
+            "destino": "R. Carlos Eduardo Monteiro de Lemos, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "14:33",
+            "plataforma": "Uber",
+            "valor_reais": 16.12,
+            "origem": "Rua Pedro Daniel, Barro Vermelho - Vitória - ES",
+            "destino": "Avenida José Rato, De Fatima - Vitória - ES"
+          },
+          {
+            "horario": "14:54",
+            "plataforma": "Uber",
+            "valor_reais": 11.77,
+            "origem": "R. O, Manoel Plaza - Serra - ES",
+            "destino": "Avenida Guarapari, Valparaíso - Serra - ES"
+          },
+          {
+            "horario": "15:13",
+            "plataforma": "Uber",
+            "valor_reais": 5.96,
+            "origem": "Av. Guarapari, Valparaiso - Serra - ES",
+            "destino": "Av. Central, Parque Res. Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:54",
+            "plataforma": "Uber",
+            "valor_reais": 24.06,
+            "origem": "Rua Quaresmeira, Boulevard Lagoa - Serra - ES",
+            "destino": "Av. Eldes Scherrer de Souza, Colina de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "16:48",
+            "plataforma": "Uber",
+            "valor_reais": 7.75,
+            "origem": "Avenida Civit, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Av. Eudes Scherrer Souza Morar, Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 15,
+        "faturamento": 296.88,
+        "tempo_s": 23.4,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "7:15",
+            "plataforma": "Uber",
+            "valor_reais": 33.38,
+            "origem": "Av. Primeira Avenida Laranjeiras Shopping, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rua Lavrador José Barbosa da Silva, Serra - ES"
+          },
+          {
+            "horario": "7:50",
+            "plataforma": "Uber",
+            "valor_reais": 15.56,
+            "origem": "Jacaraípe, Espírito Santo - Serra - ES",
+            "destino": "Av. Papua, Vitória - ES"
+          },
+          {
+            "horario": "8:52",
+            "plataforma": "Uber",
+            "valor_reais": 29.52,
+            "origem": "Avenida Coronel Manoel Nunes, Jardim Tropical - Serra - ES",
+            "destino": "Av. Antônio Azevedo Rodrigues, Nova Zelândia - Serra - ES"
+          },
+          {
+            "horario": "9:34",
+            "plataforma": "Uber",
+            "valor_reais": 17.13,
+            "origem": "av. antônio azevedo rodrigues, Região de Laranjeiras - Serra - ES",
+            "destino": "Av. Terceira Avenida, São Diogo 1 - Serra - ES"
+          },
+          {
+            "horario": "10:28",
+            "plataforma": "Uber",
+            "valor_reais": 17.59,
+            "origem": "Bairro Polo Industrial Av. Brg. Eduardo Gomes, Parque Industrial - Serra - ES",
+            "destino": "Rua Orlando Caliman, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:52",
+            "plataforma": "Uber",
+            "valor_reais": 27.15,
+            "origem": "Rua Sesostres Andrade, Jardim Camburi - Vitória - ES",
+            "destino": "Av. Talma Rodrigues Ribeiro, Centro Industrial do Município - Serra - ES"
+          },
+          {
+            "horario": "11:19",
+            "plataforma": "Uber",
+            "valor_reais": 20.83,
+            "origem": "R. Marataizes, Valparaíso - Serra - ES",
+            "destino": "Rua Sete de Setembro, Centro - Vila Velha - ES"
+          },
+          {
+            "horario": "12:04",
+            "plataforma": "Uber",
+            "valor_reais": 41.31,
+            "origem": "Av. Henrique Moscoso, Centro de Vila Velha - Vila Velha - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "13:05",
+            "plataforma": "Uber",
+            "valor_reais": 17.39,
+            "origem": "Rua José Neves Cypreste, Jardim da Penha - Vitória - ES",
+            "destino": "R. Carlos Eduardo Monteiro de Lemos, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "14:15",
+            "plataforma": "Uber",
+            "valor_reais": 5.85,
+            "origem": "Rua Pedro Daniel, Barro Vermelho - Vitória - ES",
+            "destino": "Avenida José Rato, De Fatima - Vitória - ES"
+          },
+          {
+            "horario": "14:33",
+            "plataforma": "Uber",
+            "valor_reais": 16.12,
+            "origem": "R. O, Manoel Plaza - Serra - ES",
+            "destino": "Avenida Guarapari, Valparaíso - Serra - ES"
+          },
+          {
+            "horario": "14:54",
+            "plataforma": "Uber",
+            "valor_reais": 11.77,
+            "origem": "Av. Guarapari, Valparaiso - Serra - ES",
+            "destino": "Av. Central, Parque Res. Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:13",
+            "plataforma": "Uber",
+            "valor_reais": 5.96,
+            "origem": "Rua Quaresmeira, Boulevard Lagoa - Serra - ES",
+            "destino": "Av. Eldes Scherrer de Souza, Colina de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:54",
+            "plataforma": "Uber",
+            "valor_reais": 24.06,
+            "origem": "Avenida Civit, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Av. Eudes Scherrer Souza Morar, Serra - ES"
+          },
+          {
+            "horario": "16:48",
+            "plataforma": "Uber",
+            "valor_reais": 7.75,
+            "origem": "Av. Braúna, Bairro Colina de Laranjeiras - Serra - ES",
+            "destino": "r. das rosas, Feu Rosa - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "21826edf4de944009092cc29adcfe6f6.mp4": {
+    "tamanho_mb": 15.81,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 9.39,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 13,
+        "faturamento": 293.42,
+        "tempo_s": 19.2,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "07:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "07:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "08:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "10:48",
+            "plataforma": "Uber",
+            "valor_reais": 14.5,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 287.49,
+        "tempo_s": 17.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 296.88,
+        "tempo_s": 14.3,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "276e94730c764424abd89b3a229133cc.mp4": {
+    "tamanho_mb": 9.37,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 65.14,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 13,
+        "faturamento": 313.43,
+        "tempo_s": 30.5,
+        "historico_completo": false,
+        "necessita_mais_frames": true,
+        "corridas_detalhe": [
+          {
+            "horario": "21:21",
+            "plataforma": "Uber",
+            "valor_reais": 32.36,
+            "origem": "Avenida Eudes Scherrer de Souza, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rua Projetada 1, Serra Dourada I - Serra - ES"
+          },
+          {
+            "horario": "20:57",
+            "plataforma": "Uber",
+            "valor_reais": 23.89,
+            "origem": "Rua João Lopes, Taquaras II - Serra - ES",
+            "destino": "Serra - ES"
+          },
+          {
+            "horario": "19:11",
+            "plataforma": "Uber",
+            "valor_reais": 29.96,
+            "origem": "R. Natalino Ribeiro, Castelândia - Serra - ES",
+            "destino": "Rua Castelo, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "18:12",
+            "plataforma": "Uber",
+            "valor_reais": 47.95,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "17:13",
+            "plataforma": "Uber",
+            "valor_reais": 31.49,
+            "origem": "R. Carlos Martins, Jardim Camburi - Vitória - ES",
+            "destino": "R. Carlos Martins, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "14:12",
+            "plataforma": "Uber",
+            "valor_reais": 23.56,
+            "origem": "Rua Pinho, Colina de Laranjeiras - Serra - ES",
+            "destino": "Av. Dante Michelini, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "11:55",
+            "plataforma": "Uber",
+            "valor_reais": 16.1,
+            "origem": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX), Vitória - ES",
+            "destino": "Rua Ludwik Macal, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 24.77,
+            "origem": "Rua Manoel Carlos Miranda, Carapina Grande - Serra - ES",
+            "destino": "Rua Natalina Daher Carneiro, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "11:12",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Professor Carlos Leonardo Kulnig, Maria Ortiz - Vitória - ES",
+            "destino": "Rua Professor Carlos Leonardo Kulnig, Maria Ortiz - Vitória - ES"
+          },
+          {
+            "horario": "10:28",
+            "plataforma": "Uber",
+            "valor_reais": 10.99,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "09:52",
+            "plataforma": "Uber",
+            "valor_reais": 21.55,
+            "origem": "Av. Central, Colina de Laranjeiras - Serra - ES",
+            "destino": "Rua Sesostres Andrade, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "09:10",
+            "plataforma": "Uber",
+            "valor_reais": 13.79,
+            "origem": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "R. Alcides Simão Helou, Civit II - Serra - ES"
+          },
+          {
+            "horario": "19:11",
+            "plataforma": "Uber",
+            "valor_reais": 36.89,
+            "origem": "R. Rio Anchieta, Hélio Ferraz - Serra - ES",
+            "destino": "R. Quatro, Maringá - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 13,
+        "faturamento": 315.63,
+        "tempo_s": 26.2,
+        "historico_completo": false,
+        "necessita_mais_frames": true,
+        "corridas_detalhe": [
+          {
+            "horario": "17:13",
+            "plataforma": "Uber",
+            "valor_reais": 31.49,
+            "origem": "R. Carlos Martins, Jardim Camburi - Vitória - ES",
+            "destino": "R. Carlos Martins, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "14:12",
+            "plataforma": "Uber",
+            "valor_reais": 23.56,
+            "origem": "Rua Pinho, Colina de Laranjeiras - Serra - ES",
+            "destino": "Av. Dante Michelini, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "11:55",
+            "plataforma": "Uber",
+            "valor_reais": 16.1,
+            "origem": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX), Vitória - ES",
+            "destino": "Rua Ludwik Macal, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 24.77,
+            "origem": "Rua Manoel Carlos Miranda, Carapina Grande - Serra - ES",
+            "destino": "Rua Natalina Daher Carneiro, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "11:12",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Professor Carlos Leonardo Kulnig, Maria Ortiz - Vitória - ES",
+            "destino": "Rua Professor Carlos Leonardo Kulnig, Maria Ortiz - Vitória - ES"
+          },
+          {
+            "horario": "10:28",
+            "plataforma": "Uber",
+            "valor_reais": 10.99,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "9:52",
+            "plataforma": "Uber",
+            "valor_reais": 21.55,
+            "origem": "Av. Central, Colina de Laranjeiras - Serra - ES",
+            "destino": "Rua Sesostres Andrade, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "9:10",
+            "plataforma": "Uber",
+            "valor_reais": 13.79,
+            "origem": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "R. Alcides Simão Helou, Civit II - Serra - ES"
+          },
+          {
+            "horario": "19:11",
+            "plataforma": "Uber",
+            "valor_reais": 29.96,
+            "origem": "R. Rio Anchieta, Hélio Ferraz - Serra - ES",
+            "destino": "R. Quatro, Maringá - Serra - ES"
+          },
+          {
+            "horario": "18:12",
+            "plataforma": "Uber",
+            "valor_reais": 47.95,
+            "origem": "R. Natalino Ribeiro, Castelândia - Serra - ES",
+            "destino": "Rua Castelo, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "21:21",
+            "plataforma": "Uber",
+            "valor_reais": 32.36,
+            "origem": "Avenida Eudes Scherrer de Souza, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rua Projetada 1, Serra Dourada I - Serra - ES"
+          },
+          {
+            "horario": "20:57",
+            "plataforma": "Uber",
+            "valor_reais": 23.89,
+            "origem": "Rua João Lopes, Taquaras II - Serra - ES",
+            "destino": "Serra - ES"
+          },
+          {
+            "horario": "17:30",
+            "plataforma": "Uber",
+            "valor_reais": 39.22,
+            "origem": "Av. Central, Colina de Laranjeiras - Serra - ES",
+            "destino": "Rua Sesostres Andrade, Jardim Camburi - Vitória - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 378.57,
+        "tempo_s": 18.8,
+        "historico_completo": false,
+        "necessita_mais_frames": true,
+        "corridas_detalhe": [
+          {
+            "horario": "21:21",
+            "plataforma": "Uber",
+            "valor_reais": 32.36,
+            "origem": "Avenida Eudes Scherrer de Souza, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rua Projetada 1, Serra Dourada I - Serra - ES"
+          },
+          {
+            "horario": "20:57",
+            "plataforma": "Uber",
+            "valor_reais": 23.89,
+            "origem": "Rua João Lopes, Taquaras II - Serra - ES",
+            "destino": "Serra - ES"
+          },
+          {
+            "horario": "19:11",
+            "plataforma": "Uber",
+            "valor_reais": 29.96,
+            "origem": "Rua Natalino Ribeiro, Castelândia - Serra - ES",
+            "destino": "Rua Castelo, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "18:12",
+            "plataforma": "Uber",
+            "valor_reais": 47.95,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "17:13",
+            "plataforma": "Uber",
+            "valor_reais": 31.49,
+            "origem": "R. Carlos Martins, Jardim Camburi - Vitória - ES",
+            "destino": "R. Carlos Martins, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "14:12",
+            "plataforma": "Uber",
+            "valor_reais": 23.56,
+            "origem": "Rua Pinho, Colina de Laranjeiras - Serra - ES",
+            "destino": "Av. Dante Michelini, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "11:55",
+            "plataforma": "Uber",
+            "valor_reais": 16.1,
+            "origem": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX), Vitória - ES",
+            "destino": "Rua Ludwik Macal, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 24.77,
+            "origem": "Rua Manoel Carlos Miranda, Carapina Grande - Serra - ES",
+            "destino": "Rua Natalina Daher Carneiro, Jardim da Penha - Vitória - ES"
+          },
+          {
+            "horario": "11:12",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Professor Carlos Leonardo Kulnig, Maria Ortiz - Vitória - ES",
+            "destino": "Rua Professor Carlos Leonardo Kulnig, Maria Ortiz - Vitória - ES"
+          },
+          {
+            "horario": "10:28",
+            "plataforma": "Uber",
+            "valor_reais": 10.99,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "09:52",
+            "plataforma": "Uber",
+            "valor_reais": 21.55,
+            "origem": "Av. Central, Colina de Laranjeiras - Serra - ES",
+            "destino": "Rua Sesostres Andrade, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "09:10",
+            "plataforma": "Uber",
+            "valor_reais": 13.79,
+            "origem": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "R. Alcides Simão Helou, Civit II - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "2b7eaa060ffd42f1b4dbe5009b747619.mp4": {
+    "tamanho_mb": 2.54,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 11.94,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 11,
+        "faturamento": 249.72,
+        "tempo_s": 12.0,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 16.5,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 11,
+        "faturamento": 260.85,
+        "tempo_s": 11.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 11,
+        "faturamento": 248.91,
+        "tempo_s": 9.7,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "358d6c7d412a4d58a490d094154157f2.mp4": {
+    "tamanho_mb": 0.49,
+    "consistencia_perfeita": true,
+    "variacao_faturamento_rs": 0.0,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 3,
+        "faturamento": 69.73,
+        "tempo_s": 6.6,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "18:36",
+            "plataforma": "99",
+            "valor_reais": 23.2,
+            "origem": "Rua Esméria Barros Deorce, Jardim Camburi, Vitória - ES",
+            "destino": "Avenida Santarém, Barcelona, Serra - ES"
+          },
+          {
+            "horario": "17:30",
+            "plataforma": "99",
+            "valor_reais": 24.83,
+            "origem": "Hematologia e Oncologia, Civit II, Serra - ES",
+            "destino": "Avenida Eng. Charles Bitran, Jardim Camburi, Vitória - ES"
+          },
+          {
+            "horario": "08:06",
+            "plataforma": "99",
+            "valor_reais": 21.7,
+            "origem": "Rua Gustavo Barroso, Guaraciaba, Serra - ES",
+            "destino": "Mercado Livre SES1- Campo Log II, RQGC+JX - Av. Principal 1, 852 - Civit I..."
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 3,
+        "faturamento": 69.73,
+        "tempo_s": 5.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "18:36",
+            "plataforma": "99",
+            "valor_reais": 23.2,
+            "origem": "Rua Esméria Barros Deorce, Jardim Camburi, Vitória - ES",
+            "destino": "Avenida Santarém, Barcelona, Serra - ES"
+          },
+          {
+            "horario": "17:30",
+            "plataforma": "99",
+            "valor_reais": 24.83,
+            "origem": "Hematologia e Oncologia, Civit II, Serra - ES",
+            "destino": "Avenida Eng. Charles Bitran, Jardim Camburi, Vitória - ES"
+          },
+          {
+            "horario": "08:06",
+            "plataforma": "99",
+            "valor_reais": 21.7,
+            "origem": "Rua Gustavo Barroso, Guaraciaba, Serra - ES",
+            "destino": "Mercado Livre SES1- Campo Log II, RQGC+JX - Av. Principal 1, 852 - Civit I..."
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 3,
+        "faturamento": 69.73,
+        "tempo_s": 5.7,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "18:36",
+            "plataforma": "99",
+            "valor_reais": 23.2,
+            "origem": "Rua Esméria Barros Deorce, Jardim Camburi, Vitória - ES",
+            "destino": "Avenida Santarém, Barcelona, Serra - ES"
+          },
+          {
+            "horario": "17:30",
+            "plataforma": "99",
+            "valor_reais": 24.83,
+            "origem": "Hematologia e Oncologia, Civit II, Serra - ES",
+            "destino": "Avenida Eng. Charles Bitran, Jardim Camburi, Vitória - ES"
+          },
+          {
+            "horario": "08:06",
+            "plataforma": "99",
+            "valor_reais": 21.7,
+            "origem": "Rua Gustavo Barroso, Guaraciaba, Serra - ES",
+            "destino": "Mercado Livre SES1- Campo Log II, RQGC+JX - Av. Principal 1, 852 - Civit I..."
+          }
+        ]
+      }
+    ]
+  },
+  "5742f1329bd74f4492df5b358960e0c1.mp4": {
+    "tamanho_mb": 3.69,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 12.42,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 14,
+        "faturamento": 286.08,
+        "tempo_s": 12.6,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Rua São Paulo, Bairro da laranjeiras - Serra - ES",
+            "destino": null
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": null
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX) Aeroporto - Vitória - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 13,
+        "faturamento": 298.5,
+        "tempo_s": 9.6,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX), Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": null
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": null,
+            "plataforma": "Uber",
+            "valor_reais": 56.76,
+            "origem": "Rua São Paulo, Bairro da laranjeiras - Serra - ES",
+            "destino": null
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 293.77,
+        "tempo_s": 9.2,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 7.37,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Rua São Paulo, Bairro da laranjeiras - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "57b2b3dbc97f44b2ad32584a3a658ad9.mp4": {
+    "tamanho_mb": 2.29,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 21.09,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 11,
+        "faturamento": 315.72,
+        "tempo_s": 9.8,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 298.39,
+        "tempo_s": 13.6,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "17:20",
+            "plataforma": "Uber",
+            "valor_reais": 37.54,
+            "origem": null,
+            "destino": null
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 11,
+        "faturamento": 294.63,
+        "tempo_s": 8.9,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "6737aef7ec38428280ba9d20c196cf8f.mp4": {
+    "tamanho_mb": 2.72,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 16.28,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 13,
+        "faturamento": 313.16,
+        "tempo_s": 11.8,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "07:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "07:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "08:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 13,
+        "faturamento": 296.88,
+        "tempo_s": 14.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "07:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III",
+            "destino": "Rua Garça, Serra Dourada III"
+          },
+          {
+            "horario": "07:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão"
+          },
+          {
+            "horario": "08:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro",
+            "destino": "Av. Dante Michelini, Praia de Camburi"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia",
+            "destino": "R. Recife, Jardim Limoeiro"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras",
+            "destino": "Av. Atlântica, Morada de Laranjeiras"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Jacunem, Mata da Serra",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina",
+            "destino": "R. 7 de Setembro, Jardim Tropical"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia",
+            "destino": "Rua São Paulo, Bairro da laranjeiras"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto)"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina",
+            "destino": "R. Maranta, Serra Dourada II"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 13,
+        "faturamento": 296.88,
+        "tempo_s": 10.7,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "07:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "07:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "08:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "7273cf788e6f4507af9e87123ed85e16.mp4": {
+    "tamanho_mb": 3.03,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 28.05,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 249.77,
+        "tempo_s": 10.3,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 9,
+        "faturamento": 221.72,
+        "tempo_s": 11.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 249.44,
+        "tempo_s": 7.7,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "8576ecc7c2144a17a9fb05ffb31fabeb.mp4": {
+    "tamanho_mb": 4.64,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 1.49,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 9,
+        "faturamento": 237.93,
+        "tempo_s": 8.2,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal I, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 9,
+        "faturamento": 236.44,
+        "tempo_s": 17.0,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX), Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal I, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 236.9,
+        "tempo_s": 15.8,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX), Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras, Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal I, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "7:25",
+            "plataforma": "Uber",
+            "valor_reais": 35.56,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "8d34a47c9dfd41659065f323f0646772.mp4": {
+    "tamanho_mb": 2.16,
+    "consistencia_perfeita": true,
+    "variacao_faturamento_rs": 0.0,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 3,
+        "faturamento": 57.39,
+        "tempo_s": 9.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "12/08/2026 15:53",
+            "plataforma": "99",
+            "valor_reais": 21.49,
+            "origem": "Rua Magno Malacarne, Solon Borges, Vitória - ES",
+            "destino": "Rua Castelo, Jardim Limoeiro, Serra - ES"
+          },
+          {
+            "horario": "12/08/2026 12:22",
+            "plataforma": "99",
+            "valor_reais": 22.58,
+            "origem": "Avenida João Palácio, Eurico Salles, Serra - ES",
+            "destino": "Avenida Fernando Ferrari, Mata da Praia, Vitória - ES"
+          },
+          {
+            "horario": "12/08/2026 09:44",
+            "plataforma": "99",
+            "valor_reais": 13.32,
+            "origem": "Rua Doutor Cyro Lopes Pereira, Jardim da Penha, Vitória - ES",
+            "destino": "SETPES – Sindicato das Empresas de Transportes de Passageiros do Estado ..."
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 3,
+        "faturamento": 57.39,
+        "tempo_s": 6.5,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "12/08/2026 15:53",
+            "plataforma": "99",
+            "valor_reais": 21.49,
+            "origem": "Rua Magno Malacarne, Solon Borges, Vitória - ES",
+            "destino": "Rua Castelo, Jardim Limoeiro, Serra - ES"
+          },
+          {
+            "horario": "12/08/2026 12:22",
+            "plataforma": "99",
+            "valor_reais": 22.58,
+            "origem": "Avenida João Palácio, Eurico Salles, Serra - ES",
+            "destino": "Avenida Fernando Ferrari, Mata da Praia, Vitória - ES"
+          },
+          {
+            "horario": "12/08/2026 09:44",
+            "plataforma": "99",
+            "valor_reais": 13.32,
+            "origem": "Rua Doutor Cyro Lopes Pereira, Jardim da Penha, Vitória - ES",
+            "destino": "SETPES – Sindicato das Empresas de Transportes de Passageiros do Estado ..."
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 3,
+        "faturamento": 57.39,
+        "tempo_s": 7.8,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "12/08/2026 15:53",
+            "plataforma": "99",
+            "valor_reais": 21.49,
+            "origem": "Rua Magno Malacarne, Solon Borges, Vitória - ES",
+            "destino": "Rua Castelo, Jardim Limoeiro, Serra - ES"
+          },
+          {
+            "horario": "12/08/2026 12:22",
+            "plataforma": "99",
+            "valor_reais": 22.58,
+            "origem": "Avenida João Palácio, Eurico Salles, Serra - ES",
+            "destino": "Avenida Fernando Ferrari, Mata da Praia, Vitória - ES"
+          },
+          {
+            "horario": "12/08/2026 09:44",
+            "plataforma": "99",
+            "valor_reais": 13.32,
+            "origem": "Rua Doutor Cyro Lopes Pereira, Jardim da Penha, Vitória - ES",
+            "destino": "SETPES – Sindicato das Empresas de Transportes de Passageiros do Estado ..."
+          }
+        ]
+      }
+    ]
+  },
+  "a2ac2e91a24e435eb0c38e4ecc067271.mp4": {
+    "tamanho_mb": 2.66,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 8.46,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 249.77,
+        "tempo_s": 7.8,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "07:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "07:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "08:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Serra - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 38.67,
+            "origem": "R. Maranta, Serra Dourada II - Serra - ES",
+            "destino": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 249.19,
+        "tempo_s": 7.8,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto) - Vitória - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "8:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Av. Rio Branco, Santa Lúcia - Vitória - ES",
+            "destino": "R. Recife, Jardim Limoeiro - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "7:09",
+            "plataforma": "Uber",
+            "valor_reais": 38.09,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro - Se - ES",
+            "destino": "Av. Dante Michelini, Praia de Camburi - Vitória - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 9,
+        "faturamento": 257.65,
+        "tempo_s": 9.6,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "07:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão"
+          },
+          {
+            "horario": "07:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III",
+            "destino": "Rua Garça, Serra Dourada III"
+          },
+          {
+            "horario": "08:22",
+            "plataforma": "Uber",
+            "valor_reais": 26.95,
+            "origem": "Villagio Limoeiro Rod. Norte Sul, Jardim Limoeiro",
+            "destino": "Av. Dante Michelini, Praia de Camburi"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras",
+            "destino": "Av. Atlântica, Morada de Laranjeiras"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina",
+            "destino": "R. 7 de Setembro, Jardim Tropical"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto)"
+          },
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina",
+            "destino": "R. Maranta, Serra Dourada II"
+          }
+        ]
+      }
+    ]
+  },
+  "cea5c64fed424eb597b30dd480e93cf1.mp4": {
+    "tamanho_mb": 2.25,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 3.46,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 293.42,
+        "tempo_s": 9.4,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 296.88,
+        "tempo_s": 10.2,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "R. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 12,
+        "faturamento": 296.88,
+        "tempo_s": 9.4,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "R. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "Rua Santa Lúcia, Jardim Atlantico - Serra - ES",
+            "destino": "R. Coelho Neto Loja 11, Parque Residencial Laranjeiras Serra - ES"
+          },
+          {
+            "horario": "13:53",
+            "plataforma": "Uber",
+            "valor_reais": 33.36,
+            "origem": "Av. principal 1, Nova Zelândia - Serra - ES",
+            "destino": "Rua São Paulo, Bairro da laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:56",
+            "plataforma": "Uber",
+            "valor_reais": 22.5,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Jacunem, Mata da Serra - Serra - ES",
+            "destino": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "10:46",
+            "plataforma": "Uber",
+            "valor_reais": 11.84,
+            "origem": "Av. Paulo Pereira Gomes, Morada de Laranjeiras - Serra - ES",
+            "destino": "Av. Atlântica, Morada de Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:04",
+            "plataforma": "Uber",
+            "valor_reais": 22.41,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "d06d39920ce348ad91602c00df7a6f70.mp4": {
+    "tamanho_mb": 2.22,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 13.55,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 9,
+        "faturamento": 218.0,
+        "tempo_s": 9.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 34.44,
+            "origem": "Av. Dante Michelini, Praia de Camburi - Vitória - ES",
+            "destino": "Avenida Brasília, Serra Dourada II - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 9,
+        "faturamento": 204.62,
+        "tempo_s": 6.6,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 21.06,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 9,
+        "faturamento": 218.17,
+        "tempo_s": 8.4,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "16:51",
+            "plataforma": "Uber",
+            "valor_reais": 30.78,
+            "origem": "Rod. BR 101 Norte Km 267, Carapina - Serra - ES",
+            "destino": "R. Maranta, Serra Dourada II - Serra - ES"
+          },
+          {
+            "horario": "15:37",
+            "plataforma": "Uber",
+            "valor_reais": 22.96,
+            "origem": "Rua Guriri, Valparaíso - Serra - ES",
+            "destino": "Main Terminal, Aeroporto Eurico de Aguiar Salles (VIX Aeroporto - Vitória - ES)"
+          },
+          {
+            "horario": "15:20",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": null,
+            "destino": null
+          },
+          {
+            "horario": "14:31",
+            "plataforma": "Uber",
+            "valor_reais": 21.82,
+            "origem": "r. castro alves, Parque Residencial Laranjeiras - Serra - ES",
+            "destino": "Rod. Norte Sul, Parque Residencial Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "12:01",
+            "plataforma": "Uber",
+            "valor_reais": 17.99,
+            "origem": "Avenida Engenheiro Charles Bitran, Carapina - Vitória - ES",
+            "destino": "R. 7 de Setembro, Jardim Tropical - Serra - ES"
+          },
+          {
+            "horario": "11:30",
+            "plataforma": "Uber",
+            "valor_reais": 47.04,
+            "origem": "Avenida Nossa Senhora dos Navegantes, Enseada do Suá - Vitória - ES",
+            "destino": "Av. José Maria Vivacqua Santos, Jardim Camburi - Vitória - ES"
+          },
+          {
+            "horario": "7:42",
+            "plataforma": "Uber",
+            "valor_reais": 35.46,
+            "origem": "Avenida Brasília, Serra Dourada II - Serra - ES",
+            "destino": "Av. Brigadeiro Eduardo Gomes, Bairro Polo Industrial Tubarão - Serra - ES"
+          },
+          {
+            "horario": "7:33",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Rua Garça, Serra Dourada III - Serra - ES",
+            "destino": "Rua Garça, Serra Dourada III - Serra - ES"
+          },
+          {
+            "horario": "7:10",
+            "plataforma": "Uber",
+            "valor_reais": 34.61,
+            "origem": "Av. Dante Michelini, Praia de Camburi - Vitória - ES",
+            "destino": "Avenida Brasília, Serra Dourada II - Serra - ES"
+          }
+        ]
+      }
+    ]
+  },
+  "eb205f91c72f47b9b04410ced33e34d9.mp4": {
+    "tamanho_mb": 20.46,
+    "consistencia_perfeita": false,
+    "variacao_faturamento_rs": 7.97,
+    "rodadas": [
+      {
+        "rodada": 1,
+        "sucesso": true,
+        "qtd_corridas": 9,
+        "faturamento": 211.23,
+        "tempo_s": 10.3,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "19:05",
+            "plataforma": "Uber",
+            "valor_reais": 17.39,
+            "origem": "R. Buriti, Morada de Laranjeiras - Serra - ES",
+            "destino": "Avenida Região Nordeste, Barcelona - Serra - ES"
+          },
+          {
+            "horario": "18:25",
+            "plataforma": "Uber",
+            "valor_reais": 27.07,
+            "origem": "BR 101, Serra - ES",
+            "destino": "Morada de Laranjeiras - Vitória - ES"
+          },
+          {
+            "horario": "13:11",
+            "plataforma": "Uber",
+            "valor_reais": 20.48,
+            "origem": "Av. Armando Duarte Rabelo, Jardim Camburi - Vitória - ES",
+            "destino": "Av. Américo Buaiz, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "11:47",
+            "plataforma": "Uber",
+            "valor_reais": 33.51,
+            "origem": "R. Rio Branco, Praia da Costa - Vila Velha - ES",
+            "destino": "Av. Norte Sul, São Geraldo - Serra - ES"
+          },
+          {
+            "horario": "10:52",
+            "plataforma": "Uber",
+            "valor_reais": 50.16,
+            "origem": null,
+            "destino": "Av. Central, Parque Res. Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:32",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "Av. Central, Parque Res. Laranjeiras - Serra - ES",
+            "destino": "Rua Piratininga, Praia da Costa - Vila Velha - ES"
+          },
+          {
+            "horario": "10:14",
+            "plataforma": "Uber",
+            "valor_reais": 14.13,
+            "origem": "Rua D Sete, Conjunto Carapina I - Vitória - ES",
+            "destino": "R. Santos Dumont, Valparaiso - Serra - ES"
+          },
+          {
+            "horario": "9:40",
+            "plataforma": "Uber",
+            "valor_reais": 18.48,
+            "origem": "R. Herman Stein, Taquara I - Serra - ES",
+            "destino": "Rod. Governador Mario Covas, Boa Vista II - Serra - ES"
+          },
+          {
+            "horario": "8:13",
+            "plataforma": "Uber",
+            "valor_reais": 12.79,
+            "origem": "Rua Ana Nery, Novo Porto Canoa - Serra - ES",
+            "destino": "Av. Civit, Maringá - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 2,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 218.42,
+        "tempo_s": 16.1,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "19:05",
+            "plataforma": "Uber",
+            "valor_reais": 17.39,
+            "origem": "R. Buriti, Morada de Laranjeiras - Serra - ES",
+            "destino": "Avenida Região Nordeste, Barcelona - Serra - ES"
+          },
+          {
+            "horario": "18:25",
+            "plataforma": "Uber",
+            "valor_reais": 27.07,
+            "origem": "BR 101, Serra - ES",
+            "destino": "Morada de Laranjeiras - Vitória - ES"
+          },
+          {
+            "horario": "13:11",
+            "plataforma": "Uber",
+            "valor_reais": 20.48,
+            "origem": "Av. Armando Duarte Rabelo, Jardim Camburi - Vitória - ES",
+            "destino": "Av. Américo Buaiz, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "11:47",
+            "plataforma": "Uber",
+            "valor_reais": 33.51,
+            "origem": "R. Rio Branco, Praia da Costa - Vila Velha - ES",
+            "destino": "Av. Norte Sul, São Geraldo - Serra - ES"
+          },
+          {
+            "horario": "10:52",
+            "plataforma": "Uber",
+            "valor_reais": 50.16,
+            "origem": null,
+            "destino": "Av. Central, Parque Res. Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:32",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "Av. Central, Parque Res. Laranjeiras - Serra - ES",
+            "destino": "Rua Piratininga, Praia da Costa - Vila Velha - ES"
+          },
+          {
+            "horario": "10:14",
+            "plataforma": "Uber",
+            "valor_reais": 14.13,
+            "origem": "Rua D Sete, Conjunto Carapina I - Vitória - ES",
+            "destino": "R. Santos Dumont, Valparaiso - Serra - ES"
+          },
+          {
+            "horario": "9:40",
+            "plataforma": "Uber",
+            "valor_reais": 18.48,
+            "origem": "R. Herman Stein, Taquara I - Serra - ES",
+            "destino": "Rod. Governador Mario Covas, Boa Vista II - Serra - ES"
+          },
+          {
+            "horario": "8:13",
+            "plataforma": "Uber",
+            "valor_reais": 12.79,
+            "origem": "Rua Ana Nery, Novo Porto Canoa - Serra - ES",
+            "destino": "Av. Civit, Maringá - Serra - ES"
+          },
+          {
+            "horario": "19:17",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Avenida Região Sudeste, Barcelona - Serra - ES",
+            "destino": "Avenida Região Sudeste, Barcelona - Serra - ES"
+          }
+        ]
+      },
+      {
+        "rodada": 3,
+        "sucesso": true,
+        "qtd_corridas": 10,
+        "faturamento": 210.45,
+        "tempo_s": 23.3,
+        "historico_completo": true,
+        "necessita_mais_frames": false,
+        "corridas_detalhe": [
+          {
+            "horario": "19:05",
+            "plataforma": "Uber",
+            "valor_reais": 17.39,
+            "origem": "R. Buriti, Morada de Laranjeiras - Serra - ES",
+            "destino": "Avenida Região Nordeste, Barcelona - Serra - ES"
+          },
+          {
+            "horario": "18:25",
+            "plataforma": "Uber",
+            "valor_reais": 27.07,
+            "origem": "BR 101, Serra - ES",
+            "destino": "Morada de Laranjeiras - Vitória - ES"
+          },
+          {
+            "horario": "13:11",
+            "plataforma": "Uber",
+            "valor_reais": 20.48,
+            "origem": "Av. Armando Duarte Rabelo, Jardim Camburi - Vitória - ES",
+            "destino": "Av. Américo Buaiz, Enseada do Suá - Vitória - ES"
+          },
+          {
+            "horario": "11:47",
+            "plataforma": "Uber",
+            "valor_reais": 33.51,
+            "origem": "R. Rio Branco, Praia da Costa - Vila Velha - ES",
+            "destino": "Av. Norte Sul, São Geraldo - Serra - ES"
+          },
+          {
+            "horario": "10:52",
+            "plataforma": "Uber",
+            "valor_reais": 50.16,
+            "origem": "Av. Central, Parque Res. Laranjeiras - Serra - ES",
+            "destino": "Rua Piratininga, Praia da Costa - Vila Velha - ES"
+          },
+          {
+            "horario": "10:32",
+            "plataforma": "Uber",
+            "valor_reais": 7.51,
+            "origem": "centro empresarial da serra, Região de Laranjeiras - Serra - ES",
+            "destino": "Av. Eldes Scherrer Souza, Parque Res. Laranjeiras - Serra - ES"
+          },
+          {
+            "horario": "10:14",
+            "plataforma": "Uber",
+            "valor_reais": 14.13,
+            "origem": "Rua D Sete, Conjunto Carapina I - Vitória - ES",
+            "destino": "R. Santos Dumont, Valparaiso - Serra - ES"
+          },
+          {
+            "horario": "9:40",
+            "plataforma": "Uber",
+            "valor_reais": 18.48,
+            "origem": "R. Herman Stein, Taquara I - Serra - ES",
+            "destino": "Rod. Governador Mario Covas, Boa Vista II - Serra - ES"
+          },
+          {
+            "horario": "8:13",
+            "plataforma": "Uber",
+            "valor_reais": 12.79,
+            "origem": "Rua Ana Nery, Novo Porto Canoa - Serra - ES",
+            "destino": "Av. Civit, Maringá - Serra - ES"
+          },
+          {
+            "horario": "19:17",
+            "plataforma": "Uber",
+            "valor_reais": 0.0,
+            "origem": "Avenida Região Sudeste, Barcelona - Serra - ES",
+            "destino": "Avenida Região Sudeste, Barcelona - Serra - ES"
+          }
+        ]
+      }
+    ]
+  }
+}

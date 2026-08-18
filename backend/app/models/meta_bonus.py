@@ -9,7 +9,9 @@ class MetaBonusBase(BaseModel):
     referencia: str = "GERAL"
     faixa_minima: Optional[float] = None
     faixa_maxima: Optional[float] = None
+    meta_alvo: Optional[float] = None
     bonus: Optional[float] = None
+    descricao: Optional[str] = None
     hora_inicio: Optional[str] = None
     hora_fim: Optional[str] = None
 

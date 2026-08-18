@@ -231,7 +231,10 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     if (savedToken != null && savedId != null && savedId != 'null') {
       ApiService.init(savedUrl, savedToken, savedId, savedNome);
       try {
-        final j = await _fetchJornadaAberta();
+        var j = await _fetchJornadaAberta();
+        if (j == null) {
+          j = await _fetchJornadaPendenteFechamento();
+        }
         setState(() {
           _jornadaAberta = j;
           if (j != null) {
@@ -240,6 +243,9 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
               _currentScreen = 'pausa';
             } else if (status == 'EM_MANUTENCAO') {
               _currentScreen = 'manutencao';
+            } else if (status == 'PRE_FECHAMENTO') {
+              GpsService.stopTracking();
+              _currentScreen = 'fechamento_wizard';
             } else {
               if (_currentScreen == 'splash' || _currentScreen == 'login' || _currentScreen == 'trilho') {
                 _currentScreen = 'dashboard';
@@ -294,6 +300,22 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     return null;
   }
 
+  Future<Map<String, dynamic>?> _fetchJornadaPendenteFechamento() async {
+    try {
+      final res = await http.get(
+        Uri.parse('${ApiService.baseUrl}/jornadas/pendente-fechamento'),
+        headers: ApiService.headers,
+      );
+      if (res.statusCode == 200) {
+        final body = json.decode(res.body);
+        return body;
+      }
+    } catch (e) {
+      print('[main] Erro ao buscar jornada pendente de fechamento: $e');
+    }
+    return null;
+  }
+
   void _onLoginSuccess(String t, String id, String nome, String pin) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', t);
@@ -302,7 +324,10 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     await prefs.setString('motorista_pin', pin);
     ApiService.init(ApiService.baseUrl, t, id, nome);
 
-    final j = await _fetchJornadaAberta();
+    var j = await _fetchJornadaAberta();
+    if (j == null) {
+      j = await _fetchJornadaPendenteFechamento();
+    }
     setState(() {
       _jornadaAberta = j;
       if (j != null) {
@@ -311,6 +336,9 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
           _currentScreen = 'pausa';
         } else if (status == 'EM_MANUTENCAO') {
           _currentScreen = 'manutencao';
+        } else if (status == 'PRE_FECHAMENTO') {
+          GpsService.stopTracking();
+          _currentScreen = 'fechamento_wizard';
         } else {
           _currentScreen = 'dashboard';
           GpsService.startTracking(j['_id'] ?? j['id']);

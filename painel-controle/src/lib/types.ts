@@ -177,11 +177,12 @@ export interface ComprovanteProcessado {
 }
 
 export interface SegmentoRota {
-  status?: 'nao_identificado' | 'produtivo' | 'deslocamento' | 'improdutivo_contra_base' | 'improdutivo_a_favor_base';
+  status?: 'nao_identificado' | 'produtivo' | 'deslocamento' | 'improdutivo_contra_base' | 'improdutivo_a_favor_base' | 'extraordinario';
   rotulo?: string;
   cor?: string;
   is_produtivo?: boolean;
   coords: [number, number][];
+  originalIndex?: number;
 }
 
 export interface ScoreAuditoria {
@@ -190,6 +191,31 @@ export interface ScoreAuditoria {
   motivos_risco: string[];
   razao_km_morta_pct: number;
   limite_km_morta_pct: number;
+}
+
+export interface CorridaParticular {
+  id?: string;
+  status?: string;
+  tipo_corrida?: string;
+  data_inicio?: string;
+  data_fim?: string;
+  km_inicio?: number;
+  km_fim?: number;
+  km_rodados?: number;
+  duracao_segundos?: number;
+  localizacao_inicio?: { lat?: number; lon?: number; coordinates?: [number, number] };
+  localizacao_fim?: { lat?: number; lon?: number; coordinates?: [number, number] };
+  valor_calculado?: number;
+  justificativa?: string;
+}
+
+export interface ResumoTrajetosKm {
+  produtivo?: number;
+  deslocamento?: number;
+  improdutivo_a_favor_base?: number;
+  improdutivo_contra_base?: number;
+  nao_identificado?: number;
+  extraordinario?: number;
 }
 
 export interface Jornada {
@@ -248,6 +274,9 @@ export interface Jornada {
   telemetria_ultima_atualizacao?: string | null;
   rota_polyline?: string;
   segmentos_rota?: SegmentoRota[];
+  corridas_particulares?: CorridaParticular[];
+  resumo_trajetos_km?: ResumoTrajetosKm;
+  trajetos_classificados_em?: string;
 }
 
 // ── Manutenção ────────────────────────────────────────────────────────────────

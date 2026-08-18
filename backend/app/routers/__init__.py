@@ -10,6 +10,8 @@ from .uploads import router as uploads
 from .coleta import router as coleta
 from .precos_particulares import router as precos_particulares
 
+from .metricas import router as metricas
+
 __all__ = [
     "auth",
     "users",
@@ -22,4 +24,5 @@ __all__ = [
     "uploads",
     "coleta",
     "precos_particulares",
+    "metricas",
 ]

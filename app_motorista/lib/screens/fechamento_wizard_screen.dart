@@ -426,16 +426,13 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
       case 1:
         return _buildPlataformaGuiada(
           title: 'Prestação de Contas — Uber',
-          subtitle: 'Minimize o app para tirar o print do extrato e gravar o vídeo do histórico Uber. A IA extrairá os faturamentos automaticamente.',
+          subtitle: 'Preencha o resumo mostrado na tela inicial do app, ou deixe zero se não rodou nesta plataforma hoje.',
           platformColor: Colors.black,
           textColor: Colors.white,
           faturamentoIa: _faturamentoLocal?['uber'] ?? widget.jornada['faturamento']?['uber'] ?? 0.0,
           corridasIa: widget.jornada['faturamento']?['corridas_uber'] ?? 0,
-          onNaoRodei: () {
-            setState(() {
-              _currentStep = 2;
-            });
-          },
+          faturamentoCtrl: _uberValorCtrl,
+          corridasCtrl: _uberCorridasCtrl,
           onNext: () {
             setState(() {
               _currentStep = 2;
@@ -445,16 +442,13 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
       case 2:
         return _buildPlataformaGuiada(
           title: 'Prestação de Contas — 99',
-          subtitle: 'Minimize o app para tirar o print do extrato e gravar o vídeo do histórico 99. A IA extrairá os faturamentos automaticamente.',
+          subtitle: 'Preencha o resumo mostrado na tela inicial do app, ou deixe zero se não rodou nesta plataforma hoje.',
           platformColor: const Color(0xFFFFCC00),
           textColor: Colors.black,
           faturamentoIa: _faturamentoLocal?['noventa_nove'] ?? widget.jornada['faturamento']?['noventa_nove'] ?? 0.0,
           corridasIa: widget.jornada['faturamento']?['corridas_99'] ?? 0,
-          onNaoRodei: () {
-            setState(() {
-              _currentStep = 3;
-            });
-          },
+          faturamentoCtrl: _99ValorCtrl,
+          corridasCtrl: _99CorridasCtrl,
           onNext: () {
             setState(() {
               _currentStep = 3;
@@ -582,12 +576,15 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
     Color textColor = Colors.white,
     required dynamic faturamentoIa,
     required dynamic corridasIa,
-    required VoidCallback onNaoRodei,
+    required TextEditingController faturamentoCtrl,
+    required TextEditingController corridasCtrl,
     required VoidCallback onNext,
     VoidCallback? onBack,
   }) {
     final double fatVal = (faturamentoIa is num) ? faturamentoIa.toDouble() : 0.0;
     final int corrVal = (corridasIa is num) ? corridasIa.toInt() : 0;
+    
+    final bool isZero = (double.tryParse(faturamentoCtrl.text.replaceAll(',', '.')) ?? 0) == 0 && (int.tryParse(corridasCtrl.text) ?? 0) == 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -615,7 +612,215 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
         ),
         const SizedBox(height: 24),
 
-        // CARD RESULTADO DA IA
+        // 1. DECLARAÇÃO DO MOTORISTA
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('1. DECLARAÇÃO DO MOTORISTA', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: faturamentoCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Faturamento (R\$)',
+                        labelStyle: TextStyle(color: Colors.grey),
+                        border: OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                      ),
+                      onChanged: (v) => setState((){}),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: corridasCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Corridas',
+                        labelStyle: TextStyle(color: Colors.grey),
+                        border: OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                      ),
+                      onChanged: (v) => setState((){}),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text('Deixe zero caso não tenha rodado nesta plataforma.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 2. VÍDEO COMPROBATÓRIO
+        if (!isZero) ...[
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('2. VÍDEO COMPROBATÓRIO (IA)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Grave o extrato rolando a tela. A IA lerá o vídeo para confirmar a sua declaração.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                
+                if (_recordedVideoPath != null && _recordedVideoPath!.isNotEmpty) ...[
+                  Row(
+                    children: const [
+                      Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Vídeo Gravado!',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () async {
+                            final currentPlat = _currentStep == 1 ? 'UBER' : (_currentStep == 2 ? '99' : null);
+                            final fatA = double.tryParse(faturamentoCtrl.text.replaceAll(',', '.')) ?? 0.0;
+                            final corrA = int.tryParse(corridasCtrl.text) ?? 0;
+
+                            final res = await Navigator.push<Map<String, dynamic>>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AiTerminalConsoleScreen(
+                                  videoPath: _recordedVideoPath!,
+                                  plataforma: currentPlat,
+                                  faturamentoAncora: fatA,
+                                  corridasAncora: corrA,
+                                ),
+                              ),
+                            );
+                            if (mounted && res != null) {
+                              const channel = MethodChannel('com.srclauss.appjornada/overlay');
+                              try {
+                                await channel.invokeMethod('clearLastRecordedVideo');
+                              } catch (_) {}
+                              setState(() {
+                                _recordedVideoPath = null;
+                                _faturamentoLocal = res['faturamento'] ?? res;
+                              });
+                              await _rodarAuditoria();
+                            }
+                          },
+                          icon: const Icon(Icons.send_rounded, size: 18),
+                          label: const Text('ENVIAR PARA IA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.amber,
+                            side: const BorderSide(color: Colors.amber),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () async {
+                            const channel = MethodChannel('com.srclauss.appjornada/overlay');
+                            await channel.invokeMethod('clearLastRecordedVideo');
+                            setState(() {
+                              _recordedVideoPath = null;
+                              _terminalLogs.clear();
+                            });
+                            try {
+                              final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
+                              if (ok == true) {
+                                setState(() => _isRecording = true);
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('REFAZER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isRecording ? Colors.redAccent : const Color(0xFF38BDF8),
+                        foregroundColor: _isRecording ? Colors.white : Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: () async {
+                        const channel = MethodChannel('com.srclauss.appjornada/overlay');
+                        if (_isRecording) {
+                          try {
+                            final String? videoPath = await channel.invokeMethod<String>('stopNativeVideoRecorder');
+                            setState(() {
+                              _isRecording = false;
+                              _recordedVideoPath = videoPath;
+                            });
+                          } catch (e) {
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: $e')));
+                          }
+                        } else {
+                          try {
+                            final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
+                            if (ok == true) setState(() => _isRecording = true);
+                          } catch (e) {
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: $e')));
+                          }
+                        }
+                      },
+                      icon: Icon(_isRecording ? Icons.stop_circle_rounded : Icons.fiber_manual_record_rounded),
+                      label: Text(
+                        _isRecording ? 'PARAR GRAVAÇÃO DE TELA' : 'GRAVAR VÍDEO DA TELA AGORA',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 3. RESULTADO IA
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -623,334 +828,39 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: fatVal > 0 ? Colors.greenAccent : Colors.white12),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const Text('3. RESULTADO DA IA', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Faturamento Detectado por IA', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'R\$ ${fatVal.toStringAsFixed(2).replaceAll('.', ',')}',
-                    style: const TextStyle(color: Colors.greenAccent, fontSize: 26, fontWeight: FontWeight.bold),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Faturamento Detectado', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(
+                        'R\$ ${fatVal.toStringAsFixed(2).replaceAll('.', ',')}',
+                        style: const TextStyle(color: Colors.greenAccent, fontSize: 26, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text('Corridas Lidas', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$corrVal corridas',
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text('Corridas Lidas', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$corrVal corridas',
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ],
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // BANNER INFORMATIVO
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
-          ),
-          child: Row(
-            children: const [
-              Icon(Icons.info_outline_rounded, color: Color(0xFF38BDF8), size: 20),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Grave o extrato da plataforma (ex: 99/Uber) usando o gravador de tela do seu celular e selecione o vídeo abaixo.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        if (_terminalLogs.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF020617),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF10B981), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF10B981).withOpacity(0.2),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Text('🔴 🟡 🟢', style: TextStyle(fontSize: 10)),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'terminal@gemini-3.6-flash:~',
-                      style: TextStyle(color: Color(0xFF38BDF8), fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                    const Spacer(),
-                    if (_isAiProcessing)
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
-                      ),
-                  ],
-                ),
-                const Divider(color: Colors.white12, height: 16),
-                ..._terminalLogs.map((log) {
-                  final bool isErr = log.contains('[ERR]');
-                  final bool isOk = log.contains('[OK]');
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2.0),
-                    child: Text(
-                      log,
-                      style: TextStyle(
-                        color: isErr ? Colors.redAccent : (isOk ? const Color(0xFF10B981) : const Color(0xFF34D399)),
-                        fontFamily: 'monospace',                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  );
-                }),
-                if (_isAiProcessing)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4.0),
-                    child: Text(' > _ █', style: TextStyle(color: Color(0xFF10B981), fontFamily: 'monospace', fontWeight: FontWeight.bold)),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-
-        if (_recordedVideoPath != null && _recordedVideoPath!.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: const [
-                    Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Vídeo de Extrato Gravado!',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'A gravação do seu extrato foi concluída. Clique em ENVIAR PARA IA para processar ou REFAZER para regravar:',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    // BOTAO 1: ENVIAR PARA IA
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: () async {
-                          final currentPlat = _currentStep == 1 ? 'UBER' : (_currentStep == 2 ? '99' : null);
-                          final res = await Navigator.push<Map<String, dynamic>>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AiTerminalConsoleScreen(
-                                videoPath: _recordedVideoPath!,
-                                plataforma: currentPlat,
-                              ),
-                            ),
-                          );
-                          if (mounted && res != null) {
-                            const channel = MethodChannel('com.srclauss.appjornada/overlay');
-                            try {
-                              await channel.invokeMethod('clearLastRecordedVideo');
-                            } catch (_) {}
-                            setState(() {
-                              _recordedVideoPath = null;
-                              _faturamentoLocal = res['faturamento'] ?? res;
-                              if (_currentStep == 1) {
-                                _currentStep = 2;
-                              } else if (_currentStep == 2) {
-                                _currentStep = 3;
-                              }
-                            });
-                            await _rodarAuditoria();
-                          }
-                        },
-                        icon: const Icon(Icons.send_rounded, size: 18),
-                        label: const Text('ENVIAR PARA IA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // BOTAO 2: REFAZER GRAVACAO
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.amber,
-                          side: const BorderSide(color: Colors.amber),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: () async {
-                          const channel = MethodChannel('com.srclauss.appjornada/overlay');
-                          await channel.invokeMethod('clearLastRecordedVideo');
-                          setState(() {
-                            _recordedVideoPath = null;
-                            _terminalLogs.clear();
-                          });
-                          try {
-                            final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
-                            if (ok == true) {
-                              setState(() => _isRecording = true);
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erro ao reiniciar gravação: $e'), backgroundColor: Colors.red),
-                              );
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: const Text('REFAZER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ] else ...[
-          // BOTÃO 1: GRAVAR VÍDEO DA TELA (NATIVO E COMPATÍVEL COM ANDROID 14)
-          SizedBox(
-            height: 56,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isRecording ? Colors.redAccent : const Color(0xFF38BDF8),
-                foregroundColor: _isRecording ? Colors.white : Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              onPressed: () async {
-                const channel = MethodChannel('com.srclauss.appjornada/overlay');
-                if (_isRecording) {
-                  // PARAR E RECARREGAR VÍDEO
-                  try {
-                    final String? videoPath = await channel.invokeMethod<String>('stopNativeVideoRecorder');
-                    setState(() {
-                      _isRecording = false;
-                      _recordedVideoPath = videoPath;
-                    });
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erro ao parar gravação: $e'), backgroundColor: Colors.red),
-                      );
-                    }
-                  }
-                } else {
-                  // CHAMA O PEDIDO DE PERMISSÃO DE GRAVAÇÃO DIRETO NO ANDROID
-                  try {
-                    final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
-                    if (ok == true) {
-                      setState(() => _isRecording = true);
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erro ao solicitar gravação de tela: $e'), backgroundColor: Colors.red),
-                      );
-                    }
-                  }
-                }
-              },
-              icon: Icon(_isRecording ? Icons.stop_circle_rounded : Icons.fiber_manual_record_rounded),
-              label: Text(
-                _isRecording ? 'PARAR GRAVAÇÃO DE TELA' : 'GRAVAR VÍDEO DA TELA AGORA',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // BOTÃO 2: SELECIONAR VÍDEO DA GALERIA
-        if (!_isRecording)
-          SizedBox(
-            height: 48,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white24),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              onPressed: () async {
-                final ImagePicker picker = ImagePicker();
-                final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
-                if (video != null && mounted) {
-                  final res = await Navigator.push<Map<String, dynamic>>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AiTerminalConsoleScreen(videoPath: video.path),
-                    ),
-                  );
-                  if (mounted && res != null) {
-                    setState(() {
-                      _faturamentoLocal = res['faturamento'] ?? res;
-                      if (_currentStep == 1) {
-                        _currentStep = 2;
-                      } else if (_currentStep == 2) {
-                        _currentStep = 3;
-                      }
-                    });
-                    await _rodarAuditoria();
-                  }
-                }
-              },
-              icon: const Icon(Icons.video_library_rounded, size: 20),
-              label: const Text('ENVIAR VÍDEO DA GALERIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            ),
-          ),
-        const SizedBox(height: 12),
-
-        // BOTÃO NÃO RODEI NESTA PLATAFORMA
-        SizedBox(
-          height: 48,
-          child: TextButton.icon(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.redAccent,
-            ),
-            onPressed: onNaoRodei,
-            icon: const Icon(Icons.block_rounded, size: 18),
-            label: const Text('NÃO RODEI NESTA PLATAFORMA HOJE', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ),
         const SizedBox(height: 32),
@@ -979,12 +889,12 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                 height: 56,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: platformColor,
-                    foregroundColor: textColor,
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: onNext,
-                  child: const Text('AVANÇAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text(isZero ? 'NÃO RODEI (AVANÇAR)' : 'AVANÇAR PARA PRÓXIMO ➔', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ),

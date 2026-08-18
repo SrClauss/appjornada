@@ -16,37 +16,38 @@ export function AppHeader() {
   const alertCount = kpis.totalAlertas;
 
   return (
-    <header className="sticky top-0 z-40 h-16 bg-card border-b border-border shadow-sm">
+    <header className="sticky top-0 z-40 h-16 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-md">
       <div className="h-full px-6 flex items-center justify-end gap-4">
         {/* Botão de Download do App Motorista APK Versionado */}
         <a
-          href="/app-jornada-v1.0.5.apk"
-          download="app-jornada-v1.0.5.apk"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all shadow-sm"
-          title="Baixar App Motorista Versão v1.0.5 (APK)"
+          href="/app-jornada-v1.0.7.apk"
+          download="app-jornada-v1.0.7.apk"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all shadow-sm"
+          title="Baixar App Motorista Versão v1.0.7 (APK)"
         >
-          <DownloadSimple size={16} className="text-emerald-500" />
-          <span>Baixar App v1.0.5 (APK)</span>
+          <DownloadSimple size={16} className="text-emerald-400" />
+          <span>Baixar App v1.0.7 (APK)</span>
         </a>
-        <button className="relative p-2 hover:bg-muted rounded-lg transition-colors">
-          <Bell size={20} className="text-foreground" />
+        
+        <button className="relative p-2 hover:bg-slate-800/60 rounded-xl transition-colors text-slate-300">
+          <Bell size={20} />
           {alertCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold bg-rose-500 text-white"
             >
               {alertCount}
             </Badge>
           )}
         </button>
 
-        <div className="flex items-center gap-3 pl-4 border-l border-border">
+        <div className="flex items-center gap-3 pl-4 border-l border-slate-800">
           <div className="text-right">
-            <p className="text-sm font-medium text-foreground">{user?.nome ?? 'Admin'}</p>
-            <p className="text-xs text-muted-foreground">{user?.role ?? 'ADMIN'}</p>
+            <p className="text-sm font-semibold text-white">{user?.nome ?? 'Admin'}</p>
+            <p className="text-[11px] text-teal-400 font-medium">{user?.role ?? 'ADMIN'}</p>
           </div>
-          <Avatar>
-            <AvatarFallback className="bg-accent text-accent-foreground font-semibold">
+          <Avatar className="h-9 w-9 border border-teal-500/30 shadow-md shadow-teal-950/50">
+            <AvatarFallback className="bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 font-bold text-xs">
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -55,7 +56,7 @@ export function AppHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="text-muted-foreground hover:text-destructive"
+          className="text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl"
           onClick={logout}
           title="Sair"
         >

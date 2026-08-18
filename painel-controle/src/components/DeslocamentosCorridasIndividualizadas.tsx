@@ -3,7 +3,7 @@ import { Jornada, CorridaParticular, ComprovanteProcessado } from '../lib/types'
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { MapPin, Navigation, Clock, Car, CurrencyDollar, Eye, CheckCircle2 } from 'lucide-react';
+import { MapPin, Navigation, Clock, Car, DollarSign, Eye, CheckCircle2 } from 'lucide-react';
 
 export interface CorridaIndividual {
   id: string;
@@ -56,8 +56,8 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
         destino: cp.localizacao_fim ? `Lat: ${destLat?.toFixed(4)}, Lon: ${destLon?.toFixed(4)}` : (cp.status === 'FINALIZADA' ? 'Destino Finalizado' : 'Em andamento'),
         origemCoords: origLat && origLon ? [origLat, origLon] : undefined,
         destinoCoords: destLat && destLon ? [destLat, destLon] : undefined,
-        horarioInicio: cp.horario_inicio,
-        horarioFim: cp.horario_fim,
+        horarioInicio: cp.data_inicio || (cp as any).horario_inicio,
+        horarioFim: cp.data_fim || (cp as any).horario_fim,
         distanciaKm: cp.km_rodados ?? (cp.km_fim && cp.km_inicio ? Math.max(0, cp.km_fim - cp.km_inicio) : undefined),
         duracaoMinutos: cp.duracao_segundos ? Math.round(cp.duracao_segundos / 60) : undefined,
         valor: cp.valor_calculado ?? 0,

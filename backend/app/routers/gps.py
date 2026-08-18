@@ -536,12 +536,20 @@ async def rota_ajustada_motorista(
 
     jornada = await db["jornadas"].find_one(q_j)
 
-    # Obter base de operações principal do banco
-    base_doc = await db["bases_operacoes"].find_one({"is_principal": True})
-    if not base_doc:
-        base_doc = await db["bases_operacoes"].find_one({})
-    base_lat = base_doc.get("lat", -20.26548) if base_doc else -20.26548
-    base_lon = base_doc.get("lon", -40.29589) if base_doc else -40.29589
+    pontos = await obter_pontos_jornada(jornada, db) if jornada else []
+
+    # Extração Dinâmica da Base de Operações (Primeiro ponto GPS da Jornada)
+    base_lat = -20.26548
+    base_lon = -40.29589
+    if pontos and len(pontos) > 0:
+        primeiro = pontos[0]
+        # Pega de 'lat'/'lon' ou de 'localizacao'
+        p_lat = primeiro.get("lat") or primeiro.get("localizacao", {}).get("coordinates", [0, 0])[1]
+        p_lon = primeiro.get("lon") or primeiro.get("localizacao", {}).get("coordinates", [0, 0])[0]
+        if p_lat != 0 and p_lon != 0:
+            base_lat = p_lat
+            base_lon = p_lon
+            
     base_coords = (base_lat, base_lon)
 
     km_rodados = _safe_float(jornada.get("km", {}).get("rodados") if jornada else 0.0)
@@ -549,7 +557,6 @@ async def rota_ajustada_motorista(
     comprovantes = jornada.get("faturamento", {}).get("comprovantes_processados", []) if jornada else []
 
     jornada_data = jornada.get("data") if jornada else None
-    pontos = await obter_pontos_jornada(jornada, db) if jornada else []
 
     if pontos:
         classified_segments = await classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
@@ -1564,5 +1571,156 @@ async def deletar_telemetria_jornada(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/mapa-calor")
+async def obter_mapa_calor(
+    periodo: str = "mensal",  # "diario", "semanal", "mensal"
+    motorista_id: Optional[str] = None,
+    data_referencia: Optional[str] = None,
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    from datetime import date, timedelta, datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    if data_referencia:
+        try:
+            ref_dt = datetime.strptime(data_referencia, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except Exception:
+            ref_dt = now
+    else:
+        ref_dt = now
+
+    if periodo == "diario":
+        data_inicio = ref_dt.strftime("%Y-%m-%d")
+        data_fim = data_inicio
+    elif periodo == "semanal":
+        dt_start = ref_dt - timedelta(days=ref_dt.weekday())
+        dt_end = dt_start + timedelta(days=6)
+        data_inicio = dt_start.strftime("%Y-%m-%d")
+        data_fim = dt_end.strftime("%Y-%m-%d")
+    else:  # mensal
+        data_inicio = ref_dt.strftime("%Y-%m-01")
+        data_fim = ref_dt.strftime("%Y-%m-31")
+
+    query = {
+        "data": {"$gte": data_inicio, "$lte": data_fim}
+    }
+    if motorista_id:
+        query["$or"] = [{"motorista_id": motorista_id}]
+        if ObjectId.is_valid(motorista_id):
+            query["$or"].append({"motorista_id": ObjectId(motorista_id)})
+
+    jornadas = await db["jornadas"].find(query).to_list(1000)
+
+    pontos = []
+    features = []
+    total_valor = 0.0
+    maior_ticket = 0.0
+
+    for j in jornadas:
+        j_data = j.get("data")
+        # 1. Corridas Particulares
+        for cp in j.get("corridas_particulares", []):
+            loc_inicio = cp.get("localizacao_inicio") or {}
+            lat = loc_inicio.get("lat")
+            lon = loc_inicio.get("lon")
+            valor = float(cp.get("valor_calculado") or 0.0)
+
+            if lat and lon and lat != 0 and lon != 0:
+                total_valor += valor
+                if valor > maior_ticket:
+                    maior_ticket = valor
+
+                p_item = {
+                    "lat": float(lat),
+                    "lon": float(lon),
+                    "valor": round(valor, 2),
+                    "plataforma": "PARTICULAR",
+                    "tipo": cp.get("tipo_corrida") or "NORMAL",
+                    "data": j_data
+                }
+                pontos.append(p_item)
+                features.append({
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [float(lon), float(lat)]
+                    },
+                    "properties": p_item
+                })
+
+        # 2. Comprovantes processados
+        comprovantes = j.get("faturamento", {}).get("comprovantes_processados", [])
+        segmentos = j.get("segmentos_rota", [])
+
+        for c in comprovantes:
+            valor = float(c.get("valor") or 0.0)
+            plataforma = (c.get("plataforma") or "APP").upper()
+            
+            # Buscar coordenadas no segmento produtivo ou telemetria
+            lat, lon = None, None
+            if me := c.get("origemCoords"):
+                lat, lon = me[0], me[1]
+            elif me_list := c.get("coords"):
+                if len(me_list) > 0:
+                    lat, lon = me_list[0][0], me_list[0][1]
+
+            if not lat and segmentos:
+                for seg in segmentos:
+                    if seg.get("is_produtivo") or seg.get("status") == "produtivo":
+                        poly = seg.get("polyline", "")
+                        if poly:
+                            try:
+                                decoded = decode_polyline(poly)
+                                if decoded:
+                                    lat, lon = decoded[0][0], decoded[0][1]
+                                    break
+                            except Exception:
+                                pass
+
+            if lat and lon and lat != 0 and lon != 0:
+                total_valor += valor
+                if valor > maior_ticket:
+                    maior_ticket = valor
+
+                p_item = {
+                    "lat": float(lat),
+                    "lon": float(lon),
+                    "valor": round(valor, 2),
+                    "plataforma": plataforma,
+                    "tipo": "APP",
+                    "data": j_data
+                }
+                pontos.append(p_item)
+                features.append({
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [float(lon), float(lat)]
+                    },
+                    "properties": p_item
+                })
+
+    qtd = len(pontos)
+    ticket_medio = round(total_valor / qtd, 2) if qtd > 0 else 0.0
+
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+
+    return {
+        "periodo": periodo,
+        "data_inicio": data_inicio,
+        "data_fim": data_fim,
+        "total_pontos": qtd,
+        "total_faturamento": round(total_valor, 2),
+        "ticket_medio": ticket_medio,
+        "maior_ticket": round(maior_ticket, 2),
+        "pontos": pontos,
+        "geojson": geojson
+    }
 
 

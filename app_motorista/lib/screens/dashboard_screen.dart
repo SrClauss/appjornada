@@ -10,6 +10,9 @@ import 'package:app_motorista/widgets/manutencao_dialog.dart';
 import 'package:app_motorista/widgets/sinistro_modal.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:app_motorista/screens/metas_dashboard_screen.dart';
+import 'package:app_motorista/core/fluent_theme.dart';
+import 'package:app_motorista/core/gps_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> jornada;
@@ -33,12 +36,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final Duration _metaCLT = const Duration(hours: 8, minutes: 48, seconds: 0);
   bool _isWeekendOrHoliday = false;
   bool _loading = false;
+  Map<String, dynamic>? _metricasJornada;
 
   @override
   void initState() {
     super.initState();
     _checkWeekendOrHoliday();
     _startTimer();
+    _carregarMetricas();
+  }
+
+  Future<void> _carregarMetricas() async {
+    final jId = widget.jornada['_id'] ?? widget.jornada['id'];
+    if (jId != null) {
+      final res = await ApiService.getMetricasJornada(jId.toString());
+      if (mounted && res != null) {
+        setState(() {
+          _metricasJornada = res;
+        });
+      }
+    }
   }
 
   void _checkWeekendOrHoliday() {
@@ -230,7 +247,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _encerrarJornada() async {
-    widget.onAction('close_wizard', null);
+    setState(() => _loading = true);
+    final jId = widget.jornada['_id'] ?? widget.jornada['id'];
+    final ok = await ApiService.iniciarPreFechamento(jId);
+    setState(() => _loading = false);
+    if (ok) {
+      GpsService.stopTracking();
+      widget.onAction('close_wizard', null);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao iniciar fechamento. Tente novamente.')),
+        );
+      }
+    }
   }
 
   @override
@@ -301,6 +331,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 24),
             // PAINEL DE FATURAMENTO DA JORNADA
             _buildFaturamentoPanel(),
+
+            const SizedBox(height: 20),
+            // CARDS DE MÉTRICAS DA JORNADA (Fat/KM Global, Fat/KM Útil, Ticket Médio)
+            _buildMetricasOperacionaisCard(),
 
             const SizedBox(height: 24),
             // CARDS ACUMULADOS
@@ -550,6 +584,166 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMetricasOperacionaisCard() {
+    final double fatKmGlobal = (_metricasJornada?['faturamento_km_global'] as num?)?.toDouble() ?? 0.0;
+    final double fatKmUtil = (_metricasJornada?['faturamento_km_util'] as num?)?.toDouble() ?? 0.0;
+    final double ticketMedio = (_metricasJornada?['ticket_medio'] as num?)?.toDouble() ?? 0.0;
+    final int totalCorridas = (_metricasJornada?['total_corridas'] as num?)?.toInt() ?? 0;
+
+    final motoristaId = widget.jornada['motorista_id']?.toString() ?? ApiService.motoristaId ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.analytics, color: Colors.amber, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Métricas da Jornada',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () {
+                  if (motoristaId.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MetasDashboardScreen(motoristaId: motoristaId),
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text(
+                        'Ver Metas',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_ios, size: 10, color: Colors.amber),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildItemMetricaCard(
+                  'R\$ / KM Global',
+                  'R\$ ${fatKmGlobal.toStringAsFixed(2).replaceAll('.', ',')}',
+                  Icons.directions_car,
+                  Colors.blueAccent,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildItemMetricaCard(
+                  'R\$ / KM Útil',
+                  'R\$ ${fatKmUtil.toStringAsFixed(2).replaceAll('.', ',')}',
+                  Icons.speed,
+                  Colors.greenAccent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildItemMetricaCard(
+                  'Ticket Médio',
+                  'R\$ ${ticketMedio.toStringAsFixed(2).replaceAll('.', ',')}',
+                  Icons.receipt_long,
+                  Colors.purpleAccent,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildItemMetricaCard(
+                  'Total Corridas',
+                  '$totalCorridas',
+                  Icons.local_taxi,
+                  Colors.orangeAccent,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemMetricaCard(String title, String val, IconData icon, Color accent) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 10, color: FluentColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  val,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

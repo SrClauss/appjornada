@@ -133,11 +133,16 @@ class ApiService {
   }
 
   // Envia vídeo gravado da tela do extrato para a IA analisar frames no backend
-  static Future<Map<String, dynamic>?> processarVideoExtrato(String videoPath, {String? plataforma}) async {
+  static Future<Map<String, dynamic>?> processarVideoExtrato(String videoPath, {String? plataforma, double? faturamentoAncora, int? corridasAncora}) async {
     try {
-      final urlStr = plataforma != null
-          ? '$baseUrl/jornadas/aberta/extrato-video?plataforma=$plataforma'
-          : '$baseUrl/jornadas/aberta/extrato-video';
+      var urlStr = '$baseUrl/jornadas/aberta/extrato-video';
+      final List<String> params = [];
+      if (plataforma != null) params.add('plataforma=$plataforma');
+      if (faturamentoAncora != null) params.add('faturamento_ancora=$faturamentoAncora');
+      if (corridasAncora != null) params.add('corridas_ancora=$corridasAncora');
+      if (params.isNotEmpty) {
+        urlStr += '?${params.join('&')}';
+      }
       final uri = Uri.parse(urlStr);
       final request = http.MultipartRequest('POST', uri);
 
@@ -328,6 +333,70 @@ class ApiService {
       }
     } catch (e) {
       print('[ApiService] Erro ao enviar vídeo do extrato: $e');
+    }
+    return null;
+  }
+
+  // Iniciar pré-fechamento
+  static Future<bool> iniciarPreFechamento(String jornadaId) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$baseUrl/jornadas/$jornadaId/pre-fechar'),
+        headers: headers,
+      );
+      if (res.statusCode == 200) {
+        return true;
+      } else {
+        print('[ApiService] Erro ao iniciar pre-fechamento: ${res.body}');
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao iniciar pre-fechamento: $e');
+    }
+    return false;
+  }
+
+  // Métricas e Metas
+  static Future<Map<String, dynamic>?> getMetricasJornada(String jornadaId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/metricas/jornada/$jornadaId'),
+        headers: headers,
+      );
+      if (res.statusCode == 200) {
+        return json.decode(res.body);
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao buscar metricas da jornada: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getAcumuladoMotorista(String motoristaId, {String? mes}) async {
+    try {
+      final url = mes != null
+          ? '$baseUrl/metricas/motorista/$motoristaId/acumulado?mes=$mes'
+          : '$baseUrl/metricas/motorista/$motoristaId/acumulado';
+      final res = await http.get(Uri.parse(url), headers: headers);
+      if (res.statusCode == 200) {
+        return json.decode(res.body);
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao buscar acumulado do motorista: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getProgressoMetas(String motoristaId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/metricas/motorista/$motoristaId/progresso-metas'),
+        headers: headers,
+      );
+      if (res.statusCode == 200) {
+        return json.decode(res.body);
+      }
+    } catch (e) {
+      print('[ApiService] Erro ao buscar progresso de metas: $e');
     }
     return null;
   }

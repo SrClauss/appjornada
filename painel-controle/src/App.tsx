@@ -15,6 +15,7 @@ import { ConfiguracoesView } from '@/views/ConfiguracoesView';
 import { PrecosParticularesView } from '@/views/PrecosParticularesView';
 import { MediaManagementView } from '@/views/MediaManagementView';
 import { MonitorView } from '@/views/MonitorView';
+import { MapaCalorView } from '@/views/MapaCalorView';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -91,6 +92,7 @@ function App() {
       case 'abastecimentos': return <AbastecimentosView />;
       case 'manutencoes':    return <ManutencoesView />;
       case 'metas':          return <MetasView />;
+      case 'mapa-calor':     return <MapaCalorView />;
       case 'configuracoes':  return <ConfiguracoesView />;
       case 'tarifas-particulares': return <PrecosParticularesView />;
       case 'gestao-midias':  return <MediaManagementView />;

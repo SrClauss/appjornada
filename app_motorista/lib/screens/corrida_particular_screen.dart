@@ -35,6 +35,8 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   
   // Roteamento, busca de destino e estimativas
   final _destController = TextEditingController();
+  final _justificativaController = TextEditingController();
+  String _tipoViagem = 'NORMAL'; // NORMAL ou EXTRAORDINARIA
   List<dynamic> _suggestions = [];
   bool _searchingDest = false;
   Map<String, dynamic>? _selectedDest;
@@ -905,6 +907,12 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
   }
 
   Future<void> _iniciarCorrida() async {
+    if (_tipoViagem == 'EXTRAORDINARIA' && _justificativaController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, informe a justificativa do deslocamento.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
     double kmInicio = 0.0;
     if (widget.jornada['km_inicial'] != null) {
       kmInicio = (widget.jornada['km_inicial'] as num).toDouble();
@@ -948,7 +956,10 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
             'destino_endereco': _selectedDest!['display_name'].toString(),
             'destino_lat': _selectedDest!['lat'].toString(),
             'destino_lon': _selectedDest!['lon'].toString(),
-          }
+          },
+          'tipo_corrida': _tipoViagem,
+          if (_tipoViagem == 'EXTRAORDINARIA') 
+            'justificativa': _justificativaController.text,
         }
       );
 
@@ -1055,12 +1066,14 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
           _kmController.clear();
         });
 
+        final isExtraordinario = body['tipo_corrida'] == 'EXTRAORDINARIA';
+
         if (!mounted) return;
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
             backgroundColor: const Color(0xFF1E293B),
-            title: const Text('Corrida Finalizada!', style: TextStyle(color: Colors.white)),
+            title: Text(isExtraordinario ? 'Deslocamento Concluído!' : 'Corrida Finalizada!', style: const TextStyle(color: Colors.white)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1069,10 +1082,11 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                 const SizedBox(height: 8),
                 Text('Duração: ${(body['duracao_segundos'] / 60).toStringAsFixed(1)} min', style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 12),
-                Text(
-                  'Valor Calculado: R\$ ${body['valor_calculado'].toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.greenAccent, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                if (!isExtraordinario)
+                  Text(
+                    'Valor Calculado: R\$ ${body['valor_calculado'].toStringAsFixed(2)}',
+                    style: const TextStyle(color: Colors.greenAccent, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 if (justificativa != null && justificativa.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text('Justificativa: $justificativa', style: const TextStyle(color: Colors.amberAccent, fontSize: 13)),
@@ -1196,9 +1210,11 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
-                              'EM VIAGEM (GOOGLE MAPS)',
-                              style: TextStyle(
+                            Text(
+                              _activeCorrida!['tipo_corrida'] == 'EXTRAORDINARIA' 
+                                ? 'EM DESLOCAMENTO EXTRAORDINÁRIO' 
+                                : 'EM VIAGEM (GOOGLE MAPS)',
+                              style: const TextStyle(
                                 color: Colors.tealAccent,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -1429,6 +1445,57 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                   style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'NORMAL', label: Text('Viagem (R\$)')),
+                    ButtonSegment(value: 'EXTRAORDINARIA', label: Text('Extraordinário')),
+                  ],
+                  selected: {_tipoViagem},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setState(() {
+                      _tipoViagem = newSelection.first;
+                    });
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                      (Set<MaterialState> states) {
+                        if (states.contains(MaterialState.selected)) {
+                          return Colors.teal;
+                        }
+                        return const Color(0xFF1E293B);
+                      },
+                    ),
+                    foregroundColor: MaterialStateProperty.resolveWith<Color>(
+                      (Set<MaterialState> states) {
+                        if (states.contains(MaterialState.selected)) {
+                          return Colors.white;
+                        }
+                        return Colors.grey;
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (_tipoViagem == 'EXTRAORDINARIA') ...[
+                  TextField(
+                    controller: _justificativaController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Justificativa do Deslocamento',
+                      hintText: 'Ex: Socorro, Peças, Entrega, etc.',
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      filled: true,
+                      fillColor: const Color(0xFF1E293B),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: const Icon(Icons.info_outline, color: Colors.amberAccent),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -1495,7 +1562,7 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
                     padding: EdgeInsets.symmetric(vertical: 16.0),
                     child: Center(child: CircularProgressIndicator()),
                   )
-                else if (_selectedDest != null && _estimatedDistanceKm != null) ...[
+                else if (_tipoViagem == 'NORMAL' && _selectedDest != null && _estimatedDistanceKm != null) ...[
                   const SizedBox(height: 16),
                   Card(
                     color: const Color(0xFF1E293B),

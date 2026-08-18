@@ -22,10 +22,10 @@ class _ManutencaoAtivaScreenState extends State<ManutencaoAtivaScreen> {
     });
 
     try {
-      // Acha a pausa ativa do tipo MANUTENCAO
+      // Acha a pausa ativa do tipo MANUTENCAO ou MANUTENCAO_LONGA
       final pausas = widget.jornada['pausas'] as List;
       final manutencaoPausa = pausas.firstWhere(
-        (p) => p['tipo'] == 'MANUTENCAO' && p['fim'] == null,
+        (p) => (p['tipo'] == 'MANUTENCAO' || p['tipo'] == 'MANUTENCAO_LONGA') && p['fim'] == null,
         orElse: () => null,
       );
 
@@ -50,6 +50,9 @@ class _ManutencaoAtivaScreenState extends State<ManutencaoAtivaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pausas = widget.jornada['pausas'] as List? ?? [];
+    final isLonga = pausas.any((p) => p['tipo'] == 'MANUTENCAO_LONGA' && p['fim'] == null);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manutenção Ativa'),
@@ -70,17 +73,19 @@ class _ManutencaoAtivaScreenState extends State<ManutencaoAtivaScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(Icons.build, size: 80, color: Colors.redAccent),
+              Icon(Icons.build, size: 80, color: isLonga ? Colors.amber[800] : Colors.redAccent),
               const SizedBox(height: 24),
-              const Text(
-                'Veículo em Manutenção',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              Text(
+                isLonga ? 'Veículo na Oficina' : 'Veículo em Manutenção',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Sua jornada de trabalho está pausada temporariamente enquanto o carro está na oficina. Aguarde a conclusão.',
+              Text(
+                isLonga 
+                    ? 'Seu veículo foi deixado na oficina. A jornada continuará rentabilizando horas até o limite. Você pode sair do app pelo ícone no canto superior direito.'
+                    : 'Sua jornada de trabalho está pausada temporariamente enquanto o carro está na oficina. Aguarde a conclusão.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 48),
               SizedBox(

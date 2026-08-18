@@ -325,12 +325,23 @@ def _limpar_e_parsear_json_gemini(raw_text: str) -> dict:
     return {}
 
 
-def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None, plataforma_esperada: str = None) -> dict:
+def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None, plataforma_esperada: str = None, faturamento_ancora: float = None, corridas_ancora: int = None) -> dict:
     api_key = settings.GEMINI_API_KEY
     if not api_key:
         return {"sucesso": False, "mensagem": "GEMINI_API_KEY não configurada", "corridas": []}
 
     plat_instrucao = f" Foco prioritário na plataforma: {plataforma_esperada.upper()}." if plataforma_esperada else ""
+    ancora_instrucao = ""
+    if faturamento_ancora is not None and corridas_ancora is not None and corridas_ancora > 0:
+        ancora_instrucao = (
+            f" ATENÇÃO EXTREMA: O motorista declarou previamente que realizou EXATAMENTE {corridas_ancora} corridas. "
+            f"O número de corridas é a sua ÂNCORA PRINCIPAL E ABSOLUTA de validação. "
+            f"Sua missão prioritária é encontrar, desduplicar e extrair exatamente essas {corridas_ancora} corridas. "
+            f"Para cada corrida, é CRÍTICO extrair os locais de ORIGEM e DESTINO (deslocamentos) corretamente. "
+            f"O faturamento declarado foi R$ {faturamento_ancora:.2f}, use isso apenas como uma dica secundária. "
+            f"IMPORTANTE: Esforce-se ao máximo para a extração fechar nas exatas {corridas_ancora} corridas declaradas, focando nos deslocamentos. "
+            "Se for absolutamente impossível devido a erro do motorista, extraia as corridas reais visíveis, mas o foco é bater a quantidade de corridas.\n"
+        )
 
     print("\n==================================================================")
     print(f"🎬 [OCR Video] Iniciando análise de {len(frames_b64_list)} quadros do vídeo ({plataforma_esperada or 'GERAL'})...")
@@ -341,12 +352,15 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
 
     prompt = (
         f"Analise minuciosamente esta sequência sequencial de capturas de tela (frames) gravadas do histórico de corridas de aplicativo (Uber / 99).{plat_instrucao}\n"
+        f"{ancora_instrucao}"
         "Seu objetivo é garimpar e extrair COM EXATIDÃO 100% TODAS as corridas apresentadas durante a rolagem do vídeo, sem omitir NENHUMA corrida visível e eliminando duplicações idênticas entre quadros.\n"
         "Para cada corrida encontrada, extraia exatamente:\n"
-        "- horario (ex: '11:18' ou 'Ontem 14:30')\n"
+        "- horario (ex: '11:18' ou '15:26')\n"
+        "- data_formatada (data da corrida se visível ex: '02/06/2026' ou '2026-06-02', senão null)\n"
         "- plataforma ('Uber' ou '99')\n"
         "- valor_reais (valor exato em R$ como número decimal ex: 15.50)\n"
-        "- origem e destino (endereços ou bairros visíveis, senão null)\n\n"
+        "- origem e destino (endereços ou bairros visíveis, senão null)\n"
+        "- distancia_km (distância da corrida em km se visível, extraia como float ex: 5.4, senão null)\n\n"
         "REGRAS DE CONFIABILIDADE E EXATIDÃO:\n"
         "1. Avalie se o histórico de corridas no vídeo parece ter lacunas de rolagem rápida ou cortes incertos entre os quadros.\n"
         "2. Se você sentir incerteza sobre algum valor ou se notar que faltam quadros para cobrir o extrato completo, defina 'necessita_mais_frames': true e 'historico_completo': false.\n"
@@ -359,7 +373,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
         '  "total_corridas": 2,\n'
         '  "faturamento_total": 45.80,\n'
         '  "corridas": [\n'
-        '    {"horario": "11:18", "plataforma": "Uber", "valor_reais": 15.50, "origem": "Vitoria", "destino": "Vila Velha"}\n'
+        '    {"horario": "11:18", "data_formatada": "02/06/2026", "plataforma": "Uber", "valor_reais": 15.50, "origem": "Vitoria", "destino": "Vila Velha", "distancia_km": 5.4}\n'
         '  ]\n'
         "}"
     )
@@ -368,7 +382,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     for b64_img in frames_b64_list:
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
-    modelos = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-exp"]
+    modelos = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
@@ -566,6 +580,9 @@ async def processar_ocr_nota_fiscal(
 @router.post("/extrato-video")
 async def processar_extrato_video(
     file: UploadFile = File(...),
+    plataforma_esperada: Optional[str] = Form(None),
+    faturamento_ancora: Optional[float] = Form(None),
+    corridas_ancora: Optional[int] = Form(None)
 ):
     video_bytes = await file.read()
     file.file.seek(0)
@@ -576,14 +593,26 @@ async def processar_extrato_video(
     if not frames:
         raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
 
-    res_gemini = _chamar_gemini_extrato_video(frames, frame_urls=frame_urls)
+    res_gemini = _chamar_gemini_extrato_video(
+        frames, 
+        frame_urls=frame_urls, 
+        plataforma_esperada=plataforma_esperada,
+        faturamento_ancora=faturamento_ancora,
+        corridas_ancora=corridas_ancora
+    )
 
     # Re-amostragem adaptativa com ZOOM e Nitidez de Alta Resolução se a IA solicitar ou houver lacuna
     if res_gemini.get("necessita_mais_frames") is True or res_gemini.get("historico_completo") is False:
         print("🔎 [OCR Video] IA solicitou maior nitidez/zoom local. Gerando recortes de alta definição...")
         frames_zoom, urls_zoom = _extrair_frames_video(video_bytes, max_frames=20, aplicar_nitidez=True)
         if frames_zoom:
-            res_zoom = _chamar_gemini_extrato_video(frames_zoom, frame_urls=urls_zoom)
+            res_zoom = _chamar_gemini_extrato_video(
+                frames_zoom, 
+                frame_urls=urls_zoom, 
+                plataforma_esperada=plataforma_esperada,
+                faturamento_ancora=faturamento_ancora,
+                corridas_ancora=corridas_ancora
+            )
             if res_zoom.get("sucesso") and res_zoom.get("corridas"):
                 res_gemini = res_zoom
 

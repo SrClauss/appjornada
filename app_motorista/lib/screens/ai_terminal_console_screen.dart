@@ -5,11 +5,15 @@ import 'package:app_motorista/core/api_service.dart';
 class AiTerminalConsoleScreen extends StatefulWidget {
   final String videoPath;
   final String? plataforma;
+  final double? faturamentoAncora;
+  final int? corridasAncora;
 
   const AiTerminalConsoleScreen({
     super.key,
     required this.videoPath,
     this.plataforma,
+    this.faturamentoAncora,
+    this.corridasAncora,
   });
 
   @override
@@ -79,7 +83,12 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
 
     try {
       final startTime = DateTime.now();
-      final res = await ApiService.processarVideoExtrato(widget.videoPath, plataforma: widget.plataforma);
+      final res = await ApiService.processarVideoExtrato(
+        widget.videoPath, 
+        plataforma: widget.plataforma,
+        faturamentoAncora: widget.faturamentoAncora,
+        corridasAncora: widget.corridasAncora,
+      );
       final elapsed = DateTime.now().difference(startTime).inMilliseconds / 1000.0;
 
       if (!mounted) return;

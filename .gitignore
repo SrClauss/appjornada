@@ -68,3 +68,4 @@ docker-compose.override.yml
 osrm_data/
 scratch/
 visualizador_ronaldo/
+videos_extrato/
