@@ -100,6 +100,12 @@ async def obter_acumulado_motorista(
     total_km_util = 0.0
     total_corridas = 0
     total_horas_segundos = 0
+    fat_uber = 0.0
+    fat_99 = 0.0
+    fat_outros = 0.0
+    corr_uber = 0
+    corr_99 = 0
+    corr_outros = 0
 
     for j in jornadas:
         m = _calcular_metricas_jornada_doc(j)
@@ -108,6 +114,15 @@ async def obter_acumulado_motorista(
         total_km_util += m["km_rodados_util"]
         total_corridas += m["total_corridas"]
         
+        fat = j.get("faturamento", {})
+        fat_uber += float(fat.get("uber") or 0.0)
+        fat_99 += float(fat.get("noventa_nove") or 0.0)
+        fat_outros += float(fat.get("outros") or fat.get("corridas_particulares") or 0.0)
+
+        corr_uber += int(fat.get("corridas_uber") or 0)
+        corr_99 += int(fat.get("corridas_99") or 0)
+        corr_outros += int(fat.get("corridas_outros") or len(j.get("corridas_particulares", [])))
+
         horario = j.get("horario", {})
         total_horas_segundos += int(horario.get("total_horas_segundos") or 0)
 
@@ -130,6 +145,12 @@ async def obter_acumulado_motorista(
         "faturamento_km_global": fat_km_global_mes,
         "faturamento_km_util": fat_km_util_mes,
         "ticket_medio": ticket_medio_mes,
+        "faturamento_uber": round(fat_uber, 2),
+        "faturamento_99": round(fat_99, 2),
+        "faturamento_outros": round(fat_outros, 2),
+        "corridas_uber": corr_uber,
+        "corridas_99": corr_99,
+        "corridas_outros": corr_outros,
     }
 
 

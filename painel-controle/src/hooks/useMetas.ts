@@ -6,8 +6,15 @@ export function useMetas() {
   return useQuery({
     queryKey: ['metas'],
     queryFn: async () => {
-      const { data } = await api.get<MetaBonus[]>('/metas');
-      return data;
+      try {
+        const { data } = await api.get('/metas');
+        if (Array.isArray(data)) return data as MetaBonus[];
+        if (data && Array.isArray((data as any).items)) return (data as any).items as MetaBonus[];
+        return [] as MetaBonus[];
+      } catch (err) {
+        console.error('Erro ao buscar metas:', err);
+        return [] as MetaBonus[];
+      }
     },
     staleTime: 60_000,
   });

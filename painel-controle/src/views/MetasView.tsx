@@ -22,10 +22,12 @@ import { useMetas, useCreateMeta, useDeleteMeta } from '@/hooks/useMetas';
 import api from '@/lib/api';
 import type { Jornada, CreateMetaPayload, GoalType, GoalReference } from '@/lib/types';
 
-const formatCurrency = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const formatCurrency = (v?: number | null) => {
+  const num = typeof v === 'number' && !isNaN(v) ? v : 0;
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
 
-const goalTypeLabel: Record<GoalType, string> = {
+const goalTypeLabel: Record<string, string> = {
   FATURAMENTO_DIA: 'Faturamento Diário',
   KM_MES: 'KM Mensal',
   HORAS_MES: 'Horas Mensais',
@@ -33,28 +35,44 @@ const goalTypeLabel: Record<GoalType, string> = {
   CORRIDAS_PARTICULARES_QTD: 'Corridas Particulares (Qtd. de Corridas)',
 };
 
+const getGoalLabel = (tipo?: string) => {
+  if (!tipo) return 'Meta';
+  return goalTypeLabel[tipo] || tipo.replace(/_/g, ' ');
+};
+
 export function MetasView() {
-  const { data: metas = [], isLoading } = useMetas();
+  const { data: rawMetas = [], isLoading } = useMetas();
+  const metas = Array.isArray(rawMetas) ? rawMetas : [];
   const createMutation = useCreateMeta();
   const deleteMutation = useDeleteMeta();
   const [openCreate, setOpenCreate] = useState(false);
 
   // Busca jornadas do mês para calcular bônus acumulado por motorista
   const mesAtual = format(startOfMonth(new Date()), 'yyyy-MM-dd');
-  const { data: jornadasMes = [] } = useQuery({
+  const { data: rawJornadas } = useQuery({
     queryKey: ['metas', 'jornadas-mes', mesAtual],
     queryFn: async () => {
-      const { data } = await api.get<Jornada[]>('/jornadas', { params: { limit: 200 } });
-      return data.filter((j) => j.data >= mesAtual);
+      try {
+        const { data } = await api.get('/jornadas', { params: { limit: 200 } });
+        const list = Array.isArray(data) ? data : (data && Array.isArray((data as any).items) ? (data as any).items : []);
+        return list.filter((j: any) => j && j.data && j.data >= mesAtual);
+      } catch (err) {
+        console.error('Erro ao buscar jornadas do mês:', err);
+        return [];
+      }
     },
     staleTime: 60_000,
   });
 
+  const jornadasMes = Array.isArray(rawJornadas) ? rawJornadas : [];
+
   const bonusChartData = (() => {
     const map: Record<string, number> = {};
     for (const j of jornadasMes) {
-      const nome = (j.motorista_nome ?? j.motorista_id).split(' ')[0];
-      map[nome] = (map[nome] ?? 0) + (j.bonus_dia ?? 0);
+      if (!j) continue;
+      const rawNome = j.motorista_nome || j.motorista_id || 'Motorista';
+      const nome = String(rawNome).split(' ')[0];
+      map[nome] = (map[nome] ?? 0) + (Number(j.bonus_dia) || 0);
     }
     return Object.entries(map).map(([name, bonus]) => ({ name, bonus }));
   })();
@@ -70,7 +88,7 @@ export function MetasView() {
   };
   const [form, setForm] = useState<CreateMetaPayload>(emptyForm);
 
-  const totalBonus = metas.reduce((s, m) => s + m.bonus, 0);
+  const totalBonus = metas.reduce((s, m) => s + (Number(m.bonus) || 0), 0);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,7 +211,7 @@ export function MetasView() {
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="font-semibold text-lg">{goalTypeLabel[goal.tipo]}</h3>
+                          <h3 className="font-semibold text-lg">{getGoalLabel(goal.tipo)}</h3>
                           <p className="text-sm text-muted-foreground">
                             {goal.referencia === 'GERAL' ? 'Geral' : 'Por Motorista'}
                           </p>

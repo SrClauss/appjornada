@@ -39,6 +39,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _loading = false;
   Map<String, dynamic>? _metricasJornada;
   Map<String, dynamic>? _infoAtualizacao;
+  Map<String, dynamic>? _acumuladoMes;
 
   @override
   void initState() {
@@ -76,6 +77,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted && res != null) {
         setState(() {
           _metricasJornada = res;
+        });
+      }
+    }
+    final mId = ApiService.motoristaId ?? widget.jornada['motorista_id'];
+    if (mId != null) {
+      final resAcum = await ApiService.getAcumuladoMotorista(mId.toString());
+      if (mounted && resAcum != null) {
+        setState(() {
+          _acumuladoMes = resAcum;
         });
       }
     }
@@ -774,14 +784,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildFaturamentoPanel() {
     final fat = widget.jornada['faturamento'] as Map<String, dynamic>? ?? {};
 
-    final double uberVal = double.tryParse('${fat['uber']}') ?? 0.0;
-    final double noventaNoveVal = double.tryParse('${fat['noventa_nove']}') ?? 0.0;
-    final double outrosVal = double.tryParse('${fat['outros']}') ?? double.tryParse('${fat['corridas_particulares']}') ?? 0.0;
-    final double totalVal = double.tryParse('${fat['total_dia']}') ?? (uberVal + noventaNoveVal + outrosVal);
+    // Prioriza dados acumulados do mês (desde o dia 1º)
+    final double uberVal = _acumuladoMes != null
+        ? double.tryParse('${_acumuladoMes!['faturamento_uber']}') ?? 0.0
+        : double.tryParse('${fat['uber']}') ?? 0.0;
+    final double noventaNoveVal = _acumuladoMes != null
+        ? double.tryParse('${_acumuladoMes!['faturamento_99']}') ?? 0.0
+        : double.tryParse('${fat['noventa_nove']}') ?? 0.0;
+    final double outrosVal = _acumuladoMes != null
+        ? double.tryParse('${_acumuladoMes!['faturamento_outros']}') ?? 0.0
+        : double.tryParse('${fat['outros']}') ?? double.tryParse('${fat['corridas_particulares']}') ?? 0.0;
 
-    final int uberCorr = int.tryParse('${fat['corridas_uber']}') ?? 0;
-    final int noventaNoveCorr = int.tryParse('${fat['corridas_99']}') ?? 0;
-    final int outrosCorr = int.tryParse('${fat['corridas_outros']}') ?? (widget.jornada['corridas_particulares'] as List?)?.length ?? 0;
+    final double totalVal = _acumuladoMes != null
+        ? double.tryParse('${_acumuladoMes!['total_faturamento']}') ?? (uberVal + noventaNoveVal + outrosVal)
+        : double.tryParse('${fat['total_dia']}') ?? (uberVal + noventaNoveVal + outrosVal);
+
+    final int uberCorr = _acumuladoMes != null
+        ? int.tryParse('${_acumuladoMes!['corridas_uber']}') ?? 0
+        : int.tryParse('${fat['corridas_uber']}') ?? 0;
+    final int noventaNoveCorr = _acumuladoMes != null
+        ? int.tryParse('${_acumuladoMes!['corridas_99']}') ?? 0
+        : int.tryParse('${fat['corridas_99']}') ?? 0;
+    final int outrosCorr = _acumuladoMes != null
+        ? int.tryParse('${_acumuladoMes!['corridas_outros']}') ?? 0
+        : int.tryParse('${fat['corridas_outros']}') ?? (widget.jornada['corridas_particulares'] as List?)?.length ?? 0;
 
     String fmt(double v) => 'R\$ ${v.toStringAsFixed(2).replaceAll('.', ',')}';
 
@@ -802,8 +828,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Icon(Icons.account_balance_wallet, color: Color(0xFF34D399), size: 22),
                     SizedBox(width: 8),
                     Text(
-                      'Faturamento da Jornada',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                      'Faturamento Mensal (Acumulado)',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
                     ),
                   ],
                 ),
@@ -815,7 +841,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     border: Border.all(color: const Color(0xFF10B981)),
                   ),
                   child: Text(
-                    'Total: ${fmt(totalVal)}',
+                    'Mês: ${fmt(totalVal)}',
                     style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF34D399)),
                   ),
                 ),
