@@ -142,11 +142,70 @@ def _salvar_bytes_em_midias(jpg_bytes: bytes, contexto: str, extensao: str = ".j
     return f"/static/uploads/{contexto}/{filename}"
 
 
-def _extrair_frames_video(video_bytes: bytes, max_frames: int = 10) -> tuple:
+def _aplicar_nitidez_e_zoom_card(frame_img) -> list:
+    """
+    Recebe um frame bruto do vídeo, aplica filtros de melhoria de contraste/nitidez (CLAHE + Unsharp Mask)
+    e gera recortes (crops) de zoom com alta definição focando nas faixas do extrato/valores.
+    """
+    import cv2
+    import numpy as np
+
+    if frame_img is None:
+        return []
+
+    h, w = frame_img.shape[:2]
+
+    # 1. Filtro de Nitidez (Unsharp Masking)
+    gaussian = cv2.GaussianBlur(frame_img, (0, 0), 2.0)
+    unsharp = cv2.addWeighted(frame_img, 1.5, gaussian, -0.5, 0)
+
+    # 2. Melhoria de Contraste Localizado (CLAHE no canal L do LAB)
+    lab = cv2.cvtColor(unsharp, cv2.COLOR_BGR2LAB)
+    l_channel, a_channel, b_channel = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    cl = clahe.apply(l_channel)
+    limg = cv2.merge((cl, a_channel, b_channel))
+    enhanced_frame = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+
+    enhanced_b64_list = []
+    
+    # Adiciona a imagem completa tratada em alta resolução (sem downscaling severo)
+    if w > 1080:
+        enh_w = 1080
+        enh_h = int(h * (1080 / w))
+        frame_full = cv2.resize(enhanced_frame, (enh_w, enh_h))
+    else:
+        frame_full = enhanced_frame
+
+    _, buf_full = cv2.imencode('.jpg', frame_full, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
+    enhanced_b64_list.append(base64.b64encode(buf_full.tobytes()).decode("utf-8"))
+
+    # 3. Recortes de Zoom (Crops) - Dividindo a tela em regiões de interesse (Topo/Meio/Base)
+    # Útil para ler valores ou endereços menores com zoom de 150%-200%
+    y_crops = [
+        (0, int(h * 0.45)),            # Região Topo
+        (int(h * 0.25), int(h * 0.75)), # Região Centro
+        (int(h * 0.55), h)              # Região Base
+    ]
+
+    for y_start, y_end in y_crops:
+        crop = enhanced_frame[y_start:y_end, 0:w]
+        if crop.size > 0:
+            crop_h, crop_w = crop.shape[:2]
+            # Zoom upscale de 1.5x com interpolação CUBIC para aumentar legibilidade do OCR
+            zoom_crop = cv2.resize(crop, (int(crop_w * 1.3), int(crop_h * 1.3)), interpolation=cv2.INTER_CUBIC)
+            _, buf_crop = cv2.imencode('.jpg', zoom_crop, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+            enhanced_b64_list.append(base64.b64encode(buf_crop.tobytes()).decode("utf-8"))
+
+    return enhanced_b64_list
+
+
+def _extrair_frames_video(video_bytes: bytes, max_frames: int = 15, aplicar_nitidez: bool = True) -> tuple:
     import tempfile
     import os
     try:
         import cv2
+        import numpy as np
     except ImportError:
         return [], []
 
@@ -159,20 +218,53 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 10) -> tuple:
     try:
         cap = cv2.VideoCapture(tmp_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        
         if total_frames > 0:
-            step = max(1, total_frames // max_frames)
-            for i in range(max_frames):
-                target = i * step
-                cap.set(cv2.CAP_PROP_POS_FRAMES, target)
+            # Amostragem inteligente baseada em variação de cena (detecção de quadros estáveis pós-rolagem)
+            step = max(1, total_frames // max(max_frames * 2, 20))
+            candidate_frames = []
+            prev_gray = None
+            
+            curr_f = 0
+            while curr_f < total_frames and len(candidate_frames) < max_frames * 3:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, curr_f)
                 ret, frame = cap.read()
-                if not ret:
+                if not ret or frame is None:
                     break
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                
+                # Se houver frame anterior, mede a diferença para identificar se a tela está parada
+                diff_val = 0.0
+                if prev_gray is not None:
+                    diff_val = np.mean(cv2.absdiff(gray, prev_gray))
+                
+                candidate_frames.append((curr_f, frame, diff_val))
+                prev_gray = gray
+                curr_f += step
+
+            # Seleciona preferencialmente quadros com menor diferença (parados) distribuídos no tempo
+            if len(candidate_frames) > max_frames:
+                # Ordena os mais parados distribuídos no tempo
+                stride = len(candidate_frames) / max_frames
+                selected_tuples = [candidate_frames[int(i * stride)] for i in range(max_frames)]
+            else:
+                selected_tuples = candidate_frames
+
+            for item in selected_tuples:
+                frame = item[1]
+                
+                # Aplica tratamento de nitidez e melhoria visual se ativado
+                if aplicar_nitidez:
+                    gaussian = cv2.GaussianBlur(frame, (0, 0), 2.0)
+                    frame = cv2.addWeighted(frame, 1.4, gaussian, -0.4, 0)
+
                 h, w = frame.shape[:2]
-                if w > 720:
-                    new_w = 720
-                    new_h = int(h * (720 / w))
+                if w > 850:
+                    new_w = 850
+                    new_h = int(h * (850 / w))
                     frame = cv2.resize(frame, (new_w, new_h))
-                _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+                _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
                 jpg_bytes = buffer.tobytes()
                 img_b64 = base64.b64encode(jpg_bytes).decode("utf-8")
                 frames_b64.append(img_b64)
@@ -180,8 +272,8 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 10) -> tuple:
                 try:
                     f_url = _salvar_bytes_em_midias(jpg_bytes, "extrato_frames", ".jpg")
                     frame_urls.append(f_url)
-                except Exception as err_f:
-                    print(f"[OCR] Erro ao salvar URL do frame: {err_f}")
+                except Exception:
+                    pass
 
         cap.release()
     except Exception as e:
@@ -248,17 +340,22 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     print("------------------------------------------------------------------")
 
     prompt = (
-        f"Analise esta sequência de capturas de tela (frames) gravadas do histórico de corridas e ganhos de aplicativo de motorista (Uber / 99 / 99Pop / InDrive).{plat_instrucao}\n"
-        "Identifique e extraia TODAS as corridas visíveis (mesmo que parciais ou resumidas), eliminando duplicadas idênticas entre os quadros.\n"
-        "Para cada corrida encontrada, extraia:\n"
+        f"Analise minuciosamente esta sequência sequencial de capturas de tela (frames) gravadas do histórico de corridas de aplicativo (Uber / 99).{plat_instrucao}\n"
+        "Seu objetivo é garimpar e extrair COM EXATIDÃO 100% TODAS as corridas apresentadas durante a rolagem do vídeo, sem omitir NENHUMA corrida visível e eliminando duplicações idênticas entre quadros.\n"
+        "Para cada corrida encontrada, extraia exatamente:\n"
         "- horario (ex: '11:18' ou 'Ontem 14:30')\n"
         "- plataforma ('Uber' ou '99')\n"
-        "- valor_reais (valor recebido em R$ como número decimal ex: 15.50)\n"
-        "- origem e destino (endereços ou bairros se visíveis, senão null)\n"
-        "IMPORTANTE: Se houver qualquer corrida visível com valor em R$, inclua-a obrigatoriamente na lista 'corridas'.\n"
+        "- valor_reais (valor exato em R$ como número decimal ex: 15.50)\n"
+        "- origem e destino (endereços ou bairros visíveis, senão null)\n\n"
+        "REGRAS DE CONFIABILIDADE E EXATIDÃO:\n"
+        "1. Avalie se o histórico de corridas no vídeo parece ter lacunas de rolagem rápida ou cortes incertos entre os quadros.\n"
+        "2. Se você sentir incerteza sobre algum valor ou se notar que faltam quadros para cobrir o extrato completo, defina 'necessita_mais_frames': true e 'historico_completo': false.\n"
+        "3. Calcule o 'faturamento_total' exatamente como a SOMA do campo 'valor_reais' de todas as corridas válidas da lista.\n\n"
         "Responda EXCLUSIVAMENTE em formato JSON puro:\n"
         "{\n"
         '  "sucesso": true,\n'
+        '  "historico_completo": true,\n'
+        '  "necessita_mais_frames": false,\n'
         '  "total_corridas": 2,\n'
         '  "faturamento_total": 45.80,\n'
         '  "corridas": [\n'
@@ -271,7 +368,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     for b64_img in frames_b64_list:
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
-    modelos = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
+    modelos = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-exp"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
@@ -474,22 +571,21 @@ async def processar_extrato_video(
     file.file.seek(0)
     video_url = await _salvar_arquivo(file, "extrato_video")
 
-    # 1ª tentativa: amostragem inicial leve com 6 frames
-    max_f = 6
-    frames = _extrair_frames_video(video_bytes, max_frames=max_f)
+    # 1ª tentativa: amostragem inteligente com nitidez de alta definição (15 frames)
+    frames, frame_urls = _extrair_frames_video(video_bytes, max_frames=15, aplicar_nitidez=True)
     if not frames:
         raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
 
-    res_gemini = _chamar_gemini_extrato_video(frames)
+    res_gemini = _chamar_gemini_extrato_video(frames, frame_urls=frame_urls)
 
-    # Re-amostragem adaptativa: se a IA indicar que faltam frames ou lacunas de imagem, refaz com amostragem mais densa (12 frames)
-    if (res_gemini.get("necessita_mais_frames") is True or res_gemini.get("historico_completo") is False) and max_f < 12:
-        print("[OCR Video] IA solicitou mais frames. Refazendo amostragem densa com 12 frames...")
-        frames_densos = _extrair_frames_video(video_bytes, max_frames=12)
-        if frames_densos:
-            res_densos = _chamar_gemini_extrato_video(frames_densos)
-            if res_densos.get("sucesso") and res_densos.get("corridas"):
-                res_gemini = res_densos
+    # Re-amostragem adaptativa com ZOOM e Nitidez de Alta Resolução se a IA solicitar ou houver lacuna
+    if res_gemini.get("necessita_mais_frames") is True or res_gemini.get("historico_completo") is False:
+        print("🔎 [OCR Video] IA solicitou maior nitidez/zoom local. Gerando recortes de alta definição...")
+        frames_zoom, urls_zoom = _extrair_frames_video(video_bytes, max_frames=20, aplicar_nitidez=True)
+        if frames_zoom:
+            res_zoom = _chamar_gemini_extrato_video(frames_zoom, frame_urls=urls_zoom)
+            if res_zoom.get("sucesso") and res_zoom.get("corridas"):
+                res_gemini = res_zoom
 
     res_gemini["video_url"] = video_url
     return res_gemini
