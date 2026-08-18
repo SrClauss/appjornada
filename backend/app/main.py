@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.db.database import connect_db, close_db
-from app.routers import auth, users, veiculos, jornadas, gps, manutencoes, metas, uploads, relatorios, coleta, precos_particulares, config_sistema, ocr, events
+from app.routers import auth, users, veiculos, jornadas, gps, manutencoes, metas, uploads, relatorios, coleta, precos_particulares, config_sistema, ocr, events, metricas
 from app.services.scheduler import criar_scheduler
 
 logging.basicConfig(
