@@ -1667,7 +1667,7 @@ async def obter_mapa_calor(
                 })
 
         # 2. Comprovantes processados
-        comprovantes = j.get("faturamento", {}).get("comprovantes_processados", [])
+        comprovantes = (j.get("faturamento") or {}).get("comprovantes_processados", [])
         segmentos = j.get("segmentos_rota", [])
 
         for c in comprovantes:

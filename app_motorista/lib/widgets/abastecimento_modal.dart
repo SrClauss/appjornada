@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_motorista/core/api_service.dart';
 import 'package:app_motorista/core/gps_service.dart';
 
@@ -22,28 +23,53 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
   final _etanolController = TextEditingController();
   String? _fotoCupomUrl;
   bool _loading = false;
-  int _secondsLeft = 1800; // 30 minutos
-  late Timer _timer;
+  bool _configLoaded = false;
+  int _tempoMaximoMinutos = 30;
+  int _secondsLeft = 0;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    _loadConfigAndStartTimer();
+  }
+
+  Future<void> _loadConfigAndStartTimer() async {
+    final prefs = await SharedPreferences.getInstance();
+    int minConfig = prefs.getInt('tempo_maximo_abastecimento_minutos') ?? 30;
+    
+    try {
+      final cfg = await ApiService.getConfigInatividade();
+      if (cfg != null && cfg['tempo_maximo_abastecimento_minutos'] != null) {
+        minConfig = (cfg['tempo_maximo_abastecimento_minutos'] as num).toInt();
+        await prefs.setInt('tempo_maximo_abastecimento_minutos', minConfig);
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _tempoMaximoMinutos = minConfig;
+        _secondsLeft = minConfig * 60;
+        _configLoaded = true;
+      });
+      _startTimer();
+    }
   }
 
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsLeft > 0) {
         setState(() {
           _secondsLeft--;
         });
       } else {
-        _timer.cancel();
+        _timer?.cancel();
         // Pausa por ociosidade excedida
         if (!mounted) return;
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tempo limite de 30 min excedido! Jornada pausada por ociosidade.')),
+          SnackBar(content: Text('Tempo limite de $_tempoMaximoMinutos min excedido! Jornada pausada por ociosidade.')),
         );
       }
     });
@@ -51,7 +77,7 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -207,7 +233,10 @@ class _AbastecimentoModalState extends State<AbastecimentoModal> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.red),
                   ),
-                  child: Text('Tempo: $min:$sec', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    _configLoaded ? 'Tempo: $min:$sec' : 'Carregando...',
+                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
                 )
               ],
             ),
