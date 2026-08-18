@@ -235,7 +235,8 @@ class _ComprovantesHistoryScreenState extends State<ComprovantesHistoryScreen> {
                     padding: const EdgeInsets.all(16.0),
                     itemCount: list.length,
                     itemBuilder: (context, index) {
-                      final item = list[index] as Map<String, dynamic>;
+                      final itemRaw = list[index];
+                      final item = itemRaw is Map ? Map<String, dynamic>.from(itemRaw) : <String, dynamic>{};
                       final String plataforma = item['plataforma'] ?? 'OUTROS';
                       final double valor = (item['valor'] ?? 0.0).toDouble();
                       final String? origem = item['origem'];

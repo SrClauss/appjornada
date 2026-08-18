@@ -106,10 +106,10 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
       _loading = true;
     });
     final pendencias = await ApiService.getPendenciasMotorista();
-    if (pendencias.isNotEmpty && pendencias.first is Map<String, dynamic>) {
+    if (pendencias.isNotEmpty && pendencias.first is Map) {
       setState(() {
         _hasPendencia = true;
-        _pendenciaAtual = pendencias.first as Map<String, dynamic>;
+        _pendenciaAtual = Map<String, dynamic>.from(pendencias.first);
         _loading = false;
       });
     } else {

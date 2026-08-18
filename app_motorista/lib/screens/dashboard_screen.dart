@@ -782,7 +782,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildFaturamentoPanel() {
-    final fat = widget.jornada['faturamento'] as Map<String, dynamic>? ?? {};
+    final fatRaw = widget.jornada['faturamento'];
+    final Map<String, dynamic> fat = fatRaw is Map ? Map<String, dynamic>.from(fatRaw) : {};
 
     // Prioriza dados acumulados do mês (desde o dia 1º)
     final double uberVal = _acumuladoMes != null
