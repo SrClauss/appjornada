@@ -211,7 +211,11 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
   Future<void> _checkSession() async {
     final prefs = await SharedPreferences.getInstance();
     final savedToken = prefs.getString('token');
-    final savedUrl = prefs.getString('api_url') ?? defaultApiUrl;
+    String savedUrl = prefs.getString('api_url') ?? defaultApiUrl;
+    if (savedUrl.contains('rafael.arkana.fun') || savedUrl.contains('http://')) {
+      savedUrl = defaultApiUrl;
+      await prefs.setString('api_url', defaultApiUrl);
+    }
     ApiService.baseUrl = savedUrl;
     final savedId = prefs.getString('motorista_id');
     final savedNome = prefs.getString('motorista_nome');
@@ -272,10 +276,12 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
 
   Future<Map<String, dynamic>?> _fetchJornadaAberta() async {
     try {
-      final res = await http.get(
-        Uri.parse('${ApiService.baseUrl}/jornadas/aberta'),
-        headers: ApiService.headers,
-      );
+      final res = await http
+          .get(
+            Uri.parse('${ApiService.baseUrl}/jornadas/aberta'),
+            headers: ApiService.headers,
+          )
+          .timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         return body is Map ? Map<String, dynamic>.from(body) : null;
@@ -290,10 +296,12 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
 
   Future<Map<String, dynamic>?> _fetchJornadaPendenteFechamento() async {
     try {
-      final res = await http.get(
-        Uri.parse('${ApiService.baseUrl}/jornadas/pendente-fechamento'),
-        headers: ApiService.headers,
-      );
+      final res = await http
+          .get(
+            Uri.parse('${ApiService.baseUrl}/jornadas/pendente-fechamento'),
+            headers: ApiService.headers,
+          )
+          .timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         return body is Map ? Map<String, dynamic>.from(body) : null;
