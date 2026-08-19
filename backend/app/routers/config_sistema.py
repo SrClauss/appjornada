@@ -38,10 +38,10 @@ async def get_versao_app():
     Retorna a versão mais recente do aplicativo mobile do motorista e o link de download direto do APK.
     """
     return {
-        "versao_mais_recente": "1.0.8",
+        "versao_mais_recente": "1.1.0",
         "versao_minima": "1.0.0",
         "url_download": "https://minhajornada.lysia.tech/app-release.apk",
-        "notas": "Versão com Microsoft Fluent Design 2, Métricas de Ticket Médio e Mapa de Calor."
+        "notas": "Versão 1.1.0 Oficial: Fluent Design 2, Ticket Médio, Mapa de Calor, Convites por QR Code e Tolerância de Abastecimento."
     }
 
 
