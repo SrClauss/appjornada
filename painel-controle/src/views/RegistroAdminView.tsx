@@ -26,6 +26,7 @@ export const RegistroAdminView: React.FC = () => {
     email: '',
     senha: '',
     confirmacao_senha: '',
+    pin: '',
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -48,7 +49,7 @@ export const RegistroAdminView: React.FC = () => {
         }
       })
       .catch((err) => {
-        const msg = err.response?.data?.detail || 'Erro ao validar o convite de administrador.';
+        const msg = err.response?.data?.detail || 'Erro ao validar o convite de cadastro.';
         setMensagemErro(msg);
       })
       .finally(() => setLoading(false));
@@ -72,6 +73,11 @@ export const RegistroAdminView: React.FC = () => {
       return;
     }
 
+    if (roleConvite === 'MOTORISTA' && form.pin.length !== 4) {
+      toast.error('O PIN do motorista deve ter exatamente 4 dígitos numéricos.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -81,12 +87,13 @@ export const RegistroAdminView: React.FC = () => {
         email: form.email,
         senha: form.senha,
         confirmacao_senha: form.confirmacao_senha,
+        pin: roleConvite === 'MOTORISTA' ? form.pin : undefined,
       });
 
-      toast.success('🎉 Cadastro de Administrador realizado com sucesso!');
+      toast.success(`🎉 Cadastro de ${roleConvite.toLowerCase()} realizado com sucesso!`);
       navigateTo('/login');
     } catch (err: any) {
-      const msg = err.response?.data?.detail || 'Erro ao registrar administrador.';
+      const msg = err.response?.data?.detail || 'Erro ao registrar conta.';
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -220,6 +227,24 @@ export const RegistroAdminView: React.FC = () => {
                       </p>
                     )}
                   </div>
+
+                  {roleConvite === 'MOTORISTA' && (
+                    <div className="space-y-1.5 p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
+                      <Label className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
+                        <Lock size={14} /> PIN de 4 Dígitos para Login no App Mobile
+                      </Label>
+                      <Input
+                        type="text"
+                        maxLength={4}
+                        placeholder="Ex: 1234"
+                        value={form.pin}
+                        onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '') })}
+                        required
+                        className="bg-slate-900 border-slate-700 text-center font-mono text-lg tracking-widest text-emerald-400 font-bold"
+                      />
+                      <p className="text-[10px] text-slate-400">Este PIN será usado para entrar no aplicativo do celular.</p>
+                    </div>
+                  )}
 
                   <Button
                     type="submit"

@@ -17,12 +17,38 @@ import { Eye, Pencil, UserMinus, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useMotoristas, useCreateMotorista, useUpdateUser, useDeleteUser } from '@/hooks/useMotoristas';
 import type { User, Role, Situacao } from '@/lib/types';
+import api from '@/lib/api';
+import { ConviteModal } from '@/components/ConviteModal';
+import { QrCode } from 'lucide-react';
 
 export function MotoristasView() {
   const [search, setSearch] = useState('');
   const [openCreate, setOpenCreate] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [viewUser, setViewUser] = useState<User | null>(null);
+
+  const [conviteModalOpen, setConviteModalOpen] = useState(false);
+  const [inviteData, setInviteData] = useState<{
+    token: string;
+    invite_url: string;
+    role: string;
+    expira_em: string;
+  } | null>(null);
+  const [gerandoConvite, setGerandoConvite] = useState(false);
+
+  const handleGerarConviteMotorista = async () => {
+    setGerandoConvite(true);
+    try {
+      const res = await api.post('/auth/convites/gerar', { role: 'MOTORISTA' });
+      setInviteData(res.data);
+      setConviteModalOpen(true);
+      toast.success('Convite de Motorista gerado com sucesso!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Erro ao gerar convite.');
+    } finally {
+      setGerandoConvite(false);
+    }
+  };
 
   const { data: motoristas = [], isLoading } = useMotoristas(search);
   const createMutation = useCreateMotorista();
@@ -97,7 +123,18 @@ export function MotoristasView() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <Button onClick={() => setOpenCreate(true)}>+ Novo Motorista</Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleGerarConviteMotorista}
+            disabled={gerandoConvite}
+            className="flex items-center gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+          >
+            <QrCode size={16} />
+            {gerandoConvite ? 'Gerando...' : 'Gerar Convite (QR Code 24h)'}
+          </Button>
+          <Button onClick={() => setOpenCreate(true)}>+ Novo Motorista Direto</Button>
+        </div>
       </div>
 
       <Card className="p-6">
@@ -429,6 +466,12 @@ export function MotoristasView() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <ConviteModal
+        open={conviteModalOpen}
+        onOpenChange={setConviteModalOpen}
+        inviteData={inviteData}
+      />
     </div>
   );
 }

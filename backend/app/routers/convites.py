@@ -12,15 +12,16 @@ router = APIRouter(prefix="/auth/convites", tags=["convites"])
 
 
 class GerarConvitePayload(BaseModel):
-    role: str = Field(default="ADMIN", description="Papel a ser atribuído: ADMIN ou GESTOR")
+    role: str = Field(default="ADMIN", description="Papel a ser atribuído: ADMIN, GESTOR ou MOTORISTA")
 
 
 class AceitarConvitePayload(BaseModel):
     token: str = Field(..., description="Token único do convite")
-    nome: str = Field(..., min_length=2, description="Nome completo do novo administrador")
+    nome: str = Field(..., min_length=2, description="Nome completo do convidado")
     email: EmailStr = Field(..., description="E-mail de acesso")
     senha: str = Field(..., min_length=6, description="Senha de acesso")
     confirmacao_senha: str = Field(..., min_length=6, description="Confirmação da senha")
+    pin: str | None = Field(default=None, min_length=4, max_length=4, description="PIN de 4 dígitos para motorista")
 
 
 @router.post("/gerar")
@@ -30,7 +31,7 @@ async def gerar_convite(
     current_user=Depends(get_current_user),
 ):
     """
-    Gera um novo token de convite para cadastrar um Administrador ou Gestor, válido por 24 horas.
+    Gera um novo token de convite para cadastrar um Administrador, Gestor ou Motorista, válido por 24 horas.
     """
     user_role = getattr(current_user, "role", None) if not isinstance(current_user, dict) else current_user.get("role")
     if user_role not in ["ADMIN", "GESTOR"]:
@@ -40,10 +41,10 @@ async def gerar_convite(
         )
 
     target_role = payload.role.upper()
-    if target_role not in ["ADMIN", "GESTOR"]:
+    if target_role not in ["ADMIN", "GESTOR", "MOTORISTA"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="O papel de convite deve ser ADMIN ou GESTOR.",
+            detail="O papel de convite deve ser ADMIN, GESTOR ou MOTORISTA.",
         )
 
     token = str(uuid4())
@@ -71,7 +72,7 @@ async def gerar_convite(
         "role": target_role,
         "invite_url": invite_url,
         "expira_em": expira_em.isoformat(),
-        "mensagem": "Convite gerado com sucesso! Válido por 24 horas.",
+        "mensagem": f"Convite para {target_role} gerado com sucesso! Válido por 24 horas.",
     }
 
 
@@ -170,11 +171,24 @@ async def aceitar_convite(payload: AceitarConvitePayload, db=Depends(get_db)):
         "email": payload.email.lower(),
         "senha_hash": senha_hashed,
         "role": target_role,
+        "pin": payload.pin if target_role == "MOTORISTA" else None,
         "situacao": "Ativo",
         "criado_em": datetime.utcnow(),
     }
 
     result = await db["users"].insert_one(novo_usuario)
+
+    # Se for MOTORISTA, cadastra também na coleção de motoristas
+    if target_role == "MOTORISTA":
+        novo_motorista = {
+            "user_id": str(result.inserted_id),
+            "nome": payload.nome,
+            "email": payload.email.lower(),
+            "pin": payload.pin or "1234",
+            "situacao": "Ativo",
+            "criado_em": datetime.utcnow(),
+        }
+        await db["motoristas"].insert_one(novo_motorista)
 
     # Invalida o convite
     await db["convites_admin"].update_one(
@@ -190,7 +204,7 @@ async def aceitar_convite(payload: AceitarConvitePayload, db=Depends(get_db)):
 
     return {
         "sucesso": True,
-        "mensagem": "Cadastro de administrador realizado com sucesso! Faça login para continuar.",
+        "mensagem": f"Cadastro de {target_role.lower()} realizado com sucesso!",
         "user_id": str(result.inserted_id),
         "email": payload.email.lower(),
         "role": target_role,
