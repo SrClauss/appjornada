@@ -223,10 +223,11 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     if (savedToken != null && savedId != null && savedId != 'null') {
       ApiService.init(savedUrl, savedToken, savedId, savedNome);
       try {
-        var j = await _fetchJornadaAberta();
-        if (j == null) {
-          j = await _fetchJornadaPendenteFechamento();
-        }
+        final results = await Future.wait([
+          _fetchJornadaAberta(),
+          _fetchJornadaPendenteFechamento(),
+        ]);
+        final j = results[0] ?? results[1];
         setState(() {
           _jornadaAberta = j;
           if (j != null) {
@@ -281,7 +282,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             Uri.parse('${ApiService.baseUrl}/jornadas/aberta'),
             headers: ApiService.headers,
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(milliseconds: 2500));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         return body is Map ? Map<String, dynamic>.from(body) : null;
@@ -289,7 +290,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         throw Exception('UNAUTHENTICATED');
       }
     } catch (e) {
-      rethrow;
+      // Ignora erro de timeout para acelerar inicialização
     }
     return null;
   }
@@ -301,7 +302,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             Uri.parse('${ApiService.baseUrl}/jornadas/pendente-fechamento'),
             headers: ApiService.headers,
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(milliseconds: 2500));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         return body is Map ? Map<String, dynamic>.from(body) : null;
