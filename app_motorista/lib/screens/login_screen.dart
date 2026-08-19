@@ -26,24 +26,65 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loadMotoristas() async {
+    setState(() {
+      _loadingMotoristas = true;
+    });
+
+    // Garante que o baseUrl sempre aponte para o endereço oficial se for o antigo
+    if (ApiService.baseUrl.contains('rafael.arkana.fun') || ApiService.baseUrl.contains('http://')) {
+      ApiService.baseUrl = defaultApiUrl;
+    }
+
     try {
-      final res = await http.get(Uri.parse('${ApiService.baseUrl}/auth/motoristas'));
+      final res = await http
+          .get(Uri.parse('${ApiService.baseUrl}/auth/motoristas'))
+          .timeout(const Duration(seconds: 6));
+
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
-        setState(() {
-          _motoristas = data.map((e) => Map<String, dynamic>.from(e)).toList();
-          _loadingMotoristas = false;
-          if (_motoristas.isNotEmpty) {
-            _selectedMotorista = _motoristas.first;
-            _emailController.text = _selectedMotorista!['email'] ?? '';
-          }
-        });
-      } else {
-        setState(() {
-          _loadingMotoristas = false;
-        });
+        if (mounted) {
+          setState(() {
+            _motoristas = data.map((e) => Map<String, dynamic>.from(e)).toList();
+            _loadingMotoristas = false;
+            if (_motoristas.isNotEmpty) {
+              _selectedMotorista = _motoristas.first;
+              _emailController.text = _selectedMotorista!['email'] ?? '';
+            }
+          });
+        }
+        return;
       }
     } catch (e) {
+      print('[LoginScreen] Erro ao carregar motoristas de ${ApiService.baseUrl}: $e');
+    }
+
+    // Se falhou com a URL atual, força fallback para defaultApiUrl oficial
+    if (ApiService.baseUrl != defaultApiUrl) {
+      ApiService.baseUrl = defaultApiUrl;
+      try {
+        final res = await http
+            .get(Uri.parse('${defaultApiUrl}/auth/motoristas'))
+            .timeout(const Duration(seconds: 6));
+        if (res.statusCode == 200) {
+          final List<dynamic> data = json.decode(res.body);
+          if (mounted) {
+            setState(() {
+              _motoristas = data.map((e) => Map<String, dynamic>.from(e)).toList();
+              _loadingMotoristas = false;
+              if (_motoristas.isNotEmpty) {
+                _selectedMotorista = _motoristas.first;
+                _emailController.text = _selectedMotorista!['email'] ?? '';
+              }
+            });
+          }
+          return;
+        }
+      } catch (e2) {
+        print('[LoginScreen] Erro no fallback defaultApiUrl: $e2');
+      }
+    }
+
+    if (mounted) {
       setState(() {
         _loadingMotoristas = false;
       });
@@ -208,22 +249,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       )
                     : _motoristas.isEmpty
-                        ? TextField(
-                            controller: _emailController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'E-mail cadastrado',
-                              labelStyle: const TextStyle(color: Colors.grey),
-                              prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.grey),
+                        ? Column(
+                            children: [
+                              TextField(
+                                controller: _emailController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'E-mail cadastrado',
+                                  labelStyle: const TextStyle(color: Colors.grey),
+                                  prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: Color(0xFF6366F1)),
+                                  ),
+                                ),
                               ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF6366F1)),
-                              ),
-                            ),
+                              const SizedBox(height: 8),
+                              TextButton.icon(
+                                onPressed: _loadMotoristas,
+                                icon: const Icon(Icons.refresh, size: 16, color: Color(0xFF38BDF8)),
+                                label: const Text('Buscar lista de motoristas', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 13)),
+                              )
+                            ],
                           )
                         : DropdownButtonFormField<Map<String, dynamic>>(
                             value: _selectedMotorista,
@@ -234,6 +285,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               labelText: 'Selecione seu Nome',
                               labelStyle: const TextStyle(color: Colors.grey),
                               prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.refresh, color: Color(0xFF38BDF8), size: 20),
+                                tooltip: 'Recarregar motoristas',
+                                onPressed: _loadMotoristas,
+                              ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(color: Colors.grey),
