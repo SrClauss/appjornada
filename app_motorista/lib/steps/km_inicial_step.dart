@@ -152,7 +152,16 @@ class _KmInicialStepState extends State<KmInicialStep> {
       return;
     }
 
-    final double kmFinalOntem = (widget.veiculo['km_atual'] as num?)?.toDouble() ?? 50000.0;
+    final double kmFinalOntem = (widget.veiculo['km_atual'] as num?)?.toDouble() ??
+        (widget.veiculo['odometro_atual'] as num?)?.toDouble() ??
+        (widget.veiculo['km_hodometro'] as num?)?.toDouble() ?? 0.0;
+
+    if (kmDigitado < kmFinalOntem) {
+      setState(() {
+        _errorMessage = '⛔ A KM inicial informada (${kmDigitado.toStringAsFixed(1)} km) não pode ser menor que a última KM registrada do veículo (${kmFinalOntem.toStringAsFixed(1)} km).';
+      });
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -174,6 +183,9 @@ class _KmInicialStepState extends State<KmInicialStep> {
   @override
   Widget build(BuildContext context) {
     final kmDigitado = double.tryParse(_kmController.text) ?? 0.0;
+    final double kmFinalOntem = (widget.veiculo['km_atual'] as num?)?.toDouble() ??
+        (widget.veiculo['odometro_atual'] as num?)?.toDouble() ??
+        (widget.veiculo['km_hodometro'] as num?)?.toDouble() ?? 0.0;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 48.0),
@@ -181,13 +193,44 @@ class _KmInicialStepState extends State<KmInicialStep> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Leitura Obrigatoria de Hodometro',
+            'Leitura Obrigatória de Hodômetro',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 6),
           const Text(
-            'Tire a foto do painel para a IA realizar a leitura automatica da quilometragem inicial.',
+            'Tire a foto do painel para a IA realizar a leitura automática da quilometragem inicial.',
             style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+
+          // FEEDBACK DA ÚLTIMA KM REGISTRADA NO VEÍCULO
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.speed, color: Color(0xFF38BDF8), size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Última KM Registrada do Veículo:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${kmFinalOntem.toStringAsFixed(1)} km',
+                        style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
 

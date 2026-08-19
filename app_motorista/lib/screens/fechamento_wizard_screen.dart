@@ -288,24 +288,41 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
   }
 
   Future<void> _finalizarJornada() async {
+    if (_fotoKmFinalUrl == null || _fotoKmFinalUrl!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text('📸 É obrigatório tirar a foto do hodômetro para validar a leitura da KM final!'),
+        ),
+      );
+      return;
+    }
+
     if (_kmFinalCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, informe o KM final.')),
+        const SnackBar(content: Text('Por favor, informe a KM final.')),
       );
       return;
     }
     final kmFinal = double.tryParse(_kmFinalCtrl.text);
     if (kmFinal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('KM final inválido.')),
+        const SnackBar(content: Text('KM final inválida.')),
       );
       return;
     }
 
-    final kmInicial = widget.jornada['km']?['inicial'] ?? 0.0;
-    if (kmFinal < kmInicial) {
+    final double kmInicial = (widget.jornada['km']?['inicial'] as num?)?.toDouble() ?? 0.0;
+    final double kmAtualVeiculo = (widget.jornada['veiculo']?['km_atual'] as num?)?.toDouble() ??
+        (widget.jornada['veiculo']?['odometro_atual'] as num?)?.toDouble() ?? kmInicial;
+    final double kmMinimoPermitido = kmInicial > kmAtualVeiculo ? kmInicial : kmAtualVeiculo;
+
+    if (kmFinal < kmMinimoPermitido) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('KM final não pode ser menor que o inicial ($kmInicial km)')),
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text('⛔ A KM final informada (${kmFinal.toStringAsFixed(1)} km) não pode ser menor que a última KM registrada (${kmMinimoPermitido.toStringAsFixed(1)} km).'),
+        ),
       );
       return;
     }
@@ -958,19 +975,34 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
         ),
         const SizedBox(height: 16),
 
-        // INFORMACAO HODOMETRO INICIAL DA JORNADA ATUAL
+        // INFORMACAO HODOMETRO INICIAL DA JORNADA ATUAL & FEEDBACK KM REGISTRADA
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
+            color: const Color(0xFF1E293B),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF334155)),
+            border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.5)),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
             children: [
-              const Text('Hodômetro Inicial da Jornada Atual:', style: TextStyle(color: Colors.grey, fontSize: 13)),
-              Text('${kmInicial.toStringAsFixed(1)} KM', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Hodômetro Inicial da Jornada:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  Text('${kmInicial.toStringAsFixed(1)} KM', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+              const Divider(color: Color(0xFF334155), height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Última KM Registrada do Veículo:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  Text(
+                    '${((widget.jornada['veiculo']?['km_atual'] as num?)?.toDouble() ?? kmInicial).toStringAsFixed(1)} KM',
+                    style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
