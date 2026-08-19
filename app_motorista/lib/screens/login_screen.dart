@@ -149,13 +149,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: FluentDecorations.glowCard(
-                        glowColor: FluentColors.primaryTeal,
-                        borderRadius: 16,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/images/app_logo.png',
+                        width: 54,
+                        height: 54,
+                        fit: BoxFit.cover,
                       ),
-                      child: const Icon(Icons.airport_shuttle, size: 36, color: FluentColors.primaryTeal),
                     ),
                     const SizedBox(width: 16),
                     const Column(

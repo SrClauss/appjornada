@@ -66,9 +66,7 @@ export function AppSidebar({ activeView, onNavigate, isMobileOpen = false, onClo
     <div className="flex flex-col h-full bg-slate-950/95 backdrop-blur-2xl text-slate-100 border-r border-slate-800/80 shadow-2xl">
       <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-teal-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-cyan-500/20">
-            J
-          </div>
+          <img src="/app-logo.png" alt="App Jornada Logo" className="w-10 h-10 rounded-xl shadow-lg shadow-cyan-500/20 object-cover border border-slate-700/60" />
           <div>
             <h1 className="text-lg font-bold tracking-tight text-white">App Jornada</h1>
             <p className="text-[10px] text-teal-400 font-semibold tracking-wider uppercase">Fluent Fleet OS</p>

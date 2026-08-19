@@ -36,9 +36,7 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo / cabeçalho */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <LockKey size={32} className="text-primary-foreground" />
-          </div>
+          <img src="/app-logo.png" alt="App Jornada Logo" className="w-20 h-20 rounded-2xl shadow-xl shadow-cyan-500/20 mx-auto mb-4 object-cover border-2 border-slate-800" />
           <h1 className="text-3xl font-bold text-foreground">App Jornada</h1>
           <p className="text-muted-foreground mt-1">Painel de Controle — Administração</p>
         </div>
