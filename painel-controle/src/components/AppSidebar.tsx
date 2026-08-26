@@ -13,6 +13,7 @@ import {
   DownloadSimple,
   Gauge,
   Flame,
+  DeviceMobile,
   X
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ export const navItems: NavItem[] = [
   { icon: Target, label: 'Metas & Bônus', id: 'metas', category: 'ANÁLISES & IA' },
   { icon: CurrencyDollar, label: 'Tarifas Particulares', id: 'tarifas-particulares', category: 'CONFIGURAÇÕES' },
   { icon: Image, label: 'Gestão de Mídias', id: 'gestao-midias', category: 'CONFIGURAÇÕES' },
+  { icon: DeviceMobile, label: 'Versões & Alterações APK', id: 'versoes-apk', category: 'CONFIGURAÇÕES' },
   { icon: Gear, label: 'Configurações', id: 'configuracoes', category: 'CONFIGURAÇÕES' },
 ];
 
@@ -118,15 +120,15 @@ export function AppSidebar({ activeView, onNavigate, isMobileOpen = false, onClo
       
       <div className="p-4 border-t border-slate-800/80 flex flex-col gap-2 bg-slate-950/60">
         <a
-          href="/app-jornada-v1.0.8.apk"
-          download="app-jornada-v1.0.8.apk"
+          href="/app-release.apk"
+          download="app-jornada-v1.1.0.apk"
           className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left text-xs rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold transition-all duration-200 border border-emerald-500/30 shadow-sm"
-          title="Baixar App Motorista Versão v1.0.8 (APK)"
+          title="Baixar App Motorista Versão v1.1.0 (APK)"
         >
           <DownloadSimple size={18} className="flex-shrink-0 text-emerald-400 animate-bounce" />
           <div className="flex flex-col">
             <span className="font-bold">Baixar App Motorista</span>
-            <span className="text-[10px] text-emerald-400/80">v1.0.8 (APK)</span>
+            <span className="text-[10px] text-emerald-400/80">v1.1.0 (APK)</span>
           </div>
         </a>
         <button
@@ -137,7 +139,7 @@ export function AppSidebar({ activeView, onNavigate, isMobileOpen = false, onClo
           <span>Sair do Sistema</span>
         </button>
         <div className="text-[10px] text-slate-500 px-1 mt-1 text-center font-mono">
-          Fluent 2 • v1.0.8 • 2026
+          Fluent 2 • v1.1.0 • 2026
         </div>
       </div>
     </div>

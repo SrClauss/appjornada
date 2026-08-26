@@ -17,6 +17,7 @@ import { MediaManagementView } from '@/views/MediaManagementView';
 import { MonitorView } from '@/views/MonitorView';
 import { MapaCalorView } from '@/views/MapaCalorView';
 import { RegistroAdminView } from '@/views/RegistroAdminView';
+import { VersoesApkView } from '@/views/VersoesApkView';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -109,6 +110,7 @@ function App() {
       case 'configuracoes':  return <ConfiguracoesView />;
       case 'tarifas-particulares': return <PrecosParticularesView />;
       case 'gestao-midias':  return <MediaManagementView />;
+      case 'versoes-apk':    return <VersoesApkView />;
       default:               return <DashboardView />;
     }
   };

@@ -32,17 +32,85 @@ class BaseOperacaoSchema(BaseModel):
     is_principal: bool = Field(default=False, description="Indica se é a base principal de centralização da frota")
 
 
+HISTORICO_VERSOES_APK = [
+    {
+        "versao": "1.1.0+13",
+        "nome_versao": "1.1.0",
+        "build_number": 13,
+        "data_release": "2026-08-26",
+        "tamanho_mb": "34.5 MB",
+        "is_latest": True,
+        "url_download": "/app-jornada-v1.1.0.apk",
+        "url_download_direto": "/app-release.apk",
+        "resumo": "Atualização principal com Novo Painel de Ticket Médio, Design Fluent 2 e Mapa de Calor.",
+        "alteracoes": [
+            {"tipo": "FEATURE", "descricao": "Implementado Mapa de Calor em tempo real para análises de rotas e tickets."},
+            {"tipo": "FEATURE", "descricao": "Integrado cálculo dinâmico de Ticket Médio e bônus em Metas & Performance."},
+            {"tipo": "DESIGN", "descricao": "Renovação visual completa com tokens Fluent Design 2 e componentes responsivos."},
+            {"tipo": "MELHORIA", "descricao": "Adicionado suporte a leitura rápida de QR Code para vinculo automático de motoristas."},
+            {"tipo": "MELHORIA", "descricao": "Tolerância ajustada para auditoria de paradas e abastecimentos."},
+            {"tipo": "FIX", "descricao": "Correção no sincronismo de dados em segundo plano quando sem sinal 4G."}
+        ]
+    },
+    {
+        "versao": "1.0.8+10",
+        "nome_versao": "1.0.8",
+        "build_number": 10,
+        "data_release": "2026-08-15",
+        "tamanho_mb": "32.1 MB",
+        "is_latest": False,
+        "url_download": "/app-jornada-v1.0.8.apk",
+        "url_download_direto": "/app-jornada-v1.0.8.apk",
+        "resumo": "Módulo de Abastecimentos e Monitoramento de Jornada em Tempo Real.",
+        "alteracoes": [
+            {"tipo": "FEATURE", "descricao": "Lançamento da tela de registro de abastecimentos com foto do comprovante."},
+            {"tipo": "MELHORIA", "descricao": "Otimização no consumo de bateria durante o rastreamento GPS contínuo."},
+            {"tipo": "FIX", "descricao": "Ajuste na reconexão automática do WebSocket de status."}
+        ]
+    },
+    {
+        "versao": "1.0.4+5",
+        "nome_versao": "1.0.4",
+        "build_number": 5,
+        "data_release": "2026-08-01",
+        "tamanho_mb": "30.8 MB",
+        "is_latest": False,
+        "url_download": "/app-jornada-v1.0.4.apk",
+        "url_download_direto": "/app-jornada-v1.0.4.apk",
+        "resumo": "Versão Inicial Estável do aplicativo Motorista.",
+        "alteracoes": [
+            {"tipo": "FEATURE", "descricao": "Início de jornada, paradas, fim de jornada e visualização de extrato."},
+            {"tipo": "FEATURE", "descricao": "Autenticação segura via JWT com suporte a perfis de motoristas."}
+        ]
+    }
+]
+
+
 @router.get("/versao-app")
 async def get_versao_app():
     """
     Retorna a versão mais recente do aplicativo mobile do motorista e o link de download direto do APK.
     """
+    latest = HISTORICO_VERSOES_APK[0]
     return {
-        "versao_mais_recente": "1.1.0",
+        "versao_mais_recente": latest["nome_versao"],
+        "versao_completa": latest["versao"],
         "versao_minima": "1.0.0",
-        "url_download": "https://minhajornada.lysia.tech/app-release.apk",
-        "notas": "Versão 1.1.0 Oficial: Fluent Design 2, Ticket Médio, Mapa de Calor, Convites por QR Code e Tolerância de Abastecimento."
+        "url_download": latest["url_download_direto"],
+        "notas": latest["resumo"]
     }
+
+
+@router.get("/versao-app/historico")
+async def get_historico_versoes_app():
+    """
+    Retorna a lista completa de versões e changelog do APK do Motorista.
+    """
+    return {
+        "versoes": HISTORICO_VERSOES_APK,
+        "total": len(HISTORICO_VERSOES_APK)
+    }
+
 
 
 @router.get("/inatividade", response_model=ConfigInatividadeSchema)
