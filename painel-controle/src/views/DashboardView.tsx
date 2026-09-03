@@ -75,11 +75,11 @@ export function DashboardView() {
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
           <a
-            href="/app-jornada-v1.0.8.apk"
-            download="app-jornada-v1.0.8.apk"
+            href="/app-release.apk"
+            download="app-jornada-v1.2.1.apk"
             className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-emerald-500/20 transition-all duration-200 flex items-center justify-center gap-2"
           >
-            <span>BAIXAR APK v1.0.8</span>
+            <span>BAIXAR APK v1.2.1</span>
             <span>↓</span>
           </a>
           <a

@@ -57,12 +57,28 @@ export function VersoesApkView() {
       // Fallback em caso de offline/carregamento inicial
       setVersoes([
         {
+          versao: '1.2.1+14',
+          nome_versao: '1.2.1',
+          build_number: 14,
+          data_release: '2026-09-03',
+          tamanho_mb: '54.6 MB',
+          is_latest: true,
+          url_download: '/app-jornada-v1.2.1.apk',
+          url_download_direto: '/app-release.apk',
+          resumo: 'Bloqueio e redirecionamento direto para a Tela de Auditoria quando a jornada anterior estiver em análise pelo gestor.',
+          alteracoes: [
+            { tipo: 'FEATURE', descricao: 'Bloqueio automático no backend para abertura de nova jornada caso a auditoria anterior esteja pendente.' },
+            { tipo: 'FEATURE', descricao: 'Direcionamento direto do motorista para a Tela de Auditoria do Gestor com aviso visual e botão de atualização.' },
+            { tipo: 'MELHORIA', descricao: 'Melhoria na exibição de mensagens de conflito e avisos no app móvel.' }
+          ]
+        },
+        {
           versao: '1.1.0+13',
           nome_versao: '1.1.0',
           build_number: 13,
           data_release: '2026-08-26',
           tamanho_mb: '34.5 MB',
-          is_latest: true,
+          is_latest: false,
           url_download: '/app-jornada-v1.1.0.apk',
           url_download_direto: '/app-release.apk',
           resumo: 'Atualização principal com Novo Painel de Ticket Médio, Design Fluent 2 e Mapa de Calor.',
