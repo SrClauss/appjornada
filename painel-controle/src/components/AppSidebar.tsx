@@ -139,7 +139,7 @@ export function AppSidebar({ activeView, onNavigate, isMobileOpen = false, onClo
           <span>Sair do Sistema</span>
         </button>
         <div className="text-[10px] text-slate-500 px-1 mt-1 text-center font-mono">
-          Fluent 2 • v1.1.0 • 2026
+          Fluent 2 • v1.2.1 • 2026
         </div>
       </div>
     </div>

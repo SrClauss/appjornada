@@ -65,7 +65,7 @@ export function DashboardView() {
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-white tracking-wide">Aplicativo do Motorista (Android APK)</h2>
               <Badge className="bg-emerald-500 text-slate-950 font-extrabold text-[10px] px-2 py-0.5">
-                v1.0.8 PRODUÇÃO
+                v1.2.1 PRODUÇÃO
               </Badge>
             </div>
             <p className="text-xs text-slate-400">
