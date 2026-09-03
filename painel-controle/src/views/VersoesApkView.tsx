@@ -32,7 +32,7 @@ export interface VersaoApk {
   build_number: number;
   data_release: string;
   tamanho_mb: string;
-  is_latest: boolean;
+  is_latest: bool;
   url_download: string;
   url_download_direto: string;
   resumo: string;
@@ -54,72 +54,20 @@ export function VersoesApkView() {
       }
     } catch (err) {
       console.error('Erro ao carregar histórico de versões do APK:', err);
-      // Fallback em caso de offline/carregamento inicial
       setVersoes([
         {
-          versao: '1.2.4+16',
+          versao: '1.2.4+17',
           nome_versao: '1.2.4',
-          build_number: 16,
+          build_number: 17,
           data_release: '2026-09-03',
           tamanho_mb: '54.6 MB',
           is_latest: true,
-          url_download: '/app-jornada-v1.2.4-fix.apk',
-          url_download_direto: '/app-release.apk',
-          resumo: 'Correção no roteamento de sessões do app motorista para manter jornadas encerradas no trilho de auditoria do gestor sem calcular tempo contínuo falso.',
+          url_download: '/config/apk/download',
+          url_download_direto: '/config/apk/download',
+          resumo: 'Versão de produção gerenciada dinamicamente no MinIO e MongoDB.',
           alteracoes: [
-            { tipo: 'FIX', descricao: 'Correção no carregamento inicial do app motorista para não abrir o Dashboard nem calcular horas de jornadas encerradas.' },
-            { tipo: 'FEATURE', descricao: 'Bloqueio estático do motorista no AuditoriaAnteriorStep com cartão informativo de auditoria pendente pelo gestor.' },
-            { tipo: 'MELHORIA', descricao: 'Atualização de todas as referências do APK no painel para a versão v1.2.4.' }
-          ]
-        },
-        {
-          versao: '1.1.0+13',
-          nome_versao: '1.1.0',
-          build_number: 13,
-          data_release: '2026-08-26',
-          tamanho_mb: '34.5 MB',
-          is_latest: false,
-          url_download: '/app-jornada-v1.1.0.apk',
-          url_download_direto: '/app-release.apk',
-          resumo: 'Atualização principal com Novo Painel de Ticket Médio, Design Fluent 2 e Mapa de Calor.',
-          alteracoes: [
-            { tipo: 'FEATURE', descricao: 'Implementado Mapa de Calor em tempo real para análises de rotas e tickets.' },
-            { tipo: 'FEATURE', descricao: 'Integrado cálculo dinâmico de Ticket Médio e bônus em Metas & Performance.' },
-            { tipo: 'DESIGN', descricao: 'Renovação visual completa com tokens Fluent Design 2 e componentes responsivos.' },
-            { tipo: 'MELHORIA', descricao: 'Adicionado suporte a leitura rápida de QR Code para vinculo automático de motoristas.' },
-            { tipo: 'MELHORIA', descricao: 'Tolerância ajustada para auditoria de paradas e abastecimentos.' },
-            { tipo: 'FIX', descricao: 'Correção no sincronismo de dados em segundo plano quando sem sinal 4G.' }
-          ]
-        },
-        {
-          versao: '1.0.8+10',
-          nome_versao: '1.0.8',
-          build_number: 10,
-          data_release: '2026-08-15',
-          tamanho_mb: '32.1 MB',
-          is_latest: false,
-          url_download: '/app-jornada-v1.0.8.apk',
-          url_download_direto: '/app-jornada-v1.0.8.apk',
-          resumo: 'Módulo de Abastecimentos e Monitoramento de Jornada em Tempo Real.',
-          alteracoes: [
-            { tipo: 'FEATURE', descricao: 'Lançamento da tela de registro de abastecimentos com foto do comprovante.' },
-            { tipo: 'MELHORIA', descricao: 'Otimização no consumo de bateria durante o rastreamento GPS contínuo.' },
-            { tipo: 'FIX', descricao: 'Ajuste na reconexão automática do WebSocket de status.' }
-          ]
-        },
-        {
-          versao: '1.0.4+5',
-          nome_versao: '1.0.4',
-          build_number: 5,
-          data_release: '2026-08-01',
-          tamanho_mb: '30.8 MB',
-          is_latest: false,
-          url_download: '/app-jornada-v1.0.4.apk',
-          url_download_direto: '/app-jornada-v1.0.4.apk',
-          resumo: 'Versão Inicial Estável do aplicativo Motorista.',
-          alteracoes: [
-            { tipo: 'FEATURE', descricao: 'Início de jornada, paradas, fim de jornada e visualização de extrato.' },
-            { tipo: 'FEATURE', descricao: 'Autenticação segura via JWT com suporte a perfis de motoristas.' }
+            { tipo: 'FEATURE', descricao: 'Armazenamento dinâmico do APK no MinIO com controle de versão no MongoDB.' },
+            { tipo: 'FIX', descricao: 'Correção no roteamento de sessões de auditoria do app motorista.' }
           ]
         }
       ]);
@@ -133,6 +81,12 @@ export function VersoesApkView() {
   }, []);
 
   const latestVersao = versoes.find((v) => v.is_latest) || versoes[0];
+
+  const resolveDownloadUrl = (url?: string) => {
+    if (!url) return `${api.defaults.baseURL || ''}/config/apk/download`;
+    if (url.startsWith('http')) return url;
+    return `${api.defaults.baseURL || ''}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
 
   const getTipoBadge = (tipo: string) => {
     switch (tipo.toUpperCase()) {
@@ -175,7 +129,7 @@ export function VersoesApkView() {
 
   const filteredVersoes = versoes.filter((v) => {
     const matchesSearch =
-      v.versao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.nome_versao.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.resumo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.alteracoes.some((a) => a.descricao.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -185,48 +139,31 @@ export function VersoesApkView() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header com Título e Atualização */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* Header Principal */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 shadow-md">
-              <DeviceMobile size={28} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                Histórico & Alterações do APK
-              </h1>
-              <p className="text-sm text-slate-400">
-                Acompanhe os lançamentos, novidades e faça o download direto das versões do App Motorista.
-              </p>
-            </div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-teal-400 uppercase tracking-wider mb-1">
+            <DeviceMobile size={16} />
+            <span>Distribuição de Aplicativos</span>
           </div>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+            Versões & Alterações do App Motorista (APK)
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Histórico completo de releases do aplicativo Android mantido no MinIO e MongoDB.
+          </p>
         </div>
 
         <Button
           onClick={carregarVersoes}
           variant="outline"
-          className="border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 gap-2 self-start md:self-auto"
+          className="border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 gap-2 self-start md:self-auto rounded-xl"
         >
           <ArrowClockwise size={16} className={loading ? 'animate-spin' : ''} />
           Atualizar Lista
         </Button>
       </div>
 
-      {/* Destaque da Última Versão */}
-      {latestVersao && !loading && (
-        <Card className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-teal-950/60 border-teal-500/30 p-6 md:p-8 shadow-2xl">
-          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-            <DeviceMobile size={180} className="text-teal-400" />
-          </div>
-
-          <div className="relative z-10 space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
-                <CheckCircle size={14} className="text-teal-400" />
-                Versão Mais Recente (Produção)
-              </span>
-              <span className="text-xs text-slate-400 flex items-center gap-1">
       {/* Card da Última Versão (Destaque Principal) */}
       {latestVersao && (
         <Card className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-teal-500/30 shadow-xl overflow-hidden relative">
@@ -310,13 +247,13 @@ export function VersoesApkView() {
           </div>
         </div>
 
-        {versoesFiltradas.length === 0 ? (
+        {filteredVersoes.length === 0 ? (
           <Card className="bg-slate-900/40 border-slate-800/80 p-8 text-center">
             <p className="text-sm text-slate-400">Nenhuma versão encontrada para o termo pesquisado.</p>
           </Card>
         ) : (
           <div className="space-y-4">
-            {versoesFiltradas.map((item, idx) => (
+            {filteredVersoes.map((item, idx) => (
               <Card
                 key={idx}
                 className={`border bg-slate-900/60 transition-all ${
@@ -365,22 +302,19 @@ export function VersoesApkView() {
 
                   <div className="space-y-2 pt-1">
                     <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      Lista de Alterações:
+                      Alterações nesta versão:
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {item.alteracoes.map((alt, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-900/60 border border-slate-800/40 text-xs text-slate-300"
-                        >
-                          <div className="mt-0.5">{getTipoBadge(alt.tipo)}</div>
-                          <span className="leading-snug">{alt.descricao}</span>
+                      {item.alteracoes.map((alt, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-slate-400 bg-slate-950/40 p-2 rounded-lg border border-slate-900">
+                          <div className="mt-0.5 shrink-0">{getTipoBadge(alt.tipo)}</div>
+                          <span className="text-slate-300">{alt.descricao}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                </Card>
-              </div>
+                </div>
+              </Card>
             ))}
           </div>
         )}
