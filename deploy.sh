@@ -29,22 +29,19 @@ if [ -z "$COMMIT_MSG" ] && [ $# -gt 0 ] && [ -n "$1" ]; then
   COMMIT_MSG="$1"
 fi
 
+VERSION=""
 # Se a flag -a foi passada, compila o APK antes do deploy
 if [ "$BUILD_APK" = true ]; then
   echo "==> Iniciando compilação do APK de Produção (app_motorista)..."
   cd "$LOCAL_DIR/app_motorista"
-  VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1 || echo "1.0.4")
+  VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' || echo "1.2.4+17")
   flutter clean
   flutter build apk --release
   mkdir -p "$LOCAL_DIR/nginx/html"
-  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/nginx/html/app-release.apk"
-  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/nginx/html/app-jornada-v${VERSION}.apk"
   cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/app-release.apk"
-  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/app-jornada-v${VERSION}.apk"
-  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/painel-controle/public/app-release.apk"
-  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/painel-controle/public/app-jornada-v${VERSION}.apk"
+  cp build/app/outputs/flutter-apk/app-release.apk "$LOCAL_DIR/nginx/html/app-release.apk"
   cd "$LOCAL_DIR"
-  echo "==> APK v${VERSION} compilado e copiado para app-jornada-v${VERSION}.apk e app-release.apk com sucesso!"
+  echo "==> APK v${VERSION} compilado com sucesso!"
 fi
 
 # Se um comentário de commit for fornecido
@@ -89,10 +86,17 @@ ssh "$SERVER" bash <<EOF
   set -euo pipefail
   cd "$REMOTE_DIR"
   docker compose up -d --build
+  
+  # Sincroniza o APK gerado com o MinIO e registra no MongoDB (mantendo apenas 1 versão ativa)
+  if [ -f "$REMOTE_DIR/app-release.apk" ]; then
+    echo "==> Sincronizando APK no MinIO e MongoDB..."
+    docker compose exec -T backend python -m app.scripts.sync_apk /app/app-release.apk "${VERSION:-1.2.4}" || true
+  fi
+
   docker compose restart nginx
   echo "==> Containers em execução:"
   docker compose ps
 EOF
 
 echo ""
-echo "==> Deploy concluído! Acesse http://2.24.121.189:3000"
+echo "==> Deploy e Sincronização MinIO/MongoDB concluídos! Acesse https://minhajornada.lysia.tech"

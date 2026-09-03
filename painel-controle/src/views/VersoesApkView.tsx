@@ -57,19 +57,19 @@ export function VersoesApkView() {
       // Fallback em caso de offline/carregamento inicial
       setVersoes([
         {
-          versao: '1.2.3+16',
-          nome_versao: '1.2.3',
+          versao: '1.2.4+16',
+          nome_versao: '1.2.4',
           build_number: 16,
           data_release: '2026-09-03',
           tamanho_mb: '54.6 MB',
           is_latest: true,
-          url_download: '/app-jornada-v1.2.3.apk',
+          url_download: '/app-jornada-v1.2.4-fix.apk',
           url_download_direto: '/app-release.apk',
           resumo: 'Correção no roteamento de sessões do app motorista para manter jornadas encerradas no trilho de auditoria do gestor sem calcular tempo contínuo falso.',
           alteracoes: [
             { tipo: 'FIX', descricao: 'Correção no carregamento inicial do app motorista para não abrir o Dashboard nem calcular horas de jornadas encerradas.' },
             { tipo: 'FEATURE', descricao: 'Bloqueio estático do motorista no AuditoriaAnteriorStep com cartão informativo de auditoria pendente pelo gestor.' },
-            { tipo: 'MELHORIA', descricao: 'Atualização de todas as referências do APK no painel para a versão v1.2.3.' }
+            { tipo: 'MELHORIA', descricao: 'Atualização de todas as referências do APK no painel para a versão v1.2.4.' }
           ]
         },
         {
@@ -227,17 +227,20 @@ export function VersoesApkView() {
                 Versão Mais Recente (Produção)
               </span>
               <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Calendar size={14} className="text-slate-500" />
-                Lançado em {latestVersao.data_release}
-              </span>
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <HardDrive size={14} className="text-slate-500" />
-                {latestVersao.tamanho_mb}
-              </span>
-            </div>
+      {/* Card da Última Versão (Destaque Principal) */}
+      {latestVersao && (
+        <Card className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-teal-500/30 shadow-xl overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-2">
+          <div className="p-6 md:p-8 space-y-6 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs px-2.5 py-0.5 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Sparkle size={12} weight="fill" />
+                    Versão Atual Ativa (MinIO & DB)
+                  </Badge>
+                </div>
                 <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
                   App Motorista v{latestVersao.nome_versao}
                   <span className="text-sm font-semibold font-mono text-teal-400 bg-teal-950/80 border border-teal-800/60 px-2.5 py-0.5 rounded-md">
@@ -251,7 +254,7 @@ export function VersoesApkView() {
 
               <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
                 <a
-                  href={latestVersao.url_download_direto}
+                  href={resolveDownloadUrl(latestVersao.url_download_direto || latestVersao.url_download)}
                   download={`app-jornada-v${latestVersao.nome_versao}.apk`}
                 >
                   <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-6 py-6 rounded-xl shadow-lg shadow-emerald-950/50 transition-all gap-2 text-base">
@@ -271,10 +274,10 @@ export function VersoesApkView() {
                 {latestVersao.alteracoes.map((alt, idx) => (
                   <div
                     key={idx}
-                    className="flex items-start gap-2.5 p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/60 text-xs text-slate-200"
+                    className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700/80 transition-colors"
                   >
-                    <div className="mt-0.5">{getTipoBadge(alt.tipo)}</div>
-                    <span className="leading-snug">{alt.descricao}</span>
+                    <div className="mt-0.5 shrink-0">{getTipoBadge(alt.tipo)}</div>
+                    <p className="text-xs text-slate-300 font-medium leading-normal">{alt.descricao}</p>
                   </div>
                 ))}
               </div>
@@ -283,74 +286,53 @@ export function VersoesApkView() {
         </Card>
       )}
 
-      {/* Filtros e Busca */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-        <div className="relative w-full sm:w-80">
-          <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <Input
-            placeholder="Buscar por versão ou funcionalidade..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 bg-slate-900 border-slate-800 text-slate-200 placeholder:text-slate-500"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          {['TODOS', 'FEATURE', 'DESIGN', 'MELHORIA', 'FIX'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setTipoFiltro(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                tipoFiltro === cat
-                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
-                  : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              {cat === 'TODOS' ? 'Todas Alterações' : cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Timeline de Histórico de Versões */}
-      <div className="space-y-6">
-        <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-          <Clock size={20} className="text-teal-400" />
-          Linha do Tempo de Lançamentos
-        </h3>
-
-        {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-36 w-full rounded-2xl bg-slate-900" />
-            <Skeleton className="h-36 w-full rounded-2xl bg-slate-900" />
+      {/* Seção do Histórico Completo */}
+      <div className="space-y-4 pt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-white tracking-tight">
+              Histórico de Versões Anteriores
+            </h3>
+            <p className="text-xs text-slate-400">
+              Changelog completo das releases do aplicativo mobile.
+            </p>
           </div>
-        ) : filteredVersoes.length === 0 ? (
-          <Card className="bg-slate-950/60 border-slate-800 p-8 text-center">
-            <p className="text-slate-400">Nenhuma versão encontrada para o filtro pesquisado.</p>
+
+          <div className="relative w-full sm:w-72">
+            <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Input
+              type="text"
+              placeholder="Buscar por versão ou resumo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 bg-slate-900 border-slate-800 text-xs text-slate-200 rounded-xl focus:ring-teal-500/30"
+            />
+          </div>
+        </div>
+
+        {versoesFiltradas.length === 0 ? (
+          <Card className="bg-slate-900/40 border-slate-800/80 p-8 text-center">
+            <p className="text-sm text-slate-400">Nenhuma versão encontrada para o termo pesquisado.</p>
           </Card>
         ) : (
-          <div className="relative border-l-2 border-slate-800 ml-4 md:ml-6 space-y-8 pl-6 md:pl-8">
-            {filteredVersoes.map((item) => (
-              <div key={item.versao} className="relative group">
-                {/* Indicador visual na linha do tempo */}
-                <div
-                  className={`absolute -left-[31px] md:-left-[39px] top-1.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    item.is_latest
-                      ? 'bg-teal-500 border-teal-300 shadow-md shadow-teal-500/50'
-                      : 'bg-slate-900 border-slate-700 group-hover:border-teal-500'
-                  }`}
-                >
-                  {item.is_latest && <Check size={12} className="text-slate-950 font-bold" />}
-                </div>
-
-                <Card className="bg-slate-950/80 border-slate-800 hover:border-slate-700 p-5 md:p-6 transition-all space-y-4 shadow-xl">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h4 className="text-xl font-bold text-white flex items-center gap-2">
+          <div className="space-y-4">
+            {versoesFiltradas.map((item, idx) => (
+              <Card
+                key={idx}
+                className={`border bg-slate-900/60 transition-all ${
+                  item.is_latest
+                    ? 'border-teal-500/40 shadow-md shadow-teal-950/20'
+                    : 'border-slate-800/80 hover:border-slate-700/80'
+                }`}
+              >
+                <div className="p-5 md:p-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h4 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                         v{item.nome_versao}
                         {item.is_latest && (
-                          <Badge className="bg-teal-500/15 text-teal-300 border-teal-500/30 text-[10px]">
-                            Atual
+                          <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] uppercase font-bold">
+                            Ativa no MinIO
                           </Badge>
                         )}
                       </h4>
@@ -367,7 +349,7 @@ export function VersoesApkView() {
                       </span>
                     </div>
 
-                    <a href={item.url_download_direto} download={`app-jornada-v${item.nome_versao}.apk`}>
+                    <a href={resolveDownloadUrl(item.url_download_direto || item.url_download)} download={`app-jornada-v${item.nome_versao}.apk`}>
                       <Button
                         size="sm"
                         variant="outline"

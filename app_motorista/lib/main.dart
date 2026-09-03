@@ -226,17 +226,19 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         final results = await Future.wait([
           _fetchJornadaAberta(),
           _fetchJornadaPendenteFechamento(),
+          _fetchJornadaPendenteAuditoria(),
         ]);
-        final j = results[0] ?? results[1];
+        final j = results[0] ?? results[1] ?? results[2];
         setState(() {
           _jornadaAberta = j;
           if (j != null) {
             final String status = j['status'] ?? 'ABERTA';
+            final String auditStatus = j['auditoria_status'] ?? '';
             if (status == 'EM_PAUSA') {
               _currentScreen = 'pausa';
             } else if (status == 'EM_MANUTENCAO') {
               _currentScreen = 'manutencao';
-            } else if (status == 'PRE_FECHAMENTO') {
+            } else if (status == 'PRE_FECHAMENTO' || auditStatus == 'PENDENTE') {
               GpsService.stopTracking();
               _currentScreen = 'fechamento_wizard';
             } else {
@@ -311,6 +313,24 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     return null;
   }
 
+  Future<Map<String, dynamic>?> _fetchJornadaPendenteAuditoria() async {
+    try {
+      final res = await http
+          .get(
+            Uri.parse('${ApiService.baseUrl}/jornadas/pendente-auditoria'),
+            headers: ApiService.headers,
+          )
+          .timeout(const Duration(milliseconds: 2500));
+      if (res.statusCode == 200) {
+        final body = json.decode(res.body);
+        return body is Map ? Map<String, dynamic>.from(body) : null;
+      }
+    } catch (e) {
+      print('[main] Erro ao buscar jornada pendente de auditoria: $e');
+    }
+    return null;
+  }
+
   void _onLoginSuccess(String t, String id, String nome, String pin) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', t);
@@ -323,15 +343,19 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     if (j == null) {
       j = await _fetchJornadaPendenteFechamento();
     }
+    if (j == null) {
+      j = await _fetchJornadaPendenteAuditoria();
+    }
     setState(() {
       _jornadaAberta = j;
       if (j != null) {
         final String status = j['status'] ?? 'ABERTA';
+        final String auditStatus = j['auditoria_status'] ?? '';
         if (status == 'EM_PAUSA') {
           _currentScreen = 'pausa';
         } else if (status == 'EM_MANUTENCAO') {
           _currentScreen = 'manutencao';
-        } else if (status == 'PRE_FECHAMENTO') {
+        } else if (status == 'PRE_FECHAMENTO' || auditStatus == 'PENDENTE') {
           GpsService.stopTracking();
           _currentScreen = 'fechamento_wizard';
         } else {
@@ -346,7 +370,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
   }
 
   void _onLogout() async {
-    if (_jornadaAberta != null) {
+    if (_jornadaAberta != null && _jornadaAberta?['status'] != 'ENCERRADA') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Você possui uma jornada ativa. Encerre-a antes de sair.'),
@@ -468,14 +492,18 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
           onCompleted: () {
             setState(() {
               _jornadaAberta = null;
-              _currentScreen = 'trilho';
-              _trilhoStep = 'auditoria';
+              _currentScreen = 'splash';
             });
+            _checkSession();
           },
           onCancel: () {
-            setState(() {
-              _currentScreen = 'dashboard';
-            });
+            if (_jornadaAberta?['status'] == 'ENCERRADA') {
+              _onLogout();
+            } else {
+              setState(() {
+                _currentScreen = 'dashboard';
+              });
+            }
           },
         );
       case 'revisao_comprovante':

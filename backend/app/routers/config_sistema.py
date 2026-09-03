@@ -1,10 +1,16 @@
+import io
+import re
+from datetime import datetime
+from pathlib import Path
 from typing import List, Optional
 from uuid import uuid4
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel, Field
 
 from app.db.database import get_db
 from app.routers.auth import get_current_user
+from app.routers.uploads import MINIO_CLIENT, MINIO_BUCKET, _ensure_minio_bucket
 
 router = APIRouter(prefix="/config", tags=["configuracoes"])
 
@@ -34,69 +40,204 @@ class BaseOperacaoSchema(BaseModel):
 
 HISTORICO_VERSOES_APK = [
     {
-        "versao": "1.1.0+13",
-        "nome_versao": "1.1.0",
-        "build_number": 13,
-        "data_release": "2026-08-26",
-        "tamanho_mb": "34.5 MB",
+        "versao": "1.2.4+17",
+        "nome_versao": "1.2.4",
+        "build_number": 17,
+        "data_release": "2026-09-03",
+        "tamanho_mb": "54.6 MB",
         "is_latest": True,
-        "url_download": "/app-jornada-v1.1.0.apk",
-        "url_download_direto": "/app-release.apk",
-        "resumo": "Atualização principal com Novo Painel de Ticket Médio, Design Fluent 2 e Mapa de Calor.",
+        "url_download": "/config/apk/download",
+        "url_download_direto": "/config/apk/download",
+        "resumo": "Versão de produção gerenciada dinamicamente no MinIO e MongoDB.",
         "alteracoes": [
-            {"tipo": "FEATURE", "descricao": "Implementado Mapa de Calor em tempo real para análises de rotas e tickets."},
-            {"tipo": "FEATURE", "descricao": "Integrado cálculo dinâmico de Ticket Médio e bônus em Metas & Performance."},
-            {"tipo": "DESIGN", "descricao": "Renovação visual completa com tokens Fluent Design 2 e componentes responsivos."},
-            {"tipo": "MELHORIA", "descricao": "Adicionado suporte a leitura rápida de QR Code para vinculo automático de motoristas."},
-            {"tipo": "MELHORIA", "descricao": "Tolerância ajustada para auditoria de paradas e abastecimentos."},
-            {"tipo": "FIX", "descricao": "Correção no sincronismo de dados em segundo plano quando sem sinal 4G."}
-        ]
-    },
-    {
-        "versao": "1.0.8+10",
-        "nome_versao": "1.0.8",
-        "build_number": 10,
-        "data_release": "2026-08-15",
-        "tamanho_mb": "32.1 MB",
-        "is_latest": False,
-        "url_download": "/app-jornada-v1.0.8.apk",
-        "url_download_direto": "/app-jornada-v1.0.8.apk",
-        "resumo": "Módulo de Abastecimentos e Monitoramento de Jornada em Tempo Real.",
-        "alteracoes": [
-            {"tipo": "FEATURE", "descricao": "Lançamento da tela de registro de abastecimentos com foto do comprovante."},
-            {"tipo": "MELHORIA", "descricao": "Otimização no consumo de bateria durante o rastreamento GPS contínuo."},
-            {"tipo": "FIX", "descricao": "Ajuste na reconexão automática do WebSocket de status."}
-        ]
-    },
-    {
-        "versao": "1.0.4+5",
-        "nome_versao": "1.0.4",
-        "build_number": 5,
-        "data_release": "2026-08-01",
-        "tamanho_mb": "30.8 MB",
-        "is_latest": False,
-        "url_download": "/app-jornada-v1.0.4.apk",
-        "url_download_direto": "/app-jornada-v1.0.4.apk",
-        "resumo": "Versão Inicial Estável do aplicativo Motorista.",
-        "alteracoes": [
-            {"tipo": "FEATURE", "descricao": "Início de jornada, paradas, fim de jornada e visualização de extrato."},
-            {"tipo": "FEATURE", "descricao": "Autenticação segura via JWT com suporte a perfis de motoristas."}
+            {"tipo": "FEATURE", "descricao": "Gerenciamento dinâmico do APK no MinIO com sincronização direta no MongoDB."},
+            {"tipo": "FIX", "descricao": "Correção no roteamento de jornadas pendentes de auditoria."}
         ]
     }
 ]
 
 
+@router.get("/apk")
+async def get_config_apk():
+    """
+    Retorna os metadados do APK ativo cadastrado no MongoDB ('configuracoes' -> '_id': 'config_apk').
+    """
+    db = get_db()
+    doc = await db["configuracoes"].find_one({"_id": "config_apk"})
+    if not doc:
+        return {
+            "_id": "config_apk",
+            "versao": "1.2.4",
+            "build_number": 17,
+            "versao_completa": "1.2.4+17",
+            "nome_arquivo": "app-jornada-v1.2.4.apk",
+            "tamanho_mb": "54.6 MB",
+            "minio_object_name": "apk/app-jornada-v1.2.4.apk",
+            "url_download": "/config/apk/download",
+            "updated_at": datetime.utcnow().isoformat()
+        }
+    doc.pop("_id", None)
+    return doc
+
+
+@router.get("/apk/download")
+async def download_apk():
+    """
+    Realiza o download direto do APK ativo armazenado no MinIO.
+    Garante que apenas a versão corrente registrada no MongoDB/MinIO seja servida.
+    """
+    db = get_db()
+    doc = await db["configuracoes"].find_one({"_id": "config_apk"})
+
+    versao = doc.get("versao", "1.2.4") if doc else "1.2.4"
+    filename = doc.get("nome_arquivo", f"app-jornada-v{versao}.apk") if doc else f"app-jornada-v{versao}.apk"
+    object_name = doc.get("minio_object_name", f"apk/{filename}") if doc else f"apk/app-jornada-v{versao}.apk"
+
+    if MINIO_CLIENT:
+        try:
+            _ensure_minio_bucket()
+            objects = list(MINIO_CLIENT.list_objects(MINIO_BUCKET, prefix="apk/"))
+            target_object = object_name
+            if not any(o.object_name == object_name for o in objects) and objects:
+                target_object = objects[0].object_name
+
+            response = MINIO_CLIENT.get_object(MINIO_BUCKET, target_object)
+
+            def iterfile():
+                try:
+                    for chunk in response.stream(32 * 1024):
+                        yield chunk
+                finally:
+                    response.close()
+                    response.release_conn()
+
+            return StreamingResponse(
+                iterfile(),
+                media_type="application/vnd.android.package-archive",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                    "Pragma": "no-cache"
+                }
+            )
+        except Exception as e:
+            print(f"[config_sistema] Erro ao obter APK do MinIO: {e}")
+
+    # Fallback local
+    local_paths = [
+        Path(f"/tmp/app_jornada_uploads/{object_name}"),
+        Path(f"/usr/share/nginx/html/{filename}"),
+        Path(f"/usr/share/nginx/html/app-release.apk"),
+    ]
+    for p in local_paths:
+        if p.exists():
+            return FileResponse(
+                path=str(p),
+                filename=filename,
+                media_type="application/vnd.android.package-archive",
+                headers={
+                    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                    "Pragma": "no-cache"
+                }
+            )
+
+    raise HTTPException(status_code=404, detail="APK não encontrado no MinIO nem no servidor local.")
+
+
+@router.post("/apk/upload")
+async def upload_apk(
+    file: UploadFile = File(...),
+    versao: Optional[str] = Form(None),
+    build_number: Optional[int] = Form(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Upload manual de um novo APK via API. Remove versões anteriores no MinIO e atualiza o MongoDB.
+    """
+    user_role = current_user.get("role") if isinstance(current_user, dict) else getattr(current_user, "role", None)
+    if user_role not in ["ADMIN", "GESTOR"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores e gestores podem enviar novas versões do APK."
+        )
+
+    conteudo = await file.read()
+    tamanho_mb = len(conteudo) / (1024 * 1024)
+
+    if not versao:
+        m = re.search(r"v?(\d+\.\d+\.\d+)", file.filename or "")
+        versao = m.group(1) if m else "1.2.4"
+    if not build_number:
+        build_number = 17
+
+    target_filename = f"app-jornada-v{versao}.apk"
+    object_name = f"apk/{target_filename}"
+
+    if MINIO_CLIENT:
+        _ensure_minio_bucket()
+        try:
+            old_objs = list(MINIO_CLIENT.list_objects(MINIO_BUCKET, prefix="apk/"))
+            for o in old_objs:
+                MINIO_CLIENT.remove_object(MINIO_BUCKET, o.object_name)
+        except Exception as e:
+            print(f"[config_sistema] Erro ao deletar APKs antigos do MinIO: {e}")
+
+        stream = io.BytesIO(conteudo)
+        MINIO_CLIENT.put_object(
+            MINIO_BUCKET,
+            object_name,
+            stream,
+            len(conteudo),
+            content_type="application/vnd.android.package-archive"
+        )
+
+    db = get_db()
+    config_apk = {
+        "_id": "config_apk",
+        "versao": versao,
+        "build_number": build_number,
+        "versao_completa": f"{versao}+{build_number}",
+        "nome_arquivo": target_filename,
+        "tamanho_mb": f"{tamanho_mb:.1f} MB",
+        "minio_object_name": object_name,
+        "url_download": "/config/apk/download",
+        "minio_url": f"/{MINIO_BUCKET}/{object_name}",
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+    await db["configuracoes"].update_one(
+        {"_id": "config_apk"},
+        {"$set": config_apk},
+        upsert=True
+    )
+    return config_apk
+
+
 @router.get("/versao-app")
 async def get_versao_app():
     """
-    Retorna a versão mais recente do aplicativo mobile do motorista e o link de download direto do APK.
+    Retorna a versão mais recente do aplicativo mobile do motorista e o link de download direto do MinIO/API.
     """
+    db = get_db()
+    doc = await db["configuracoes"].find_one({"_id": "config_apk"})
+    if doc:
+        return {
+            "versao_mais_recente": doc.get("versao", "1.2.4"),
+            "versao_completa": doc.get("versao_completa", "1.2.4+17"),
+            "versao_minima": "1.0.0",
+            "url_download": doc.get("url_download", "/config/apk/download"),
+            "url_download_direto": doc.get("url_download", "/config/apk/download"),
+            "tamanho_mb": doc.get("tamanho_mb", "54.6 MB"),
+            "notas": "Versão mais recente mantida no MinIO e MongoDB."
+        }
+
     latest = HISTORICO_VERSOES_APK[0]
     return {
         "versao_mais_recente": latest["nome_versao"],
         "versao_completa": latest["versao"],
         "versao_minima": "1.0.0",
-        "url_download": latest["url_download_direto"],
+        "url_download": "/config/apk/download",
+        "url_download_direto": "/config/apk/download",
         "notas": latest["resumo"]
     }
 
@@ -104,11 +245,32 @@ async def get_versao_app():
 @router.get("/versao-app/historico")
 async def get_historico_versoes_app():
     """
-    Retorna a lista completa de versões e changelog do APK do Motorista.
+    Retorna a lista de versões mantendo a versão ativa no MinIO em 1º lugar.
     """
+    db = get_db()
+    doc = await db["configuracoes"].find_one({"_id": "config_apk"})
+
+    list_versoes = list(HISTORICO_VERSOES_APK)
+    if doc:
+        v_ativa = {
+            "versao": doc.get("versao_completa", "1.2.4+17"),
+            "nome_versao": doc.get("versao", "1.2.4"),
+            "build_number": doc.get("build_number", 17),
+            "data_release": (doc.get("updated_at") or "")[:10] or "2026-09-03",
+            "tamanho_mb": doc.get("tamanho_mb", "54.6 MB"),
+            "is_latest": True,
+            "url_download": doc.get("url_download", "/config/apk/download"),
+            "url_download_direto": doc.get("url_download", "/config/apk/download"),
+            "resumo": "Versão ativa no servidor armazenada no MinIO e registrada no MongoDB.",
+            "alteracoes": [
+                {"tipo": "RELEASE", "descricao": f"APK v{doc.get('versao')} ativo no MinIO e MongoDB."}
+            ]
+        }
+        list_versoes = [v_ativa] + [v for v in HISTORICO_VERSOES_APK if v["nome_versao"] != doc.get("versao")]
+
     return {
-        "versoes": HISTORICO_VERSOES_APK,
-        "total": len(HISTORICO_VERSOES_APK)
+        "versoes": list_versoes,
+        "total": len(list_versoes)
     }
 
 
