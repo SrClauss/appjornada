@@ -41,13 +41,13 @@ export function AppHeader({ onToggleMobileMenu }: AppHeaderProps) {
         {/* Botão de Download do App Motorista APK Versionado */}
         <a
           href="/app-release.apk"
-          download="app-jornada-v1.2.2.apk"
+          download="app-jornada-v1.2.3.apk"
           className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all shadow-sm"
-          title="Baixar App Motorista Versão v1.2.2 (APK)"
+          title="Baixar App Motorista Versão v1.2.3 (APK)"
         >
           <DownloadSimple size={16} className="text-emerald-400" />
-          <span className="hidden sm:inline">Baixar App v1.2.2 (APK)</span>
-          <span className="sm:hidden">APK v1.2.2</span>
+          <span className="hidden sm:inline">Baixar App v1.2.3 (APK)</span>
+          <span className="sm:hidden">APK v1.2.3</span>
         </a>
         
         <button className="relative p-2 hover:bg-slate-800/60 rounded-xl transition-colors text-slate-300">

@@ -57,19 +57,19 @@ export function VersoesApkView() {
       // Fallback em caso de offline/carregamento inicial
       setVersoes([
         {
-          versao: '1.2.2+15',
-          nome_versao: '1.2.2',
-          build_number: 15,
+          versao: '1.2.3+16',
+          nome_versao: '1.2.3',
+          build_number: 16,
           data_release: '2026-09-03',
           tamanho_mb: '54.6 MB',
           is_latest: true,
-          url_download: '/app-jornada-v1.2.2.apk',
+          url_download: '/app-jornada-v1.2.3.apk',
           url_download_direto: '/app-release.apk',
-          resumo: 'Redirecionamento automático e direto do motorista para o assistente de Fechamento e Prestação de Contas da jornada anterior.',
+          resumo: 'Correção no roteamento de sessões do app motorista para manter jornadas encerradas no trilho de auditoria do gestor sem calcular tempo contínuo falso.',
           alteracoes: [
-            { tipo: 'FEATURE', descricao: 'Abertura automática do FechamentoWizardScreen ao logar quando houver auditoria/prestação pendente.' },
-            { tipo: 'FEATURE', descricao: 'Envio direto de vídeos de extrato Uber/99 e fotos de comprovantes no fechamento.' },
-            { tipo: 'MELHORIA', descricao: 'Atualizados todos os botões e badges de download no Painel para v1.2.2.' }
+            { tipo: 'FIX', descricao: 'Correção no carregamento inicial do app motorista para não abrir o Dashboard nem calcular horas de jornadas encerradas.' },
+            { tipo: 'FEATURE', descricao: 'Bloqueio estático do motorista no AuditoriaAnteriorStep com cartão informativo de auditoria pendente pelo gestor.' },
+            { tipo: 'MELHORIA', descricao: 'Atualização de todas as referências do APK no painel para a versão v1.2.3.' }
           ]
         },
         {

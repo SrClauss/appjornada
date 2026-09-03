@@ -226,19 +226,17 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         final results = await Future.wait([
           _fetchJornadaAberta(),
           _fetchJornadaPendenteFechamento(),
-          _fetchJornadaPendenteAuditoria(),
         ]);
-        final j = results[0] ?? results[1] ?? results[2];
+        final j = results[0] ?? results[1];
         setState(() {
           _jornadaAberta = j;
           if (j != null) {
             final String status = j['status'] ?? 'ABERTA';
-            final String auditStatus = j['auditoria_status'] ?? '';
             if (status == 'EM_PAUSA') {
               _currentScreen = 'pausa';
             } else if (status == 'EM_MANUTENCAO') {
               _currentScreen = 'manutencao';
-            } else if (status == 'PRE_FECHAMENTO' || auditStatus == 'PENDENTE') {
+            } else if (status == 'PRE_FECHAMENTO') {
               GpsService.stopTracking();
               _currentScreen = 'fechamento_wizard';
             } else {
@@ -248,14 +246,12 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
               GpsService.startTracking(j['_id'] ?? j['id']);
             }
           } else {
-            // Se a jornada não está mais ativa ou se o app está iniciando, envia o motorista para o trilho
+            // Se não há jornada aberta ou em pré-fechamento, envia o motorista para a verificação de auditoria anterior
             GpsService.stopTracking();
             OverlayService.stopOverlay();
 
-            if (_currentScreen == 'dashboard' || _currentScreen == 'pausa' || _currentScreen == 'manutencao' || _currentScreen == 'splash') {
-              _currentScreen = 'trilho';
-              _trilhoStep = 'auditoria';
-            }
+            _currentScreen = 'trilho';
+            _trilhoStep = 'auditoria';
           }
         });
         return;
@@ -315,24 +311,6 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     return null;
   }
 
-  Future<Map<String, dynamic>?> _fetchJornadaPendenteAuditoria() async {
-    try {
-      final res = await http
-          .get(
-            Uri.parse('${ApiService.baseUrl}/jornadas/pendente-auditoria'),
-            headers: ApiService.headers,
-          )
-          .timeout(const Duration(milliseconds: 2500));
-      if (res.statusCode == 200) {
-        final body = json.decode(res.body);
-        return body is Map ? Map<String, dynamic>.from(body) : null;
-      }
-    } catch (e) {
-      print('[main] Erro ao buscar jornada pendente de auditoria: $e');
-    }
-    return null;
-  }
-
   void _onLoginSuccess(String t, String id, String nome, String pin) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', t);
@@ -345,19 +323,15 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     if (j == null) {
       j = await _fetchJornadaPendenteFechamento();
     }
-    if (j == null) {
-      j = await _fetchJornadaPendenteAuditoria();
-    }
     setState(() {
       _jornadaAberta = j;
       if (j != null) {
         final String status = j['status'] ?? 'ABERTA';
-        final String auditStatus = j['auditoria_status'] ?? '';
         if (status == 'EM_PAUSA') {
           _currentScreen = 'pausa';
         } else if (status == 'EM_MANUTENCAO') {
           _currentScreen = 'manutencao';
-        } else if (status == 'PRE_FECHAMENTO' || auditStatus == 'PENDENTE') {
+        } else if (status == 'PRE_FECHAMENTO') {
           GpsService.stopTracking();
           _currentScreen = 'fechamento_wizard';
         } else {
