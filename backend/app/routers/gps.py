@@ -552,9 +552,9 @@ async def rota_ajustada_motorista(
             
     base_coords = (base_lat, base_lon)
 
-    km_rodados = _safe_float(jornada.get("km", {}).get("rodados") if jornada else 0.0)
-    total_horas_seg = _safe_float(jornada.get("horario", {}).get("total_horas_segundos") if jornada else 0.0)
-    comprovantes = jornada.get("faturamento", {}).get("comprovantes_processados", []) if jornada else []
+    km_rodados = _safe_float((jornada.get("km") or {}).get("rodados") if jornada else 0.0)
+    total_horas_seg = _safe_float((jornada.get("horario") or {}).get("total_horas_segundos") if jornada else 0.0)
+    comprovantes = (jornada.get("faturamento") or {}).get("comprovantes_processados", []) if jornada else []
 
     jornada_data = jornada.get("data") if jornada else None
 

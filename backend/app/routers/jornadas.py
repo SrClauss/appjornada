@@ -257,6 +257,18 @@ async def abrir_jornada(
             detail="Já existe uma jornada ativa para este motorista.",
         )
 
+    # Verifica se existe jornada anterior encerrada com auditoria pendente
+    pendente_auditoria = await db["jornadas"].find_one({
+        "motorista_id": ObjectId(str(dados.motorista_id)),
+        "status": "ENCERRADA",
+        "auditoria_status": "PENDENTE",
+    })
+    if pendente_auditoria:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Sua jornada anterior ainda está pendente de auditoria pelo gestor. Aguarde a aprovação para iniciar uma nova jornada.",
+        )
+
     doc = dados.model_dump()
     doc["motorista_id"] = ObjectId(str(dados.motorista_id))
     doc["data"] = hoje
@@ -362,6 +374,26 @@ async def jornada_pendente_fechamento(
         await _populate_motorista_nome(normalized, db)
         return Jornada(**normalized)
     return None
+
+
+@router.get("/pendente-auditoria", response_model=Optional[Jornada])
+async def jornada_pendente_auditoria(
+    db=Depends(get_db),
+    current_user: UserPublic = Depends(get_current_user),
+):
+    """Retorna a última jornada do motorista que está encerrada mas com auditoria pendente."""
+    motorista_id = ObjectId(str(current_user.id))
+    doc = await db["jornadas"].find_one({
+        "motorista_id": motorista_id,
+        "status": "ENCERRADA",
+        "auditoria_status": "PENDENTE"
+    }, sort=[("data", -1)])
+    if doc:
+        normalized = _normalizar_jornada(doc)
+        await _populate_motorista_nome(normalized, db)
+        return Jornada(**normalized)
+    return None
+
 
 
 
@@ -2205,17 +2237,21 @@ async def finalizar_corrida_particular(
                 continue
             if h_ini <= h_fim:
                 if h_ini <= horario <= h_fim:
-                    return f["preco_km"], f["preco_minuto"]
+                    return f.get("preco_km", 2.0), f.get("preco_minuto", 0.5), f.get("preco_minimo", 0.0)
             else:
                 if horario >= h_ini or horario <= h_fim:
-                    return f["preco_km"], f["preco_minuto"]
+                    return f.get("preco_km", 2.0), f.get("preco_minuto", 0.5), f.get("preco_minimo", 0.0)
         # Fallbacks globais se nenhuma faixa cadastrada
-        return 2.0, 0.5
+        return 2.0, 0.5, 0.0
         
-    preco_km, _ = obter_preco_para_horario(hora_local_inicio)
-    _, preco_minuto = obter_preco_para_horario(hora_local_fim)
+    preco_km, _, preco_minimo_ini = obter_preco_para_horario(hora_local_inicio)
+    _, preco_minuto, preco_minimo_fim = obter_preco_para_horario(hora_local_fim)
+    preco_minimo = max(preco_minimo_ini, preco_minimo_fim)
     
     valor_calculado = round((km_rodados * preco_km) + (duracao_minutos * preco_minuto), 2)
+    if valor_calculado < preco_minimo:
+        valor_calculado = float(preco_minimo)
+
     if corrida.get("tipo_corrida") == "EXTRAORDINARIA":
         valor_calculado = 0.0
     
@@ -2245,12 +2281,14 @@ async def finalizar_corrida_particular(
     val_outros_novo = round(val_outros + valor_calculado, 2)
     total_dia_novo = round(val_uber + val_99 + val_outros_novo, 2)
     
+    faturamento["outros"] = val_outros_novo
+    faturamento["total_dia"] = total_dia_novo
+    
     await db["jornadas"].update_one(
         {"_id": jornada_id},
         {
             "$set": {
-                "faturamento.outros": val_outros_novo,
-                "faturamento.total_dia": total_dia_novo
+                "faturamento": faturamento
             }
         }
     )
@@ -2391,7 +2429,7 @@ async def obter_auditoria_sessao(
                 "plataforma": c.get("plataforma"),
                 "valor": c.get("valor"),
                 "url_comprovante": c.get("url_comprovante")
-            } for c in (doc.get("faturamento", {}).get("comprovantes_processados") or [])
+            } for c in ((doc.get("faturamento") or {}).get("comprovantes_processados") or [])
         ]
     }
 
@@ -2419,7 +2457,7 @@ async def aprovar_auditoria_sessao(
     if avarias:
         urls_to_delete.append(avarias)
         
-    for c in (doc.get("faturamento", {}).get("comprovantes_processados") or []):
+    for c in ((doc.get("faturamento") or {}).get("comprovantes_processados") or []):
         url_c = c.get("url_comprovante")
         if url_c:
             urls_to_delete.append(url_c)
@@ -2575,7 +2613,7 @@ async def classificar_trajetos_jornada(
     
     base_coords = (base_lat, base_lon)
 
-    comprovantes = jornada.get("faturamento", {}).get("comprovantes_processados", [])
+    comprovantes = (jornada.get("faturamento") or {}).get("comprovantes_processados", [])
     jornada_data = jornada.get("data")
 
     segmentos_classificados = await classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
@@ -2621,7 +2659,7 @@ async def classificar_trajetos_jornada(
         resumo_km[k] = round(resumo_km[k], 2)
 
     # Salvar segmentos e comprovantes atualizados no banco
-    fat = jornada.get("faturamento", {})
+    fat = jornada.get("faturamento") or {}
     fat["comprovantes_processados"] = comprovantes
 
     await db["jornadas"].update_one(

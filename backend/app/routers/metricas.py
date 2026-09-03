@@ -11,7 +11,7 @@ router = APIRouter(prefix="/metricas", tags=["Métricas e KPIs"])
 
 
 def _calcular_metricas_jornada_doc(jornada: dict) -> dict:
-    fat = jornada.get("faturamento", {})
+    fat = jornada.get("faturamento") or {}
     total_faturamento = float(fat.get("total_dia") or 0.0)
     if total_faturamento == 0.0:
         total_faturamento = (
@@ -114,7 +114,7 @@ async def obter_acumulado_motorista(
         total_km_util += m["km_rodados_util"]
         total_corridas += m["total_corridas"]
         
-        fat = j.get("faturamento", {})
+        fat = j.get("faturamento") or {}
         fat_uber += float(fat.get("uber") or 0.0)
         fat_99 += float(fat.get("noventa_nove") or 0.0)
         fat_outros += float(fat.get("outros") or fat.get("corridas_particulares") or 0.0)

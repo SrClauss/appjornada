@@ -31,6 +31,7 @@ interface PrecoParticular {
   hora_fim: string;
   preco_km: number;
   preco_minuto: number;
+  preco_minimo?: number;
 }
 
 export function PrecosParticularesView() {
@@ -47,6 +48,7 @@ export function PrecosParticularesView() {
     hora_fim: '18:00',
     preco_km: 2.0,
     preco_minuto: 0.5,
+    preco_minimo: 0.0,
   });
 
   const fetchPrecos = async () => {
@@ -75,6 +77,7 @@ export function PrecosParticularesView() {
       hora_fim: '18:00',
       preco_km: 2.0,
       preco_minuto: 0.5,
+      preco_minimo: 0.0,
     });
     setDialogOpen(true);
   };
@@ -87,6 +90,7 @@ export function PrecosParticularesView() {
       hora_fim: p.hora_fim,
       preco_km: p.preco_km,
       preco_minuto: p.preco_minuto,
+      preco_minimo: p.preco_minimo ?? 0.0,
     });
     setDialogOpen(true);
   };
@@ -164,6 +168,7 @@ export function PrecosParticularesView() {
                     <TableHead>Hora de Fim</TableHead>
                     <TableHead>Preço por Km</TableHead>
                     <TableHead>Preço por Minuto</TableHead>
+                    <TableHead>Preço Mínimo</TableHead>
                     <TableHead className="w-[100px] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -175,6 +180,7 @@ export function PrecosParticularesView() {
                       <TableCell className="text-muted-foreground">{p.hora_fim}</TableCell>
                       <TableCell className="font-semibold text-emerald-500">R$ {p.preco_km.toFixed(2)}</TableCell>
                       <TableCell className="font-semibold text-emerald-500">R$ {p.preco_minuto.toFixed(2)}</TableCell>
+                      <TableCell className="font-semibold text-emerald-500">R$ {(p.preco_minimo ?? 0.0).toFixed(2)}</TableCell>
                       <TableCell className="text-right flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
@@ -281,6 +287,21 @@ export function PrecosParticularesView() {
                   required
                   value={precoForm.preco_minuto}
                   onChange={(e) => setPrecoForm({ ...precoForm, preco_minuto: parseFloat(e.target.value) })}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="preco_minimo" className="text-right">
+                  Preço Mínimo
+                </Label>
+                <Input
+                  id="preco_minimo"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={precoForm.preco_minimo}
+                  onChange={(e) => setPrecoForm({ ...precoForm, preco_minimo: parseFloat(e.target.value) })}
                   className="col-span-3"
                 />
               </div>

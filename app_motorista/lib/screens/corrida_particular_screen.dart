@@ -408,14 +408,18 @@ class _CorridaParticularScreenState extends State<CorridaParticularScreen> {
       if (matches) {
         final precoKm = (faixa['preco_km'] as num).toDouble();
         final precoMin = (faixa['preco_minuto'] as num).toDouble();
-        return (distanceKm * precoKm) + (durationMin * precoMin);
+        final precoMinimo = (faixa['preco_minimo'] as num?)?.toDouble() ?? 0.0;
+        final valor = (distanceKm * precoKm) + (durationMin * precoMin);
+        return valor < precoMinimo ? precoMinimo : valor;
       }
     }
     
     final first = _precosBands.first;
     final precoKm = (first['preco_km'] as num).toDouble();
     final precoMin = (first['preco_minuto'] as num).toDouble();
-    return (distanceKm * precoKm) + (durationMin * precoMin);
+    final precoMinimo = (first['preco_minimo'] as num?)?.toDouble() ?? 0.0;
+    final valor = (distanceKm * precoKm) + (durationMin * precoMin);
+    return valor < precoMinimo ? precoMinimo : valor;
   }
 
   Future<void> _searchDestination(String query) async {

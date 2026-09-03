@@ -199,4 +199,78 @@ class TestCorridaParticularCalculo:
         assert dados_finais["km_fim"] == 102.0
         assert dados_finais["km_rodados"] == 2.0
 
+    async def test_corrida_particular_com_faturamento_null(self, client, db, motorista_user, motorista_headers):
+        # Testar se encerrar corrida particular funciona quando a jornada tem faturamento: None em vez de objeto
+        jornada_id = "test-jornada-faturamento-null"
+        await db["jornadas"].insert_one({
+            "_id": jornada_id,
+            "motorista_id": motorista_user["id"],
+            "veiculo_id": "ABC1D23",
+            "status": "ABERTA",
+            "data": "2026-08-29",
+            "horario": {"inicio": "08:00:00"},
+            "corridas_particulares": [],
+            "faturamento": None
+        })
+
+        resp_start = await client.post(
+            f"/jornadas/{jornada_id}/corridas-particulares/iniciar?km_inicio=100.0",
+            headers=motorista_headers
+        )
+        assert resp_start.status_code == 200
+        corrida_id = resp_start.json()["id"]
+
+        resp_end = await client.post(
+            f"/jornadas/{jornada_id}/corridas-particulares/{corrida_id}/finalizar?km_fim=110.0",
+            headers=motorista_headers
+        )
+        assert resp_end.status_code == 200
+        assert resp_end.json()["status"] == "FINALIZADA"
+
+        jornada_doc = await db["jornadas"].find_one({"_id": jornada_id})
+        assert jornada_doc["faturamento"] is not None
+        assert "outros" in jornada_doc["faturamento"]
+
+    async def test_corrida_particular_preco_minimo(self, client, db, motorista_user, motorista_headers):
+        # 1. Configurar faixa horária com preco_minimo = 15.00
+        await db["precos_particulares"].delete_many({})
+        await db["precos_particulares"].insert_one({
+            "nome": "Faixa Com Minimo",
+            "hora_inicio": "00:00",
+            "hora_fim": "23:59",
+            "preco_km": 1.00,
+            "preco_minuto": 0.10,
+            "preco_minimo": 15.00
+        })
+
+        jornada_id = "test-jornada-preco-minimo"
+        await db["jornadas"].insert_one({
+            "_id": jornada_id,
+            "motorista_id": motorista_user["id"],
+            "veiculo_id": "ABC1D23",
+            "status": "ABERTA",
+            "data": "2026-08-29",
+            "horario": {"inicio": "08:00:00"},
+            "corridas_particulares": [],
+            "faturamento": {}
+        })
+
+        resp_start = await client.post(
+            f"/jornadas/{jornada_id}/corridas-particulares/iniciar?km_inicio=100.0",
+            headers=motorista_headers
+        )
+        assert resp_start.status_code == 200
+        corrida_id = resp_start.json()["id"]
+
+        # Finalizar com apenas 1 km rodado (calculado daria R$ 1,00 + minutos, menor que R$ 15,00)
+        resp_end = await client.post(
+            f"/jornadas/{jornada_id}/corridas-particulares/{corrida_id}/finalizar?km_fim=101.0",
+            headers=motorista_headers
+        )
+        assert resp_end.status_code == 200
+        dados = resp_end.json()
+        assert dados["valor_calculado"] == 15.00
+
+
+
 

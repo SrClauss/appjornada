@@ -10,6 +10,7 @@ class PrecoParticular(BaseModel):
     hora_fim: str  # "HH:MM", ex: "18:00"
     preco_km: float
     preco_minuto: float
+    preco_minimo: float = 0.0
 
     model_config = {
         "populate_by_name": True,

@@ -638,8 +638,46 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         GpsService.startTracking(jornadaObj['_id'] ?? jornadaObj['id']);
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao iniciar jornada: ${res.body}')),
+        String errorMsg = res.body;
+        try {
+          final errJson = json.decode(res.body);
+          if (errJson is Map && errJson.containsKey('detail')) {
+            errorMsg = errJson['detail'].toString();
+          }
+        } catch (_) {}
+
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Não é possível iniciar',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              errorMsg,
+              style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('ENTENDIDO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
         );
       }
     } catch (e) {
