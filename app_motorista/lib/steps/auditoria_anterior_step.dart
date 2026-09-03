@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:app_motorista/core/api_service.dart';
 
@@ -13,6 +15,8 @@ class AuditoriaAnteriorStep extends StatefulWidget {
 class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
   bool _loading = true;
   bool _hasPendencia = false;
+  bool _isPendenteAuditoriaGestor = false;
+  Map<String, dynamic>? _jornadaPendenteGestor;
   Map<String, dynamic>? _pendenciaAtual;
   String _justificativa = '';
   String? _midiaUrl;
@@ -20,6 +24,61 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
   final List<Offset?> _points = [];
   bool _assinado = false;
   bool _recusouAssinar = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPendencia();
+  }
+
+  Future<void> _checkPendencia() async {
+    setState(() {
+      _loading = true;
+      _isPendenteAuditoriaGestor = false;
+      _jornadaPendenteGestor = null;
+    });
+
+    // 1. Verifica pendências de KM morta/advertência do motorista
+    final pendencias = await ApiService.getPendenciasMotorista();
+    if (pendencias.isNotEmpty && pendencias.first is Map) {
+      setState(() {
+        _hasPendencia = true;
+        _pendenciaAtual = Map<String, dynamic>.from(pendencias.first);
+        _loading = false;
+      });
+      return;
+    }
+
+    // 2. Verifica se a jornada anterior está encerrada mas com auditoria pendente pelo gestor
+    try {
+      final res = await http.get(
+        Uri.parse('${ApiService.baseUrl}/jornadas/pendente-auditoria'),
+        headers: ApiService.headers,
+      ).timeout(const Duration(seconds: 4));
+
+      if (res.statusCode == 200) {
+        final body = json.decode(res.body);
+        if (body is Map && body.isNotEmpty) {
+          setState(() {
+            _hasPendencia = false;
+            _isPendenteAuditoriaGestor = true;
+            _jornadaPendenteGestor = Map<String, dynamic>.from(body);
+            _loading = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      print('[AuditoriaAnteriorStep] Erro ao checar auditoria pendente do gestor: $e');
+    }
+
+    setState(() {
+      _hasPendencia = false;
+      _pendenciaAtual = null;
+      _isPendenteAuditoriaGestor = false;
+      _loading = false;
+    });
+  }
 
   Future<void> _selecionarEUploadMidia() async {
     final source = await showModalBottomSheet<ImageSource>(
@@ -95,31 +154,6 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _checkPendencia();
-  }
-
-  Future<void> _checkPendencia() async {
-    setState(() {
-      _loading = true;
-    });
-    final pendencias = await ApiService.getPendenciasMotorista();
-    if (pendencias.isNotEmpty && pendencias.first is Map) {
-      setState(() {
-        _hasPendencia = true;
-        _pendenciaAtual = Map<String, dynamic>.from(pendencias.first);
-        _loading = false;
-      });
-    } else {
-      setState(() {
-        _hasPendencia = false;
-        _pendenciaAtual = null;
-        _loading = false;
-      });
-    }
-  }
 
   Future<void> _salvarJustificativa() async {
     if (_justificativa.trim().isEmpty) {
@@ -169,6 +203,76 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_isPendenteAuditoriaGestor) {
+      final dataStr = _jornadaPendenteGestor?['data'] ?? '';
+      final veiculoId = _jornadaPendenteGestor?['veiculo_id'] ?? '';
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.amber.withOpacity(0.5), width: 2),
+                ),
+                child: const Icon(Icons.pending_actions_rounded, size: 70, color: Colors.amber),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Jornada em Auditoria pelo Gestor',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Sua jornada do dia $dataStr (Veículo $veiculoId) foi encerrada e está aguardando a auditoria do gestor.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.4),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.withOpacity(0.4)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock_clock, color: Colors.amber, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'STATUS: AUDITORIA PENDENTE',
+                      style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 36),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _checkPendencia,
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                label: const Text(
+                  'VERIFICAR AUDITORIA NOVAMENTE',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     if (!_hasPendencia) {
