@@ -441,6 +441,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
                     if isinstance(corridas, list):
                         parsed["corridas"] = corridas
                         parsed["sucesso"] = True
+                        parsed["raw_response"] = raw_text
                         print(f"✅ [Sucesso OCR Video] {len(corridas)} corridas extraídas!")
                         print("==================================================================\n")
                         return parsed

@@ -1407,6 +1407,16 @@ async def upload_e_processar_extrato_video(
     if not isinstance(comprovantes_existentes, list):
         comprovantes_existentes = []
 
+    plat_alvo = (plataforma or "UBER").upper()
+    if plat_alvo in ("99POP", "NOVENTA_NOVEM"):
+        plat_alvo = "99"
+
+    # Ao enviar um novo vídeo de extrato para a plataforma, limpa leituras anteriores dessa plataforma ANTES de deduplicar
+    comprovantes_preservados = [
+        c for c in comprovantes_existentes
+        if not (c.get("processado_via") == "VIDEO_EXTRATO" and str(c.get("plataforma") or "").upper() == plat_alvo)
+    ]
+
     novos_comprovantes = []
     adicionadas_count = 0
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -1437,7 +1447,7 @@ async def upload_e_processar_extrato_video(
                 return True
             return False
 
-        if any(_eh_duplicada(c_exist) for c_exist in (comprovantes_existentes + novos_comprovantes)):
+        if any(_eh_duplicada(c_exist) for c_exist in (comprovantes_preservados + novos_comprovantes)):
             continue
 
         comp_dict = {
@@ -1455,16 +1465,6 @@ async def upload_e_processar_extrato_video(
         }
         novos_comprovantes.append(comp_dict)
         adicionadas_count += 1
-
-    plat_alvo = (plataforma or "UBER").upper()
-    if plat_alvo in ("99POP", "NOVENTA_NOVEM"):
-        plat_alvo = "99"
-
-    # Ao enviar um novo vídeo de extrato para a plataforma, substitui as leituras de vídeo anteriores dessa mesma plataforma
-    comprovantes_preservados = [
-        c for c in comprovantes_existentes
-        if not (c.get("processado_via") == "VIDEO_EXTRATO" and str(c.get("plataforma") or "").upper() == plat_alvo)
-    ]
 
     todos_comprovantes = comprovantes_preservados + novos_comprovantes
 
@@ -1507,6 +1507,7 @@ async def upload_e_processar_extrato_video(
         "faturamento_acumulado": fat["total"],
         "faturamento_plataforma": fat_plat_alvo,
         "faturamento": fat,
+        "raw_response": res_ai.get("raw_response", ""),
         "corridas": novos_comprovantes if novos_comprovantes else [
             {"valor_reais": comp["valor"], "plataforma": comp["plataforma"], "horario": comp.get("horario"), "origem": comp.get("origem"), "destino": comp.get("destino")}
             for comp in todos_comprovantes
