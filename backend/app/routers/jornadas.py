@@ -1349,9 +1349,10 @@ async def upload_e_processar_extrato_video(
     video_url = await _salvar_arquivo(arquivo, "extrato_video")
     print(f"📹 [OCR Video Upload] Vídeo gravado em Mídias: {video_url} | Plataforma Esperada: {plataforma}")
     
-    target_frames = corridas_ancora if corridas_ancora and corridas_ancora > 0 else 10
+    # Mandamos o dobro de frames da âncora para garantir que não vamos perder corridas se ele rolar rápido
+    target_frames = (corridas_ancora * 2) if corridas_ancora and corridas_ancora > 0 else 20
     # Limite mínimo de segurança
-    target_frames = max(10, target_frames)
+    target_frames = max(20, target_frames)
     
     frames, frame_urls = _extrair_frames_video(conteudo_bytes, max_frames=target_frames)
     if not frames:
