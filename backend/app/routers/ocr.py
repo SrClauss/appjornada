@@ -412,7 +412,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     print(f"📝 [OCR Video Prompt Enviado] \n{prompt}")
     print(f"==================================================================")
 
-    modelos = ["gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-pro-latest"]
+    modelos = ["gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-pro-latest"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")

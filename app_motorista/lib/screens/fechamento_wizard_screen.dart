@@ -931,6 +931,42 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                   ),
                 ],
               ),
+              if (_faturamentoLocal != null && _faturamentoLocal!['raw_response'] != null && _faturamentoLocal!['raw_response'].toString().isNotEmpty) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blueAccent,
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.zero,
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: const Color(0xFF1E293B),
+                          title: const Text('Logs Brutos da IA', style: TextStyle(color: Colors.white)),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              _faturamentoLocal!['raw_response'].toString(),
+                              style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'monospace'),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('FECHAR', style: TextStyle(color: Colors.blueAccent)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.code_rounded, size: 16),
+                    label: const Text('Ver Logs Brutos da IA', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
