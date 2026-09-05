@@ -382,7 +382,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     for b64_img in frames_b64_list:
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
-    modelos = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro"]
+    modelos = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
@@ -390,7 +390,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
         for tentativa in range(3):
             req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
             try:
-                with urllib.request.urlopen(req, timeout=60) as resp:
+                with urllib.request.urlopen(req, timeout=180) as resp:
                     data = json.loads(resp.read().decode())
                     raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                     
