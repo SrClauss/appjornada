@@ -1427,7 +1427,17 @@ async def upload_e_processar_extrato_video(
         novos_comprovantes.append(comp_dict)
         adicionadas_count += 1
 
-    todos_comprovantes = comprovantes_existentes + novos_comprovantes
+    plat_alvo = (plataforma or "UBER").upper()
+    if plat_alvo in ("99POP", "NOVENTA_NOVEM"):
+        plat_alvo = "99"
+
+    # Ao enviar um novo vídeo de extrato para a plataforma, substitui as leituras de vídeo anteriores dessa mesma plataforma
+    comprovantes_preservados = [
+        c for c in comprovantes_existentes
+        if not (c.get("processado_via") == "VIDEO_EXTRATO" and str(c.get("plataforma") or "").upper() == plat_alvo)
+    ]
+
+    todos_comprovantes = comprovantes_preservados + novos_comprovantes
 
     # Recalcula totais acumulados por plataforma
     total_uber = sum(comp.get("valor", 0.0) for comp in todos_comprovantes if comp.get("plataforma") == "UBER")
