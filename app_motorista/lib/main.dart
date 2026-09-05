@@ -201,8 +201,8 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Não interromper telas ativas (fechamento_wizard, corrida_particular, etc) ao retornar ao app
-      if (_currentScreen == 'dashboard' || _currentScreen == 'splash') {
+      // Nao reseta a sessão se o motorista estiver no meio do wizard de abertura
+      if (_currentScreen != 'trilho') {
         _checkSession();
       }
     }
@@ -236,24 +236,12 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             final String auditStatus = j['auditoria_status'] ?? '';
             final bool faltaKmFinal = (j['fotos'] is Map) && (j['fotos']['km_final_url'] == null || j['fotos']['km_final_url'].toString().isEmpty);
 
-            // Preserva telas ativas do usuário ao checar a sessão
-            if (_currentScreen == 'fechamento_wizard' ||
-                _currentScreen == 'corrida_particular' ||
-                _currentScreen == 'processar_print' ||
-                _currentScreen == 'revisao_comprovante') {
-              return;
-            }
-
             if (status == 'EM_PAUSA') {
               _currentScreen = 'pausa';
             } else if (status == 'EM_MANUTENCAO') {
               _currentScreen = 'manutencao';
-            } else if (status == 'PRE_FECHAMENTO' || (status == 'ENCERRADA' && faltaKmFinal) || auditStatus == 'PENDENTE') {
+            } else if (status == 'PRE_FECHAMENTO' || status == 'ENCERRADA' || auditStatus == 'PENDENTE') {
               GpsService.stopTracking();
-              _currentScreen = 'fechamento_wizard';
-            } else if (status == 'ENCERRADA') {
-              GpsService.stopTracking();
-              OverlayService.stopOverlay();
               _currentScreen = 'trilho';
               _trilhoStep = 'auditoria';
             } else {
@@ -263,12 +251,12 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
               GpsService.startTracking(j['_id'] ?? j['id']);
             }
           } else {
-            if (_currentScreen != 'login' && _currentScreen != 'fechamento_wizard') {
-              GpsService.stopTracking();
-              OverlayService.stopOverlay();
-              _currentScreen = 'trilho';
-              _trilhoStep = 'auditoria';
-            }
+            // Se não há jornada aberta ou em pré-fechamento, envia o motorista para a verificação de auditoria anterior
+            GpsService.stopTracking();
+            OverlayService.stopOverlay();
+
+            _currentScreen = 'trilho';
+            _trilhoStep = 'auditoria';
           }
         });
         return;

@@ -325,38 +325,7 @@ def _limpar_e_parsear_json_gemini(raw_text: str) -> dict:
     return {}
 
 
-def _desduplicar_corridas(corridas: list) -> list:
-    if not corridas:
-        return []
-    vistas = set()
-    unicas = []
-    for c in corridas:
-        if not isinstance(c, dict):
-            continue
-        h = str(c.get("horario") or "").strip()
-        v_raw = c.get("valor_reais") or c.get("valor") or 0.0
-        try:
-            v = float(v_raw)
-        except (ValueError, TypeError):
-            v = 0.0
-        o = str(c.get("origem") or "").strip().lower()
-        d = str(c.get("destino") or "").strip().lower()
-        # Chave de unicidade baseada em horário, valor e trecho
-        key = (h, round(v, 2), o[:15], d[:15])
-        if key not in vistas:
-            vistas.add(key)
-            unicas.append(c)
-    return unicas
-
-
-def _chamar_gemini_extrato_video(
-    frames_b64_list: list = None,
-    video_bytes: bytes = None,
-    frame_urls: list = None,
-    plataforma_esperada: str = None,
-    faturamento_ancora: float = None,
-    corridas_ancora: int = None
-) -> dict:
+def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None, plataforma_esperada: str = None, faturamento_ancora: float = None, corridas_ancora: int = None) -> dict:
     api_key = settings.GEMINI_API_KEY
     if not api_key:
         return {"sucesso": False, "mensagem": "GEMINI_API_KEY não configurada", "corridas": []}
@@ -365,35 +334,42 @@ def _chamar_gemini_extrato_video(
     ancora_instrucao = ""
     if faturamento_ancora is not None and corridas_ancora is not None and corridas_ancora > 0:
         ancora_instrucao = (
-            f" ATENÇÃO EXTREMA: O motorista declarou previamente que realizou EXATAMENTE {corridas_ancora} corridas "
-            f"com faturamento total de R$ {faturamento_ancora:.2f}. "
-            f"Sua missão prioritária e absoluta é acompanhar o rolar da tela no vídeo, identificar o movimento e contar EXATAMENTE {corridas_ancora} corridas distintas. "
-            f"Para cada corrida, extraia com precisão o horário, valor e os deslocamentos (origem/destino).\n"
+            f" ATENÇÃO EXTREMA: O motorista declarou previamente que realizou EXATAMENTE {corridas_ancora} corridas. "
+            f"O número de corridas é a sua ÂNCORA PRINCIPAL E ABSOLUTA de validação. "
+            f"Sua missão prioritária é encontrar, desduplicar e extrair exatamente essas {corridas_ancora} corridas. "
+            f"Para cada corrida, é CRÍTICO extrair os locais de ORIGEM e DESTINO (deslocamentos) corretamente. "
+            f"O faturamento declarado foi R$ {faturamento_ancora:.2f}, use isso apenas como uma dica secundária. "
+            f"IMPORTANTE: Esforce-se ao máximo para a extração fechar nas exatas {corridas_ancora} corridas declaradas, focando nos deslocamentos. "
+            "Se for absolutamente impossível devido a erro do motorista, extraia as corridas reais visíveis, mas o foco é bater a quantidade de corridas.\n"
         )
 
     print("\n==================================================================")
-    tipo_input = "VÍDEO MP4 DIRETO" if video_bytes else f"{len(frames_b64_list or [])} QUADROS"
-    print(f"🎬 [OCR Video] Iniciando análise por {tipo_input} ({plataforma_esperada or 'GERAL'})...")
+    print(f"🎬 [OCR Video] Iniciando análise de {len(frames_b64_list)} quadros do vídeo ({plataforma_esperada or 'GERAL'})...")
+    if frame_urls:
+        for idx, f_url in enumerate(frame_urls):
+            print(f"   📸 Frame {idx+1}/{len(frame_urls)} salvo em Mídias: {f_url}")
     print("------------------------------------------------------------------")
 
     prompt = (
-        f"Você é um auditor especialista em extratos de corridas de aplicativo (Uber / 99).{plat_instrucao}\n"
+        f"Analise minuciosamente esta sequência sequencial de capturas de tela (frames) gravadas do histórico de corridas de aplicativo (Uber / 99).{plat_instrucao}\n"
         f"{ancora_instrucao}"
-        "REGRAS DE ANÁLISE DE ROLAGEM E CONTAGEM:\n"
-        "1. O vídeo/mídia mostra a ROLAGEM DE TELA do histórico de corridas do aplicativo.\n"
-        "2. Acompanhe a rolagem da tela do início ao fim. Identifique cada corrida individual exibida.\n"
-        "3. DESDUPLICAÇÃO: Conforme a tela rola, uma mesma corrida se move pela tela. Certifique-se de contar cada corrida única apenas UMA vez.\n"
-        "4. Para cada corrida distinta encontrada no extrato, extraia obrigatoriamente:\n"
-        "   - horario (ex: '11:18' ou '15:26')\n"
-        "   - data_formatada (ex: '02/06/2026' se visível, senão null)\n"
-        "   - plataforma ('Uber' ou '99')\n"
-        "   - valor_reais (float decimal ex: 15.50)\n"
-        "   - origem (endereço/bairro de partida se visível, senão null)\n"
-        "   - destino (endereço/bairro de chegada se visível, senão null)\n"
-        "   - distancia_km (float ex: 5.4, senão null)\n\n"
-        "Responda EXCLUSIVAMENTE em JSON puro:\n"
+        "Seu objetivo é garimpar e extrair COM EXATIDÃO 100% TODAS as corridas apresentadas durante a rolagem do vídeo, sem omitir NENHUMA corrida visível e eliminando duplicações idênticas entre quadros.\n"
+        "Para cada corrida encontrada, extraia exatamente:\n"
+        "- horario (ex: '11:18' ou '15:26')\n"
+        "- data_formatada (data da corrida se visível ex: '02/06/2026' ou '2026-06-02', senão null)\n"
+        "- plataforma ('Uber' ou '99')\n"
+        "- valor_reais (valor exato em R$ como número decimal ex: 15.50)\n"
+        "- origem e destino (endereços ou bairros visíveis, senão null)\n"
+        "- distancia_km (distância da corrida em km se visível, extraia como float ex: 5.4, senão null)\n\n"
+        "REGRAS DE CONFIABILIDADE E EXATIDÃO:\n"
+        "1. Avalie se o histórico de corridas no vídeo parece ter lacunas de rolagem rápida ou cortes incertos entre os quadros.\n"
+        "2. Se você sentir incerteza sobre algum valor ou se notar que faltam quadros para cobrir o extrato completo, defina 'necessita_mais_frames': true e 'historico_completo': false.\n"
+        "3. Calcule o 'faturamento_total' exatamente como a SOMA do campo 'valor_reais' de todas as corridas válidas da lista.\n\n"
+        "Responda EXCLUSIVAMENTE em formato JSON puro:\n"
         "{\n"
         '  "sucesso": true,\n'
+        '  "historico_completo": true,\n'
+        '  "necessita_mais_frames": false,\n'
         '  "total_corridas": 2,\n'
         '  "faturamento_total": 45.80,\n'
         '  "corridas": [\n'
@@ -403,16 +379,8 @@ def _chamar_gemini_extrato_video(
     )
 
     parts = [{"text": prompt}]
-
-    if video_bytes and len(video_bytes) < 18 * 1024 * 1024:
-        # Envia o vídeo MP4 completo diretamente para análise multimodal nativa de vídeo
-        video_b64 = base64.b64encode(video_bytes).decode("utf-8")
-        parts.append({"inline_data": {"mime_type": "video/mp4", "data": video_b64}})
-    elif frames_b64_list:
-        for b64_img in frames_b64_list:
-            parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
-    else:
-        return {"sucesso": False, "mensagem": "Nenhuma mídia enviada para análise", "corridas": []}
+    for b64_img in frames_b64_list:
+        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
     modelos = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest"]
     for model in modelos:
@@ -427,7 +395,7 @@ def _chamar_gemini_extrato_video(
                     raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                     
                     parsed = _limpar_e_parsear_json_gemini(raw_text)
-                    corridas_brutas = (
+                    corridas = (
                         parsed.get("corridas") or
                         parsed.get("rides") or
                         parsed.get("trips") or
@@ -438,21 +406,16 @@ def _chamar_gemini_extrato_video(
 
                     print(f"🤖 [OCR Video Modelo: {model} Tentativa: {tentativa+1}] Resposta Bruta da IA:")
                     print(raw_text if raw_text else "<TEXTO VAZIO>")
+                    print(f"📊 Dados Estruturados Decodificados: {parsed}")
                     
-                    if isinstance(corridas_brutas, list) and len(corridas_brutas) > 0:
-                        unicas = _desduplicar_corridas(corridas_brutas)
-                        tot_fat = sum(float(c.get("valor_reais") or c.get("valor") or 0.0) for c in unicas)
-                        
-                        parsed["corridas"] = unicas
-                        parsed["total_corridas"] = len(unicas)
-                        parsed["faturamento_total"] = round(tot_fat, 2)
+                    if isinstance(corridas, list):
+                        parsed["corridas"] = corridas
                         parsed["sucesso"] = True
-                        
-                        print(f"✅ [Sucesso OCR Video] {len(unicas)} corrida(s) única(s) extraída(s) com sucesso!")
+                        print(f"✅ [Sucesso OCR Video] {len(corridas)} corridas extraídas!")
                         print("==================================================================\n")
                         return parsed
                     else:
-                        print("⚠️ [OCR Video] Nenhuma corrida válida extraída nesta tentativa.")
+                        print("⚠️ [OCR Video] Chave 'corridas' não é uma lista válida no JSON retornado.")
             except Exception as e:
                 print(f"❌ [OCR Video Error] Erro na tentativa {tentativa+1} do modelo {model}: {e}")
                 if "503" in str(e) or "Service Unavailable" in str(e):
@@ -625,27 +588,33 @@ async def processar_extrato_video(
     file.file.seek(0)
     video_url = await _salvar_arquivo(file, "extrato_video")
 
-    # 1ª Tentativa: Enviar o VÍDEO MP4 COMPLETO nativamente para o Gemini Multimodal
-    # O Gemini Flash rastreia a rolagem de tela e desduplica as corridas em tempo real
+    # 1ª tentativa: amostragem inteligente com nitidez de alta definição (15 frames)
+    frames, frame_urls = _extrair_frames_video(video_bytes, max_frames=15, aplicar_nitidez=True)
+    if not frames:
+        raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
+
     res_gemini = _chamar_gemini_extrato_video(
-        video_bytes=video_bytes,
+        frames, 
+        frame_urls=frame_urls, 
         plataforma_esperada=plataforma_esperada,
         faturamento_ancora=faturamento_ancora,
         corridas_ancora=corridas_ancora
     )
 
-    # 2ª Tentativa (Fallback): Se a análise direta do MP4 não retornar corridas, extrai quadros via OpenCV
-    if not res_gemini.get("sucesso") or not res_gemini.get("corridas"):
-        print("🔄 [OCR Video] Fallback: Extraindo quadros JPEG via OpenCV...")
-        frames, frame_urls = _extrair_frames_video(video_bytes, max_frames=20, aplicar_nitidez=True)
-        if frames:
-            res_gemini = _chamar_gemini_extrato_video(
-                frames_b64_list=frames,
-                frame_urls=frame_urls,
+    # Re-amostragem adaptativa com ZOOM e Nitidez de Alta Resolução se a IA solicitar ou houver lacuna
+    if res_gemini.get("necessita_mais_frames") is True or res_gemini.get("historico_completo") is False:
+        print("🔎 [OCR Video] IA solicitou maior nitidez/zoom local. Gerando recortes de alta definição...")
+        frames_zoom, urls_zoom = _extrair_frames_video(video_bytes, max_frames=20, aplicar_nitidez=True)
+        if frames_zoom:
+            res_zoom = _chamar_gemini_extrato_video(
+                frames_zoom, 
+                frame_urls=urls_zoom, 
                 plataforma_esperada=plataforma_esperada,
                 faturamento_ancora=faturamento_ancora,
                 corridas_ancora=corridas_ancora
             )
+            if res_zoom.get("sucesso") and res_zoom.get("corridas"):
+                res_gemini = res_zoom
 
     res_gemini["video_url"] = video_url
     return res_gemini
