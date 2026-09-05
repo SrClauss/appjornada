@@ -151,11 +151,11 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
     try {
       final jId = widget.jornada['_id'] ?? widget.jornada['id'];
       
-      final uberVal = double.tryParse(_uberValorCtrl.text) ?? 0.0;
+      final uberVal = double.tryParse(_uberValorCtrl.text.replaceAll(',', '.')) ?? 0.0;
       final uberCorr = int.tryParse(_uberCorridasCtrl.text) ?? 0;
-      final ninetyNineVal = double.tryParse(_99ValorCtrl.text) ?? 0.0;
+      final ninetyNineVal = double.tryParse(_99ValorCtrl.text.replaceAll(',', '.')) ?? 0.0;
       final ninetyNineCorr = int.tryParse(_99CorridasCtrl.text) ?? 0;
-      final outrosVal = double.tryParse(_outrosValorCtrl.text) ?? 0.0;
+      final outrosVal = double.tryParse(_outrosValorCtrl.text.replaceAll(',', '.')) ?? 0.0;
       final outrosCorr = int.tryParse(_outrosCorridasCtrl.text) ?? 0;
 
       final url = '${ApiService.baseUrl}/jornadas/$jId/validar-fechamento'
@@ -438,6 +438,23 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
     );
   }
 
+  int _getCorridasDetectadasCount(String platKey) {
+    final fatMap = _faturamentoLocal ?? widget.jornada['faturamento'];
+    if (fatMap is Map) {
+      final comps = fatMap['comprovantes_processados'];
+      if (comps is List) {
+        return comps.where((c) {
+          if (c is! Map) return false;
+          final p = (c['plataforma'] ?? '').toString().toUpperCase();
+          if (platKey == 'uber') return p == 'UBER';
+          if (platKey == 'noventa_nove') return p == '99' || p == 'NOVENTA_NOVEM' || p == '99POP';
+          return false;
+        }).length;
+      }
+    }
+    return 0;
+  }
+
   Widget _buildStepContent() {
     switch (_currentStep) {
       case 1:
@@ -447,7 +464,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
           platformColor: Colors.black,
           textColor: Colors.white,
           faturamentoIa: _faturamentoLocal?['uber'] ?? widget.jornada['faturamento']?['uber'] ?? 0.0,
-          corridasIa: widget.jornada['faturamento']?['corridas_uber'] ?? 0,
+          corridasIa: _getCorridasDetectadasCount('uber'),
           faturamentoCtrl: _uberValorCtrl,
           corridasCtrl: _uberCorridasCtrl,
           onNext: () {
@@ -463,7 +480,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
           platformColor: const Color(0xFFFFCC00),
           textColor: Colors.black,
           faturamentoIa: _faturamentoLocal?['noventa_nove'] ?? widget.jornada['faturamento']?['noventa_nove'] ?? 0.0,
-          corridasIa: widget.jornada['faturamento']?['corridas_99'] ?? 0,
+          corridasIa: _getCorridasDetectadasCount('noventa_nove'),
           faturamentoCtrl: _99ValorCtrl,
           corridasCtrl: _99CorridasCtrl,
           onNext: () {
@@ -772,9 +789,19 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                               try {
                                 await channel.invokeMethod('clearLastRecordedVideo');
                               } catch (_) {}
+
+                              final Map<String, dynamic> fatObj = (res['faturamento'] is Map) 
+                                  ? Map<String, dynamic>.from(res['faturamento']) 
+                                  : Map<String, dynamic>.from(res);
+
+                              final num fatPlatVal = res['faturamento_plataforma'] ?? fatObj[currentPlat == 'UBER' ? 'uber' : 'noventa_nove'] ?? 0.0;
+                              final List comps = (fatObj['comprovantes_processados'] is List) ? fatObj['comprovantes_processados'] : [];
+                              final int corrPlatCount = comps.where((c) => c is Map && (c['plataforma'] ?? '').toString().toUpperCase() == (currentPlat ?? 'UBER')).length;
+                              final int totalCorrCount = res['corridas_adicionadas'] ?? (res['corridas'] is List ? (res['corridas'] as List).length : corrPlatCount);
+
                               setState(() {
                                 _recordedVideoPath = null;
-                                _faturamentoLocal = res['faturamento'] ?? res;
+                                _faturamentoLocal = fatObj;
                               });
                               await _rodarAuditoria();
                             }

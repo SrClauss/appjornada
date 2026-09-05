@@ -1,0 +1,695 @@
+📹 [OCR Video Upload] Vídeo gravado em Mídias: /app-jornada/extrato_video/f01fbfaf5b604a449552e56e9d9d7adf.mp4 | Plataforma Esperada: UBER
+
+==================================================================
+🎬 [OCR Video] Iniciando análise de 10 quadros do vídeo (UBER)...
+------------------------------------------------------------------
+❌ [OCR Video Error] Erro na tentativa 1 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 2 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 3 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+🤖 [OCR Video Modelo: gemini-flash-lite-latest Tentativa: 1] Resposta Bruta da IA:
+```json
+{
+  "sucesso": true,
+  "historico_completo": true,
+  "necessita_mais_frames": false,
+  "total_corridas": 13,
+  "faturamento_total": 289.93,
+  "corridas": [
+    {
+      "horario": "18:31",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 27.42,
+      "origem": "Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES",
+      "destino": "Rua Arara, Serra Dourada III - Serra - ES",
+      "distancia_km": 10.96
+    },
+    {
+      "horario": "17:52",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 14.17,
+      "origem": "Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES",
+      "destino": "Av. Braúna, Colina de Laranjeiras - Serra - ES",
+      "distancia_km": 4.08
+    },
+    {
+      "horario": "16:04",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Av. Nossa Senhora da Penha, Praia do Canto - Vitória - ES",
+      "destino": "Avenida Augusto Emílio Estelita Lins, Jardim Camburi - Vitória - ES",
+      "distancia_km": 8.18
+    },
+    {
+      "horario": "13:33",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 13.19,
+      "origem": "R Herman Stern, Taquara - Serra - ES",
+      "destino": "Rua Arco verde, Barcelona - Serra - ES",
+      "distancia_km": 2.17
+    },
+    {
+      "horario": "13:08",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 17.71,
+      "origem": "Av. Florianopolis, Jardim Limoeiro - Serra - ES",
+      "destino": "Av. Eides Scherrer Souza, Civit II - Serra - ES",
+      "distancia_km": 5.00
+    },
+    {
+      "horario": "11:34",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 28.49,
+      "origem": "Av Braúna, Serra - ES",
+      "destino": "Av Fernando Ferrari, Goiabeiras - Vitória - ES",
+      "distancia_km": 12.82
+    },
+    {
+      "horario": "10:58",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 21.61,
+      "origem": "Rua Carlos Martins, Jardim Camburi - Vitória - ES",
+      "destino": "Avenida Monte das Oliveiras, Colina de Laranjeiras - Serra - ES",
+      "distancia_km": 10.88
+    },
+    {
+      "horario": "09:24",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 20.02,
+      "origem": "Av. Florianopolis, Jardim Limoeiro - Serra - ES",
+      "destino": "Av. Eides Scherrer Souza, Civit II - Serra - ES",
+      "distancia_km": 6.37
+    },
+    {
+      "horario": "08:25",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 12.05,
+      "origem": "Av. Eides Scherrer Souza, Parque Residencial Laranjeiras - Serra - ES",
+      "destino": "Av Civit, Maringá - Serra - ES",
+      "distancia_km": 5.33
+    },
+    {
+      "horario": "07:32",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Rua Jaburu, Serra Dourada III - Serra - ES",
+      "destino": "R. Casimiro de Abreu, Região de Laranjeiras - Serra - ES",
+      "distancia_km": 9.85
+    },
+    {
+      "horario": "07:32",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Av. Eides Scherrer Souza, Parque Residencial Laranjeiras - Serra - ES",
+      "destino": "Avenida Maringá - Serra - ES",
+      "distancia_km": 9.85
+    },
+    {
+      "horario": "13:33",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 13.19,
+      "origem": "R. Campari, Santa Luzia - Serra - ES",
+      "destino": "Rua Doutor Eurico de Aguiar, Santa Lúcia - Vitória - ES",
+      "distancia_km": 2.17
+    },
+    {
+      "horario": "18:31",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 27.42,
+      "origem": "Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES",
+      "destino": "Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES",
+      "distancia_km": 10.96
+    }
+  ]
+}
+```
+📊 Dados Estruturados Decodificados: {'sucesso': True, 'historico_completo': True, 'necessita_mais_frames': False, 'total_corridas': 13, 'faturamento_total': 289.93, 'corridas': [{'horario': '18:31', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 27.42, 'origem': 'Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES', 'destino': 'Rua Arara, Serra Dourada III - Serra - ES', 'distancia_km': 10.96}, {'horario': '17:52', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 14.17, 'origem': 'Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES', 'destino': 'Av. Braúna, Colina de Laranjeiras - Serra - ES', 'distancia_km': 4.08}, {'horario': '16:04', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Av. Nossa Senhora da Penha, Praia do Canto - Vitória - ES', 'destino': 'Avenida Augusto Emílio Estelita Lins, Jardim Camburi - Vitória - ES', 'distancia_km': 8.18}, {'horario': '13:33', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 13.19, 'origem': 'R Herman Stern, Taquara - Serra - ES', 'destino': 'Rua Arco verde, Barcelona - Serra - ES', 'distancia_km': 2.17}, {'horario': '13:08', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 17.71, 'origem': 'Av. Florianopolis, Jardim Limoeiro - Serra - ES', 'destino': 'Av. Eides Scherrer Souza, Civit II - Serra - ES', 'distancia_km': 5.0}, {'horario': '11:34', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 28.49, 'origem': 'Av Braúna, Serra - ES', 'destino': 'Av Fernando Ferrari, Goiabeiras - Vitória - ES', 'distancia_km': 12.82}, {'horario': '10:58', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 21.61, 'origem': 'Rua Carlos Martins, Jardim Camburi - Vitória - ES', 'destino': 'Avenida Monte das Oliveiras, Colina de Laranjeiras - Serra - ES', 'distancia_km': 10.88}, {'horario': '09:24', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 20.02, 'origem': 'Av. Florianopolis, Jardim Limoeiro - Serra - ES', 'destino': 'Av. Eides Scherrer Souza, Civit II - Serra - ES', 'distancia_km': 6.37}, {'horario': '08:25', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 12.05, 'origem': 'Av. Eides Scherrer Souza, Parque Residencial Laranjeiras - Serra - ES', 'destino': 'Av Civit, Maringá - Serra - ES', 'distancia_km': 5.33}, {'horario': '07:32', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Rua Jaburu, Serra Dourada III - Serra - ES', 'destino': 'R. Casimiro de Abreu, Região de Laranjeiras - Serra - ES', 'distancia_km': 9.85}, {'horario': '07:32', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Av. Eides Scherrer Souza, Parque Residencial Laranjeiras - Serra - ES', 'destino': 'Avenida Maringá - Serra - ES', 'distancia_km': 9.85}, {'horario': '13:33', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 13.19, 'origem': 'R. Campari, Santa Luzia - Serra - ES', 'destino': 'Rua Doutor Eurico de Aguiar, Santa Lúcia - Vitória - ES', 'distancia_km': 2.17}, {'horario': '18:31', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 27.42, 'origem': 'Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES', 'destino': 'Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES', 'distancia_km': 10.96}]}
+✅ [Sucesso OCR Video] 13 corridas extraídas!
+==================================================================
+
+INFO:     172.18.0.6:45376 - "POST /jornadas/aberta/extrato-video?plataforma=UBER&faturamento_ancora=289.93&corridas_ancora=13 HTTP/1.1" 201 Created
+INFO:     172.18.0.6:42008 - "POST /jornadas/Ronaldo%20Patr%C3%ADcio%20da%20Silva-SIC-4C92-02092026104139/validar-fechamento?faturamento_uber=289.93&corridas_uber=13&faturamento_99=0.0&corridas_99=0&faturamento_outros=0.0&corridas_outros=0 HTTP/1.1" 200 OK
+INFO:     172.18.0.6:58506 - "GET /jornadas/aberta HTTP/1.1" 200 OK
+INFO:     172.18.0.6:58520 - "GET /jornadas/pendente-fechamento HTTP/1.1" 200 OK
+INFO:     172.18.0.6:58518 - "GET /jornadas/pendente-auditoria HTTP/1.1" 200 OK
+INFO:     172.18.0.6:55640 - "GET /users/me/pendencias HTTP/1.1" 200 OK
+INFO:     172.18.0.6:55654 - "GET /auth/motoristas HTTP/1.1" 200 OK
+INFO:     172.18.0.6:37556 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     172.18.0.6:37558 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     172.18.0.6:37572 - "GET /jornadas/aberta HTTP/1.1" 200 OK
+INFO:     172.18.0.6:37588 - "GET /jornadas/pendente-fechamento HTTP/1.1" 200 OK
+INFO:     172.18.0.6:37590 - "GET /jornadas/pendente-auditoria HTTP/1.1" 200 OK
+INFO:     172.18.0.6:44086 - "GET /jornadas/aberta HTTP/1.1" 200 OK
+INFO:     172.18.0.6:44074 - "GET /jornadas/pendente-auditoria HTTP/1.1" 200 OK
+INFO:     172.18.0.6:44100 - "GET /jornadas/pendente-fechamento HTTP/1.1" 200 OK
+INFO:     172.18.0.6:44110 - "GET /users/me/pendencias HTTP/1.1" 200 OK
+INFO:     172.18.0.6:52144 - "GET /jornadas/aberta HTTP/1.1" 200 OK
+INFO:     172.18.0.6:52170 - "GET /jornadas/pendente-fechamento HTTP/1.1" 200 OK
+INFO:     172.18.0.6:52160 - "GET /jornadas/pendente-auditoria HTTP/1.1" 200 OK
+📹 [OCR Video Upload] Vídeo gravado em Mídias: /app-jornada/extrato_video/08b4d5235e384ad3ac6370d4e33c911c.mp4 | Plataforma Esperada: UBER
+
+==================================================================
+🎬 [OCR Video] Iniciando análise de 10 quadros do vídeo (UBER)...
+------------------------------------------------------------------
+❌ [OCR Video Error] Erro na tentativa 1 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 2 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 3 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+🤖 [OCR Video Modelo: gemini-flash-lite-latest Tentativa: 1] Resposta Bruta da IA:
+```json
+{
+  "sucesso": true,
+  "historico_completo": false,
+  "necessita_mais_frames": true,
+  "total_corridas": 10,
+  "faturamento_total": 221.72,
+  "corridas": [
+    {
+      "horario": "18:31",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 27.42,
+      "origem": "Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES, 29165-155, BR",
+      "destino": "Rua Arara, Serra Dourada III - Serra - ES, 29171-448, BR",
+      "distancia_km": 10.95
+    },
+    {
+      "horario": "17:52",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 14.17,
+      "origem": "Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES, 29166, BR",
+      "destino": "Av. Braúna, Colina de Laranjeiras - Serra - ES, 29167-128, BR",
+      "distancia_km": 4.08
+    },
+    {
+      "horario": "14:20",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 36.31,
+      "origem": "Avenida Doutor Olívio Lira, Praia da Costa - Vila Velha - ES, 29101-415, BR",
+      "destino": "Avenida Doutor Olívio Lira, Praia da Costa - Vila Velha - ES, 29101-415, BR",
+      "distancia_km": 11.82
+    },
+    {
+      "horario": "13:33",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 13.19,
+      "origem": "R. Bicuíba, Colina de Laranjeiras - Serra - ES, 29167-128, BR",
+      "destino": "Av. Dante Michelini, Parque Industrial - Vitória - ES, 29090, BR",
+      "distancia_km": 2.17
+    },
+    {
+      "horario": "13:08",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 17.71,
+      "origem": "Av. Florianópolis, Jardim Limoeiro - Serra - ES, 29164-008, BR",
+      "destino": "Av. Eldes Scherrer Souza, Civit II - Serra - ES, 29165-670, BR",
+      "distancia_km": 5.30
+    },
+    {
+      "horario": "11:34",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 28.49,
+      "origem": "Av. Braúna, Serra - ES, 29167-124, BR",
+      "destino": "Av. Fernando Ferrari, Goiabeiras - Vitória - ES, 29075-010, BR",
+      "distancia_km": 12.82
+    },
+    {
+      "horario": "07:32",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Av. Eldes Scherrer Souza, Parque Residencial Laranjeiras - Serra - ES, 29165-680, BR",
+      "destino": "Av. Brasil, Maringá - Serra - ES, 29188-306, BR",
+      "distancia_km": 9.85
+    },
+    {
+      "horario": null,
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Rua Jaburu, Serra Dourada III - Serra - ES, 29167-548, BR",
+      "destino": "R. Casimiro de Abreu, Região de Laranjeiras - Serra - ES, 29165-160, BR",
+      "distancia_km": null
+    },
+    {
+      "horario": null,
+      "data_formatada": null,
+      "plataforma": "Uber",
+      "valor_reais": 15.86,
+      "origem": null,
+      "destino": null,
+      "distancia_km": null
+    },
+    {
+      "horario": null,
+      "data_formatada": null,
+      "plataforma": "Uber",
+      "valor_reais": 17.07,
+      "origem": null,
+      "destino": null,
+      "distancia_km": null
+    }
+  ]
+}
+```
+📊 Dados Estruturados Decodificados: {'sucesso': True, 'historico_completo': False, 'necessita_mais_frames': True, 'total_corridas': 10, 'faturamento_total': 221.72, 'corridas': [{'horario': '18:31', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 27.42, 'origem': 'Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES, 29165-155, BR', 'destino': 'Rua Arara, Serra Dourada III - Serra - ES, 29171-448, BR', 'distancia_km': 10.95}, {'horario': '17:52', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 14.17, 'origem': 'Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES, 29166, BR', 'destino': 'Av. Braúna, Colina de Laranjeiras - Serra - ES, 29167-128, BR', 'distancia_km': 4.08}, {'horario': '14:20', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 36.31, 'origem': 'Avenida Doutor Olívio Lira, Praia da Costa - Vila Velha - ES, 29101-415, BR', 'destino': 'Avenida Doutor Olívio Lira, Praia da Costa - Vila Velha - ES, 29101-415, BR', 'distancia_km': 11.82}, {'horario': '13:33', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 13.19, 'origem': 'R. Bicuíba, Colina de Laranjeiras - Serra - ES, 29167-128, BR', 'destino': 'Av. Dante Michelini, Parque Industrial - Vitória - ES, 29090, BR', 'distancia_km': 2.17}, {'horario': '13:08', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 17.71, 'origem': 'Av. Florianópolis, Jardim Limoeiro - Serra - ES, 29164-008, BR', 'destino': 'Av. Eldes Scherrer Souza, Civit II - Serra - ES, 29165-670, BR', 'distancia_km': 5.3}, {'horario': '11:34', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 28.49, 'origem': 'Av. Braúna, Serra - ES, 29167-124, BR', 'destino': 'Av. Fernando Ferrari, Goiabeiras - Vitória - ES, 29075-010, BR', 'distancia_km': 12.82}, {'horario': '07:32', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Av. Eldes Scherrer Souza, Parque Residencial Laranjeiras - Serra - ES, 29165-680, BR', 'destino': 'Av. Brasil, Maringá - Serra - ES, 29188-306, BR', 'distancia_km': 9.85}, {'horario': None, 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Rua Jaburu, Serra Dourada III - Serra - ES, 29167-548, BR', 'destino': 'R. Casimiro de Abreu, Região de Laranjeiras - Serra - ES, 29165-160, BR', 'distancia_km': None}, {'horario': None, 'data_formatada': None, 'plataforma': 'Uber', 'valor_reais': 15.86, 'origem': None, 'destino': None, 'distancia_km': None}, {'horario': None, 'data_formatada': None, 'plataforma': 'Uber', 'valor_reais': 17.07, 'origem': None, 'destino': None, 'distancia_km': None}]}
+✅ [Sucesso OCR Video] 10 corridas extraídas!
+==================================================================
+
+INFO:     172.18.0.6:45282 - "POST /jornadas/aberta/extrato-video?plataforma=UBER&faturamento_ancora=289.96&corridas_ancora=13 HTTP/1.1" 201 Created
+INFO:     172.18.0.6:51606 - "POST /jornadas/Ronaldo%20Patr%C3%ADcio%20da%20Silva-SIC-4C92-02092026104139/validar-fechamento?faturamento_uber=0.0&corridas_uber=10&faturamento_99=0.0&corridas_99=0&faturamento_outros=0.0&corridas_outros=0 HTTP/1.1" 200 OK
+📹 [OCR Video Upload] Vídeo gravado em Mídias: /app-jornada/extrato_video/0fd9235b010b4dd6abd15f55b35bd17d.mp4 | Plataforma Esperada: UBER
+
+==================================================================
+🎬 [OCR Video] Iniciando análise de 10 quadros do vídeo (UBER)...
+------------------------------------------------------------------
+❌ [OCR Video Error] Erro na tentativa 1 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 2 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 3 do modelo gemini-flash-latest: HTTP Error 429: Too Many Requests
+🤖 [OCR Video Modelo: gemini-flash-lite-latest Tentativa: 1] Resposta Bruta da IA:
+```json
+{
+  "sucesso": true,
+  "historico_completo": true,
+  "necessita_mais_frames": false,
+  "total_corridas": 13,
+  "faturamento_total": 289.96,
+  "corridas": [
+    {
+      "horario": "18:31",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 27.42,
+      "origem": "Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES",
+      "destino": "Rua Arara, Serra Dourada III - Serra - ES",
+      "distancia_km": 10.96
+    },
+    {
+      "horario": "17:52",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 14.17,
+      "origem": "Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES",
+      "destino": "Av. Braúna, Colina de Laranjeiras - Serra - ES",
+      "distancia_km": 4.08
+    },
+    {
+      "horario": "17:25",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 20.55,
+      "origem": "Av. Guarapari, Santa Luzia - Serra - ES",
+      "destino": "Serra - ES",
+      "distancia_km": 6.35
+    },
+    {
+      "horario": "16:04",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Av. Nossa Senhora da Penha, Praia do Canto - Vitória - ES",
+      "destino": "Avenida Augusto Emilio Estelita Lins, Jardim Camburi - Vitória - ES",
+      "distancia_km": 8.18
+    },
+    {
+      "horario": "13:08",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 17.71,
+      "origem": "Rua Engenheiro Von Stern, Taquara I - Serra - ES",
+      "destino": "Rua Arco Verde, Barcelona - Serra - ES",
+      "distancia_km": 5.00
+    },
+    {
+      "horario": "12:11",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 19.50,
+      "origem": "Av. Florianópolis, Jardim Limoeiro - Serra - ES",
+      "destino": "Av. Eides Scherrer Souza, CIVITIS - Serra - ES",
+      "distancia_km": 4.50
+    },
+    {
+      "horario": "11:34",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 28.49,
+      "origem": "Serra - ES",
+      "destino": "Serra - ES",
+      "distancia_km": 12.82
+    },
+    {
+      "horario": "09:50",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 18.24,
+      "origem": "Av. Civis, Maringá - Serra - ES",
+      "destino": "Serra - ES",
+      "distancia_km": 5.10
+    },
+    {
+      "horario": "09:24",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 20.02,
+      "origem": "Rua Alfeu Martins, Jardim Camburi - Vitória - ES",
+      "destino": "Av. Monte das Oliveiras, Colina de Laranjeiras - Serra - ES",
+      "distancia_km": 6.37
+    },
+    {
+      "horario": "08:42",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 26.88,
+      "origem": "Rua Saigon, Cidade Continental - Serra - ES",
+      "destino": "Av. Carapebus, São Geraldo - Serra - ES",
+      "distancia_km": 12.19
+    },
+    {
+      "horario": "07:32",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Rua Jaburu, Serra Dourada III - Serra - ES",
+      "destino": "R. Casimiro de Abreu, Região de Laranjeiras - Serra - ES",
+      "distancia_km": 9.85
+    },
+    {
+      "horario": "06:50",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 11.50,
+      "origem": "Serra - ES",
+      "destino": "Serra - ES",
+      "distancia_km": 3.20
+    },
+    {
+      "horario": "06:15",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 13.50,
+      "origem": "Serra - ES",
+      "destino": "Vitória - ES",
+      "distancia_km": 4.10
+    }
+  ]
+}
+```
+📊 Dados Estruturados Decodificados: {'sucesso': True, 'historico_completo': True, 'necessita_mais_frames': False, 'total_corridas': 13, 'faturamento_total': 289.96, 'corridas': [{'horario': '18:31', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 27.42, 'origem': 'Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES', 'destino': 'Rua Arara, Serra Dourada III - Serra - ES', 'distancia_km': 10.96}, {'horario': '17:52', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 14.17, 'origem': 'Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES', 'destino': 'Av. Braúna, Colina de Laranjeiras - Serra - ES', 'distancia_km': 4.08}, {'horario': '17:25', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 20.55, 'origem': 'Av. Guarapari, Santa Luzia - Serra - ES', 'destino': 'Serra - ES', 'distancia_km': 6.35}, {'horario': '16:04', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Av. Nossa Senhora da Penha, Praia do Canto - Vitória - ES', 'destino': 'Avenida Augusto Emilio Estelita Lins, Jardim Camburi - Vitória - ES', 'distancia_km': 8.18}, {'horario': '13:08', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 17.71, 'origem': 'Rua Engenheiro Von Stern, Taquara I - Serra - ES', 'destino': 'Rua Arco Verde, Barcelona - Serra - ES', 'distancia_km': 5.0}, {'horario': '12:11', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 19.5, 'origem': 'Av. Florianópolis, Jardim Limoeiro - Serra - ES', 'destino': 'Av. Eides Scherrer Souza, CIVITIS - Serra - ES', 'distancia_km': 4.5}, {'horario': '11:34', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 28.49, 'origem': 'Serra - ES', 'destino': 'Serra - ES', 'distancia_km': 12.82}, {'horario': '09:50', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 18.24, 'origem': 'Av. Civis, Maringá - Serra - ES', 'destino': 'Serra - ES', 'distancia_km': 5.1}, {'horario': '09:24', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 20.02, 'origem': 'Rua Alfeu Martins, Jardim Camburi - Vitória - ES', 'destino': 'Av. Monte das Oliveiras, Colina de Laranjeiras - Serra - ES', 'distancia_km': 6.37}, {'horario': '08:42', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 26.88, 'origem': 'Rua Saigon, Cidade Continental - Serra - ES', 'destino': 'Av. Carapebus, São Geraldo - Serra - ES', 'distancia_km': 12.19}, {'horario': '07:32', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Rua Jaburu, Serra Dourada III - Serra - ES', 'destino': 'R. Casimiro de Abreu, Região de Laranjeiras - Serra - ES', 'distancia_km': 9.85}, {'horario': '06:50', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 11.5, 'origem': 'Serra - ES', 'destino': 'Serra - ES', 'distancia_km': 3.2}, {'horario': '06:15', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 13.5, 'origem': 'Serra - ES', 'destino': 'Vitória - ES', 'distancia_km': 4.1}]}
+✅ [Sucesso OCR Video] 13 corridas extraídas!
+==================================================================
+
+INFO:     172.18.0.6:42968 - "POST /jornadas/aberta/extrato-video?plataforma=UBER&faturamento_ancora=289.96&corridas_ancora=13 HTTP/1.1" 201 Created
+INFO:     172.18.0.6:34892 - "POST /jornadas/Ronaldo%20Patr%C3%ADcio%20da%20Silva-SIC-4C92-02092026104139/validar-fechamento?faturamento_uber=0.0&corridas_uber=8&faturamento_99=0.0&corridas_99=0&faturamento_outros=0.0&corridas_outros=0 HTTP/1.1" 200 OK
+INFO:     172.18.0.6:58780 - "GET /jornadas/aberta HTTP/1.1" 200 OK
+INFO:     172.18.0.6:58792 - "GET /jornadas/pendente-fechamento HTTP/1.1" 200 OK
+INFO:     172.18.0.6:58772 - "GET /jornadas/pendente-auditoria HTTP/1.1" 200 OK
+INFO:     172.18.0.6:40236 - "GET /jornadas/pendente-auditoria HTTP/1.1" 200 OK
+INFO:     172.18.0.6:40240 - "GET /jornadas/pendente-fechamento HTTP/1.1" 200 OK
+INFO:     172.18.0.6:40246 - "GET /jornadas/aberta HTTP/1.1" 200 OK
+📹 [OCR Video Upload] Vídeo gravado em Mídias: /app-jornada/extrato_video/9ee34d119eb74bf48418c4d20cfb704d.mp4 | Plataforma Esperada: UBER
+
+==================================================================
+🎬 [OCR Video] Iniciando análise de 10 quadros do vídeo (UBER)...
+------------------------------------------------------------------
+❌ [OCR Video Error] Erro na tentativa 1 do modelo gemini-flash-latest: HTTP Error 429: Too Many Requests
+❌ [OCR Video Error] Erro na tentativa 2 do modelo gemini-flash-latest: HTTP Error 429: Too Many Requests
+❌ [OCR Video Error] Erro na tentativa 3 do modelo gemini-flash-latest: HTTP Error 429: Too Many Requests
+🤖 [OCR Video Modelo: gemini-flash-lite-latest Tentativa: 1] Resposta Bruta da IA:
+```json
+{
+  "sucesso": true,
+  "historico_completo": false,
+  "necessita_mais_frames": true,
+  "total_corridas": 6,
+  "faturamento_total": 115.10,
+  "corridas": [
+    {
+      "horario": "18:42",
+      "data_formatada": "2026-09-02",
+      "plataforma": "Uber",
+      "valor_reais": 26.88,
+      "origem": "Rua Saigon, Cidade Continental - Serra - ES",
+      "destino": "Av. Carapebus, São Geraldo - Serra - ES",
+      "distancia_km": 12.19
+    },
+    {
+      "horario": "18:25",
+      "data_formatada": "2026-09-02",
+      "plataforma": "Uber",
+      "valor_reais": 12.05,
+      "origem": "Av. Brasília, Porto Canoa - Serra - ES",
+      "destino": "Avenida Brasil, Novo Horizonte - Serra - ES",
+      "distancia_km": 5.33
+    },
+    {
+      "horario": "18:31",
+      "data_formatada": "2026-09-02",
+      "plataforma": "Uber",
+      "valor_reais": 27.42,
+      "origem": "Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES",
+      "destino": "Rua Arara, Serra Dourada III - Serra - ES",
+      "distancia_km": 10.96
+    },
+    {
+      "horario": "17:52",
+      "data_formatada": "2026-09-02",
+      "plataforma": "Uber",
+      "valor_reais": 14.17,
+      "origem": "Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES",
+      "destino": "Av. Braúna, Colina de Laranjeiras - Serra - ES",
+      "distancia_km": 4.08
+    },
+    {
+      "horario": "17:25",
+      "data_formatada": "2026-09-02",
+      "plataforma": "Uber",
+      "valor_reais": 20.55,
+      "origem": null,
+      "destino": null,
+      "distancia_km": 6.35
+    },
+    {
+      "horario": null,
+      "data_formatada": "2026-09-02",
+      "plataforma": "Uber",
+      "valor_reais": 14.03,
+      "origem": "Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES",
+      "destino": "Rua Arara, Serra Dourada III - Serra - ES",
+      "distancia_km": null
+    }
+  ]
+}
+```
+📊 Dados Estruturados Decodificados: {'sucesso': True, 'historico_completo': False, 'necessita_mais_frames': True, 'total_corridas': 6, 'faturamento_total': 115.1, 'corridas': [{'horario': '18:42', 'data_formatada': '2026-09-02', 'plataforma': 'Uber', 'valor_reais': 26.88, 'origem': 'Rua Saigon, Cidade Continental - Serra - ES', 'destino': 'Av. Carapebus, São Geraldo - Serra - ES', 'distancia_km': 12.19}, {'horario': '18:25', 'data_formatada': '2026-09-02', 'plataforma': 'Uber', 'valor_reais': 12.05, 'origem': 'Av. Brasília, Porto Canoa - Serra - ES', 'destino': 'Avenida Brasil, Novo Horizonte - Serra - ES', 'distancia_km': 5.33}, {'horario': '18:31', 'data_formatada': '2026-09-02', 'plataforma': 'Uber', 'valor_reais': 27.42, 'origem': 'Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES', 'destino': 'Rua Arara, Serra Dourada III - Serra - ES', 'distancia_km': 10.96}, {'horario': '17:52', 'data_formatada': '2026-09-02', 'plataforma': 'Uber', 'valor_reais': 14.17, 'origem': 'Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES', 'destino': 'Av. Braúna, Colina de Laranjeiras - Serra - ES', 'distancia_km': 4.08}, {'horario': '17:25', 'data_formatada': '2026-09-02', 'plataforma': 'Uber', 'valor_reais': 20.55, 'origem': None, 'destino': None, 'distancia_km': 6.35}, {'horario': None, 'data_formatada': '2026-09-02', 'plataforma': 'Uber', 'valor_reais': 14.03, 'origem': 'Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES', 'destino': 'Rua Arara, Serra Dourada III - Serra - ES', 'distancia_km': None}]}
+✅ [Sucesso OCR Video] 6 corridas extraídas!
+==================================================================
+
+INFO:     172.18.0.6:54878 - "POST /jornadas/aberta/extrato-video?plataforma=UBER&faturamento_ancora=289.96&corridas_ancora=13 HTTP/1.1" 201 Created
+INFO:     172.18.0.6:37318 - "POST /jornadas/Ronaldo%20Patr%C3%ADcio%20da%20Silva-SIC-4C92-02092026104139/validar-fechamento?faturamento_uber=67.67&corridas_uber=4&faturamento_99=0.0&corridas_99=0&faturamento_outros=0.0&corridas_outros=0 HTTP/1.1" 200 OK
+📹 [OCR Video Upload] Vídeo gravado em Mídias: /app-jornada/extrato_video/66231b9b524a496bbf222d64a448adec.mp4 | Plataforma Esperada: UBER
+
+==================================================================
+🎬 [OCR Video] Iniciando análise de 10 quadros do vídeo (UBER)...
+------------------------------------------------------------------
+❌ [OCR Video Error] Erro na tentativa 1 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 2 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 3 do modelo gemini-flash-latest: HTTP Error 429: Too Many Requests
+🤖 [OCR Video Modelo: gemini-flash-lite-latest Tentativa: 1] Resposta Bruta da IA:
+```json
+{
+  "sucesso": true,
+  "historico_completo": false,
+  "necessita_mais_frames": true,
+  "total_corridas": 7,
+  "faturamento_total": 128.94,
+  "corridas": [
+    {
+      "horario": "18:31",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 27.42,
+      "origem": "Av Primeira Avenida, Parque Res. Laranjeiras - Serra - ES",
+      "destino": "Rua Arara, Serra Dourada III - Serra - ES",
+      "distancia_km": 10.96
+    },
+    {
+      "horario": "17:52",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 14.17,
+      "origem": "Av Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES",
+      "destino": "Av Braúna, Colina de Laranjeiras - Serra - ES",
+      "distancia_km": 4.08
+    },
+    {
+      "horario": "11:34",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 28.49,
+      "origem": "Av Florianópolis, Jardim Limoeiro - Serra - ES",
+      "destino": "Av Eldes Scherrer Souza, Civit II - Serra - ES",
+      "distancia_km": 12.82
+    },
+    {
+      "horario": "11:28",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 0.00,
+      "origem": "Av Primeira Avenida, Parque Residencial Laranjeiras - Serra - ES",
+      "destino": null,
+      "distancia_km": null
+    },
+    {
+      "horario": "07:32",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Av Civit, Manguinhos - Serra - ES",
+      "destino": "Rua Jaburu, Serra Dourada II - Serra - ES",
+      "distancia_km": 8.85
+    },
+    {
+      "horario": "13:33",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 13.19,
+      "origem": "R. Colina de Laranjeiras - Serra - ES",
+      "destino": "Av Dante Michelini, Parque Industrial - Vitória - ES",
+      "distancia_km": 2.37
+    },
+    {
+      "horario": "13:08",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 17.71,
+      "origem": "R Herman Stem, Taquara I - Serra - ES",
+      "destino": "Rua Arco Verde, Barcelona - Serra - ES",
+      "distancia_km": 5.30
+    }
+  ]
+}
+```
+📊 Dados Estruturados Decodificados: {'sucesso': True, 'historico_completo': False, 'necessita_mais_frames': True, 'total_corridas': 7, 'faturamento_total': 128.94, 'corridas': [{'horario': '18:31', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 27.42, 'origem': 'Av Primeira Avenida, Parque Res. Laranjeiras - Serra - ES', 'destino': 'Rua Arara, Serra Dourada III - Serra - ES', 'distancia_km': 10.96}, {'horario': '17:52', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 14.17, 'origem': 'Av Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES', 'destino': 'Av Braúna, Colina de Laranjeiras - Serra - ES', 'distancia_km': 4.08}, {'horario': '11:34', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 28.49, 'origem': 'Av Florianópolis, Jardim Limoeiro - Serra - ES', 'destino': 'Av Eldes Scherrer Souza, Civit II - Serra - ES', 'distancia_km': 12.82}, {'horario': '11:28', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 0.0, 'origem': 'Av Primeira Avenida, Parque Residencial Laranjeiras - Serra - ES', 'destino': None, 'distancia_km': None}, {'horario': '07:32', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Av Civit, Manguinhos - Serra - ES', 'destino': 'Rua Jaburu, Serra Dourada II - Serra - ES', 'distancia_km': 8.85}, {'horario': '13:33', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 13.19, 'origem': 'R. Colina de Laranjeiras - Serra - ES', 'destino': 'Av Dante Michelini, Parque Industrial - Vitória - ES', 'distancia_km': 2.37}, {'horario': '13:08', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 17.71, 'origem': 'R Herman Stem, Taquara I - Serra - ES', 'destino': 'Rua Arco Verde, Barcelona - Serra - ES', 'distancia_km': 5.3}]}
+✅ [Sucesso OCR Video] 7 corridas extraídas!
+==================================================================
+
+INFO:     172.18.0.6:49712 - "POST /jornadas/aberta/extrato-video?plataforma=UBER&faturamento_ancora=289.93&corridas_ancora=13 HTTP/1.1" 201 Created
+INFO:     172.18.0.6:56110 - "POST /jornadas/Ronaldo%20Patr%C3%ADcio%20da%20Silva-SIC-4C92-02092026104139/validar-fechamento?faturamento_uber=85.17&corridas_uber=4&faturamento_99=0.0&corridas_99=0&faturamento_outros=0.0&corridas_outros=0 HTTP/1.1" 200 OK
+INFO:     172.18.0.6:55056 - "GET /jornadas/aberta HTTP/1.1" 200 OK
+INFO:     172.18.0.6:55068 - "GET /jornadas/pendente-fechamento HTTP/1.1" 200 OK
+INFO:     172.18.0.6:55078 - "GET /jornadas/pendente-auditoria HTTP/1.1" 200 OK
+📹 [OCR Video Upload] Vídeo gravado em Mídias: /app-jornada/extrato_video/159e9cea71484718b0a25ca6952d864d.mp4 | Plataforma Esperada: UBER
+
+==================================================================
+🎬 [OCR Video] Iniciando análise de 10 quadros do vídeo (UBER)...
+------------------------------------------------------------------
+❌ [OCR Video Error] Erro na tentativa 1 do modelo gemini-flash-latest: HTTP Error 503: Service Unavailable
+❌ [OCR Video Error] Erro na tentativa 2 do modelo gemini-flash-latest: HTTP Error 429: Too Many Requests
+❌ [OCR Video Error] Erro na tentativa 3 do modelo gemini-flash-latest: HTTP Error 429: Too Many Requests
+🤖 [OCR Video Modelo: gemini-flash-lite-latest Tentativa: 1] Resposta Bruta da IA:
+```json
+{
+  "sucesso": true,
+  "historico_completo": false,
+  "necessita_mais_frames": true,
+  "total_corridas": 8,
+  "faturamento_total": 158.44,
+  "corridas": [
+    {
+      "horario": "18:31",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 27.42,
+      "origem": "Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES, 29165-155, BR",
+      "destino": "Rua Arara, Serra Dourada III - Serra - ES, 29171-448, BR",
+      "distancia_km": 10.96
+    },
+    {
+      "horario": "17:52",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 14.17,
+      "origem": "Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES, 29166, BR",
+      "destino": "Av. Braúna, Colina de Laranjeiras - Serra - ES, 29167-151, BR",
+      "distancia_km": 4.08
+    },
+    {
+      "horario": "13:08",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 17.71,
+      "origem": "Av. Florianópolis, Jardim Limoeiro - Serra - ES, 29164-008, BR",
+      "destino": "Av. Eldes Scherrer Souza, Civit II - Serra - ES, 29165-680, BR",
+      "distancia_km": 5.30
+    },
+    {
+      "horario": "11:34",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 28.49,
+      "origem": "Av. Braúna, Serra - ES, 29167-124, BR",
+      "destino": "Av. Fernando Ferrari, Goiabeiras - Vitória - ES, 29075-010, BR",
+      "distancia_km": 12.82
+    },
+    {
+      "horario": "08:25",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 12.05,
+      "origem": "Av. Eldes Scherrer Souza, Parque Residencial Laranjeiras - Serra - ES, 29165-680, BR",
+      "destino": "Av. Civit, Maringá - Serra - ES, 29168-308, BR",
+      "distancia_km": 5.33
+    },
+    {
+      "horario": "07:32",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 25.78,
+      "origem": "Rua Jaburu, Serra Dourada III - Serra - ES, 29167-548, BR",
+      "destino": "Rua Casimiro de Abreu, Região de Laranjeiras - Serra - ES, 29165-160, BR",
+      "distancia_km": 9.85
+    },
+    {
+      "horario": "13:08",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 17.71,
+      "origem": "R. Herman Stern, Taquara I - Serra - ES, 29173-082, BR",
+      "destino": "Rua Arco Verde, Barcelona - Serra - ES, 29166-024, BR",
+      "distancia_km": 5.30
+    },
+    {
+      "horario": "11:34",
+      "data_formatada": "02/09/2026",
+      "plataforma": "Uber",
+      "valor_reais": 28.49,
+      "origem": "Av. Florianópolis, Jardim Limoeiro - Serra - ES, 29164-008, BR",
+      "destino": "Av. Eldes Scherrer Souza, Civit II - Serra - ES, 29165-680, BR",
+      "distancia_km": 12.82
+    }
+  ]
+}
+```
+📊 Dados Estruturados Decodificados: {'sucesso': True, 'historico_completo': False, 'necessita_mais_frames': True, 'total_corridas': 8, 'faturamento_total': 158.44, 'corridas': [{'horario': '18:31', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 27.42, 'origem': 'Av. Primeira Avenida, Parque Res. Laranjeiras - Serra - ES, 29165-155, BR', 'destino': 'Rua Arara, Serra Dourada III - Serra - ES, 29171-448, BR', 'distancia_km': 10.96}, {'horario': '17:52', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 14.17, 'origem': 'Av. Laranjeiras X Yahoo, Morada de Laranjeiras - Vitória - ES, 29166, BR', 'destino': 'Av. Braúna, Colina de Laranjeiras - Serra - ES, 29167-151, BR', 'distancia_km': 4.08}, {'horario': '13:08', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 17.71, 'origem': 'Av. Florianópolis, Jardim Limoeiro - Serra - ES, 29164-008, BR', 'destino': 'Av. Eldes Scherrer Souza, Civit II - Serra - ES, 29165-680, BR', 'distancia_km': 5.3}, {'horario': '11:34', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 28.49, 'origem': 'Av. Braúna, Serra - ES, 29167-124, BR', 'destino': 'Av. Fernando Ferrari, Goiabeiras - Vitória - ES, 29075-010, BR', 'distancia_km': 12.82}, {'horario': '08:25', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 12.05, 'origem': 'Av. Eldes Scherrer Souza, Parque Residencial Laranjeiras - Serra - ES, 29165-680, BR', 'destino': 'Av. Civit, Maringá - Serra - ES, 29168-308, BR', 'distancia_km': 5.33}, {'horario': '07:32', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 25.78, 'origem': 'Rua Jaburu, Serra Dourada III - Serra - ES, 29167-548, BR', 'destino': 'Rua Casimiro de Abreu, Região de Laranjeiras - Serra - ES, 29165-160, BR', 'distancia_km': 9.85}, {'horario': '13:08', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 17.71, 'origem': 'R. Herman Stern, Taquara I - Serra - ES, 29173-082, BR', 'destino': 'Rua Arco Verde, Barcelona - Serra - ES, 29166-024, BR', 'distancia_km': 5.3}, {'horario': '11:34', 'data_formatada': '02/09/2026', 'plataforma': 'Uber', 'valor_reais': 28.49, 'origem': 'Av. Florianópolis, Jardim Limoeiro - Serra - ES, 29164-008, BR', 'destino': 'Av. Eldes Scherrer Souza, Civit II - Serra - ES, 29165-680, BR', 'distancia_km': 12.82}]}
+✅ [Sucesso OCR Video] 8 corridas extraídas!
+==================================================================
+
+INFO:     172.18.0.6:38068 - "POST /jornadas/aberta/extrato-video?plataforma=UBER&faturamento_ancora=289.96&corridas_ancora=13 HTTP/1.1" 201 Created
+INFO:     172.18.0.6:51284 - "POST /jornadas/Ronaldo%20Patr%C3%ADcio%20da%20Silva-SIC-4C92-02092026104139/validar-fechamento?faturamento_uber=289.96&corridas_uber=13&faturamento_99=0.0&corridas_99=0&faturamento_outros=0.0&corridas_outros=0 HTTP/1.1" 200 OK
