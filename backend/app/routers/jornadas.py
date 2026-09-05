@@ -1348,7 +1348,12 @@ async def upload_e_processar_extrato_video(
 
     video_url = await _salvar_arquivo(arquivo, "extrato_video")
     print(f"📹 [OCR Video Upload] Vídeo gravado em Mídias: {video_url} | Plataforma Esperada: {plataforma}")
-    frames, frame_urls = _extrair_frames_video(conteudo_bytes, max_frames=10)
+    
+    target_frames = corridas_ancora if corridas_ancora and corridas_ancora > 0 else 10
+    # Limite mínimo de segurança
+    target_frames = max(10, target_frames)
+    
+    frames, frame_urls = _extrair_frames_video(conteudo_bytes, max_frames=target_frames)
     if not frames:
         raise HTTPException(status_code=400, detail="Não foi possível extrair quadros do vídeo enviado.")
 
@@ -1360,6 +1365,30 @@ async def upload_e_processar_extrato_video(
         corridas_ancora=corridas_ancora
     )
     corridas_lidas = res_ai.get("corridas", [])
+    
+    # LÓGICA DA SEGUNDA PASSADA (DUPLA CHECAGEM SE NÃO BATER A ÂNCORA)
+    if corridas_ancora and corridas_ancora > 0 and len(corridas_lidas) < corridas_ancora:
+        print(f"⚠️ [OCR Multi-Pass] A IA achou apenas {len(corridas_lidas)} de {corridas_ancora} corridas. DOBRANDO FRAMES para segunda tentativa...")
+        target_frames = target_frames * 2
+        
+        # Extrai novamente com o dobro da densidade
+        frames_pass2, frame_urls_pass2 = _extrair_frames_video(conteudo_bytes, max_frames=target_frames)
+        if frames_pass2:
+            res_ai_pass2 = _chamar_gemini_extrato_video(
+                frames_pass2, 
+                frame_urls=frame_urls_pass2, 
+                plataforma_esperada=plataforma,
+                faturamento_ancora=faturamento_ancora,
+                corridas_ancora=corridas_ancora
+            )
+            corridas_lidas_pass2 = res_ai_pass2.get("corridas", [])
+            # Se a segunda tentativa achar mais corridas, usamos o resultado dela
+            if len(corridas_lidas_pass2) > len(corridas_lidas):
+                print(f"✅ [OCR Multi-Pass] A segunda tentativa melhorou o resultado para {len(corridas_lidas_pass2)} corridas.")
+                res_ai = res_ai_pass2
+                corridas_lidas = corridas_lidas_pass2
+            else:
+                print(f"⚠️ [OCR Multi-Pass] A segunda tentativa com dobro de frames não achou mais corridas (Achou {len(corridas_lidas_pass2)}).")
 
     if not corridas_lidas:
         return {

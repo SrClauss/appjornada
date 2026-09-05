@@ -221,35 +221,61 @@ def _extrair_frames_video(video_bytes: bytes, max_frames: int = 15, aplicar_niti
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         
         if total_frames > 0:
-            # Amostragem inteligente baseada em variação de cena (detecção de quadros estáveis pós-rolagem)
-            step = max(1, total_frames // max(max_frames * 2, 20))
-            candidate_frames = []
+            # 1. Primeira passada rápida (amostragem de ~4 fps) para localizar o início e fim da rolagem
+            sweep_step = max(1, int(fps / 4))
+            sweep_diffs = []
             prev_gray = None
             
             curr_f = 0
-            while curr_f < total_frames and len(candidate_frames) < max_frames * 3:
+            while curr_f < total_frames:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, curr_f)
                 ret, frame = cap.read()
                 if not ret or frame is None:
                     break
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 
-                # Se houver frame anterior, mede a diferença para identificar se a tela está parada
                 diff_val = 0.0
                 if prev_gray is not None:
                     diff_val = np.mean(cv2.absdiff(gray, prev_gray))
                 
-                candidate_frames.append((curr_f, frame, diff_val))
+                sweep_diffs.append((curr_f, diff_val))
                 prev_gray = gray
-                curr_f += step
+                curr_f += sweep_step
 
-            # Seleciona preferencialmente quadros com menor diferença (parados) distribuídos no tempo
-            if len(candidate_frames) > max_frames:
-                # Ordena os mais parados distribuídos no tempo
-                stride = len(candidate_frames) / max_frames
-                selected_tuples = [candidate_frames[int(i * stride)] for i in range(max_frames)]
-            else:
-                selected_tuples = candidate_frames
+            # Localiza a janela de rolagem (onde diff_val > 2.0 indica movimento)
+            start_idx = 0
+            end_idx = len(sweep_diffs) - 1
+            DIFF_THRESHOLD = 2.0
+            
+            for i, (f_num, d_val) in enumerate(sweep_diffs):
+                if d_val > DIFF_THRESHOLD:
+                    start_idx = max(0, i - 1)
+                    break
+                    
+            for i in range(len(sweep_diffs)-1, -1, -1):
+                if sweep_diffs[i][1] > DIFF_THRESHOLD:
+                    end_idx = min(len(sweep_diffs)-1, i + 1)
+                    break
+
+            start_frame = sweep_diffs[start_idx][0]
+            end_frame = sweep_diffs[end_idx][0]
+            
+            # Se a janela for muito pequena (ex: não rolou), pega o vídeo todo
+            if end_frame - start_frame < fps:
+                start_frame = 0
+                end_frame = total_frames - 1
+
+            # 2. Segunda passada: extrai os frames proporcionalmente APENAS dentro da janela de rolagem
+            final_step = max(1, (end_frame - start_frame) // max_frames)
+            selected_tuples = []
+            
+            curr_f = start_frame
+            while curr_f <= end_frame and len(selected_tuples) < max_frames:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, curr_f)
+                ret, frame = cap.read()
+                if ret and frame is not None:
+                    selected_tuples.append((curr_f, frame))
+                curr_f += final_step
 
             for item in selected_tuples:
                 frame = item[1]
