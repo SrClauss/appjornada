@@ -380,6 +380,12 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
         f"Analise minuciosamente esta sequência sequencial de capturas de tela (frames) gravadas do histórico de corridas de aplicativo (Uber / 99).{plat_instrucao}\n"
         f"{ancora_instrucao}"
         "Seu objetivo é garimpar e extrair COM EXATIDÃO 100% TODAS as corridas apresentadas durante a rolagem do vídeo, sem omitir NENHUMA corrida visível e eliminando duplicações idênticas entre quadros.\n"
+        "REGRAS DE DESDUPLICAÇÃO (MUITO IMPORTANTE):\n"
+        "- A pessoa pode estar rolando o vídeo para cima e para baixo. É crucial não duplicar a mesma corrida que aparece em momentos diferentes do vídeo.\n"
+        "- Para identificar se uma corrida é duplicada ou nova, use os seguintes critérios na ordem de importância:\n"
+        "  1. HORÁRIO: É o principal critério. Corridas com o mesmo horário têm alta probabilidade de serem a mesma.\n"
+        "  2. VALOR: Em seguida, avalie o valor. Corridas com o mesmo horário e mesmo valor são quase certamente a mesma.\n"
+        "  3. ENDEREÇO: Por fim, se ainda houver dúvida, valide o endereço de origem e destino.\n"
         "Para cada corrida encontrada, extraia exatamente:\n"
         "- horario (ex: '11:18' ou '15:26')\n"
         "- data_formatada (data da corrida se visível ex: '02/06/2026' ou '2026-06-02', senão null)\n"
@@ -412,7 +418,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     print(f"📝 [OCR Video Prompt Enviado] \n{prompt}")
     print(f"==================================================================")
 
-    modelos = ["gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-pro-latest"]
+    modelos = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-pro-latest"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
