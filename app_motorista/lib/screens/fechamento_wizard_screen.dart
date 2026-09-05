@@ -683,12 +683,17 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
         const SizedBox(height: 24),
 
         // 2. VÍDEO COMPROBATÓRIO
-        Container(
+        Builder(builder: (context) {
+          final double fatDeclarado = double.tryParse(faturamentoCtrl.text.replaceAll(',', '.')) ?? 0.0;
+          final int corrDeclaradas = int.tryParse(corridasCtrl.text) ?? 0;
+          final bool declaracaoPreenchida = fatDeclarado > 0 || corrDeclaradas > 0;
+
+          return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color(0xFF1E293B),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white24),
+            border: Border.all(color: declaracaoPreenchida ? Colors.white24 : Colors.white10),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -700,8 +705,29 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const SizedBox(height: 16),
-                
-                if (_recordedVideoPath != null && _recordedVideoPath!.isNotEmpty) ...[
+
+              if (!declaracaoPreenchida) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.lock_outline, color: Colors.amber, size: 22),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Preencha o faturamento ou o número de corridas acima para habilitar a gravação do extrato.',
+                          style: TextStyle(color: Colors.amber, fontSize: 13, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else if (_recordedVideoPath != null && _recordedVideoPath!.isNotEmpty) ...[
                   Row(
                     children: const [
                       Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
@@ -834,7 +860,8 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                 ],
               ],
             ),
-          ),
+          );
+        }),
         const SizedBox(height: 24),
 
         // 3. RESULTADO IA

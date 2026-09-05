@@ -64,7 +64,7 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
   Future<void> _startProcess() async {
     final platTag = widget.plataforma != null ? " [PLATAFORMA: ${widget.plataforma!.toUpperCase()}]" : "";
     _addLog(">>> INICIANDO PROCESSAMENTO MULTIMODAL DE VÍDEO DO EXTRATO$platTag <<<");
-    _addLog("Modelo Primário Selecionado: gemini-3.5-flash-lite");
+    _addLog("Modelo Primário Selecionado: gemini-flash-latest");
     _addLog("Arquivo local: ${widget.videoPath.split('/').last}");
 
     // Passo 1: Leitura e upload
@@ -78,7 +78,7 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
     _addLog("[OPENCV] 8 quadros em formato JPEG (720p) prontos para análise de visão.");
 
     // Passo 3: Envio para o Backend + IA
-    _addLog("[REDE] Transmitindo quadros para a API Gemini (gemini-3.5-flash-lite)...");
+    _addLog("[REDE] Transmitindo quadros para a API Gemini (gemini-flash-latest)...");
     _addLog("[IA] Processando prompt de extração e deduplicação multimodal para ${widget.plataforma ?? 'todas as plataformas'}...");
 
     try {
@@ -95,7 +95,7 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
 
       if (res != null && (res['sucesso'] == true || (res['corridas'] != null && (res['corridas'] as List).isNotEmpty))) {
         _addLog("[IA] Resposta recebida da API Gemini em ${elapsed.toStringAsFixed(1)}s.");
-        _addLog("[IA] Modelo de Execução: gemini-3.5-flash-lite (Status 200 OK)");
+        _addLog("[IA] Modelo de Execução: gemini-flash-latest (Status 200 OK)");
 
         final corridas = res['corridas'] as List? ?? [];
         final totalCorridas = res['corridas_adicionadas'] ?? corridas.length;
@@ -128,7 +128,7 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
       } else {
         final msg = res?['mensagem'] ?? 'Nenhuma corrida legível identificada no vídeo.';
         _addLog("[AVISO] $msg");
-        _addLog("[RETENTATIVA] Modelo gemini-3.5-flash-lite não retornou corridas válidas.");
+        _addLog("[RETENTATIVA] Modelo gemini-flash-latest não retornou corridas válidas.");
 
         setState(() {
           _isProcessing = false;
@@ -216,7 +216,7 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
                         ),
                         const SizedBox(height: 2),
                         const Text(
-                          'Modelo Activo: gemini-3.5-flash-lite',
+                          'Modelo Activo: gemini-flash-latest',
                           style: TextStyle(color: Colors.grey, fontSize: 11),
                         ),
                       ],

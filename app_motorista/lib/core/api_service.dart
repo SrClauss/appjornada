@@ -167,8 +167,8 @@ class ApiService {
 
       request.files.add(await http.MultipartFile.fromPath('arquivo', videoPath));
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
-      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 180));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 180));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = json.decode(response.body);
