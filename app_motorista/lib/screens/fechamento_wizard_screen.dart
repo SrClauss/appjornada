@@ -683,24 +683,23 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
         const SizedBox(height: 24),
 
         // 2. VÍDEO COMPROBATÓRIO
-        if (!isZero) ...[
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('2. VÍDEO COMPROBATÓRIO (IA)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                const Text(
-                  'Grave o extrato rolando a tela. A IA lerá o vídeo para confirmar a sua declaração.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('2. VÍDEO COMPROBATÓRIO (IA)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text(
+                'Grave o extrato rolando a tela. A IA lerá o vídeo para confirmar a sua declaração.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
                 
                 if (_recordedVideoPath != null && _recordedVideoPath!.isNotEmpty) ...[
                   Row(
@@ -778,6 +777,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                               final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
                               if (ok == true) {
                                 setState(() => _isRecording = true);
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bolinha flutuante ativada! Clique no ícone nela para iniciar a gravação.')));
                               }
                             } catch (e) {
                               if (mounted) {
@@ -818,8 +818,9 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
                           try {
                             final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
                             if (ok == true) setState(() => _isRecording = true);
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bolinha flutuante ativada! Clique no ícone nela para iniciar a gravação.')));
                           } catch (e) {
-                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: $e')));
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao iniciar gravador: $e')));
                           }
                         }
                       },
@@ -834,8 +835,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
               ],
             ),
           ),
-          const SizedBox(height: 24),
-        ],
+        const SizedBox(height: 24),
 
         // 3. RESULTADO IA
         Container(
@@ -916,7 +916,7 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
               ),
             ),
           ],
-        )
+        ),
       ],
     );
   }

@@ -54,8 +54,8 @@ class ApiService {
         contentType: mimeType,
       ));
       
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
       
       if (response.statusCode == 201) {
         final body = json.decode(response.body);
@@ -82,8 +82,8 @@ class ApiService {
       request.files.add(await http.MultipartFile.fromPath('file', filePath));
       request.fields['contexto'] = contexto;
       
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
       
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -132,8 +132,8 @@ class ApiService {
         request.fields['route_points'] = json.encode(routePoints);
       }
       
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
       
       if (response.statusCode == 201) {
         final decoded = json.decode(response.body);
@@ -167,8 +167,8 @@ class ApiService {
 
       request.files.add(await http.MultipartFile.fromPath('arquivo', videoPath));
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = json.decode(response.body);
@@ -199,8 +199,8 @@ class ApiService {
         contentType: MediaType('image', ext),
       ));
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = json.decode(response.body);
@@ -236,8 +236,8 @@ class ApiService {
       if (origem != null) request.fields['origem'] = origem;
       if (destino != null) request.fields['destino'] = destino;
       
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
       
       if (response.statusCode == 201) {
         final decoded = json.decode(response.body);
@@ -263,8 +263,8 @@ class ApiService {
       
       request.fields['url_comprovante'] = urlComprovante;
       
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
       
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -343,8 +343,8 @@ class ApiService {
       
       request.files.add(await http.MultipartFile.fromPath('arquivo', filePath));
       
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 120));
+      final response = await http.Response.fromStream(streamedResponse).timeout(const Duration(seconds: 120));
       
       if (response.statusCode == 201 || response.statusCode == 200) {
         final decoded = json.decode(response.body);

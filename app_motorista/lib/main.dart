@@ -234,13 +234,16 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
           if (j != null) {
             final String status = j['status'] ?? 'ABERTA';
             final String auditStatus = j['auditoria_status'] ?? '';
+            final bool faltaKmFinal = (j['fotos'] is Map) && (j['fotos']['km_final_url'] == null || j['fotos']['km_final_url'].toString().isEmpty);
+
             if (status == 'EM_PAUSA') {
               _currentScreen = 'pausa';
             } else if (status == 'EM_MANUTENCAO') {
               _currentScreen = 'manutencao';
-            } else if (status == 'PRE_FECHAMENTO' || auditStatus == 'PENDENTE') {
+            } else if (status == 'PRE_FECHAMENTO' || status == 'ENCERRADA' || auditStatus == 'PENDENTE') {
               GpsService.stopTracking();
-              _currentScreen = 'fechamento_wizard';
+              _currentScreen = 'trilho';
+              _trilhoStep = 'auditoria';
             } else {
               if (_currentScreen == 'splash' || _currentScreen == 'login' || _currentScreen == 'trilho') {
                 _currentScreen = 'dashboard';
@@ -351,13 +354,19 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       if (j != null) {
         final String status = j['status'] ?? 'ABERTA';
         final String auditStatus = j['auditoria_status'] ?? '';
+        final bool faltaKmFinal = (j['fotos'] is Map) && (j['fotos']['km_final_url'] == null || j['fotos']['km_final_url'].toString().isEmpty);
+
         if (status == 'EM_PAUSA') {
           _currentScreen = 'pausa';
         } else if (status == 'EM_MANUTENCAO') {
           _currentScreen = 'manutencao';
-        } else if (status == 'PRE_FECHAMENTO' || auditStatus == 'PENDENTE') {
+        } else if (status == 'PRE_FECHAMENTO' || (status == 'ENCERRADA' && faltaKmFinal) || auditStatus == 'PENDENTE') {
           GpsService.stopTracking();
           _currentScreen = 'fechamento_wizard';
+        } else if (status == 'ENCERRADA') {
+          // Se encerrada e sem pendências, inicia trilho de abertura
+          _currentScreen = 'trilho';
+          _trilhoStep = 'auditoria';
         } else {
           _currentScreen = 'dashboard';
           GpsService.startTracking(j['_id'] ?? j['id']);
@@ -537,7 +546,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
       if (_trilhoStep == 'veiculo') {
         _trilhoStep = 'auditoria';
       } else if (_trilhoStep == 'vistoria') {
-        _trilhoStep = 'veiculo';
+        _trilhoStep = 'auditoria';
       } else if (_trilhoStep == 'km_inicial') {
         _trilhoStep = 'vistoria';
       } else if (_trilhoStep == 'km_morta') {
@@ -552,7 +561,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         return AuditoriaAnteriorStep(
           onCompleted: () {
             setState(() {
-              _trilhoStep = 'veiculo';
+              _trilhoStep = 'auditoria';
             });
           },
         );

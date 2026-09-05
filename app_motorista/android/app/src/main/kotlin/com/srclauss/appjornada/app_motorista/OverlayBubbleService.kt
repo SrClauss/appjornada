@@ -55,6 +55,10 @@ class OverlayBubbleService : Service() {
     }
 
     private var warningActive = false
+    private var isVideoMode = false
+    private var isRecordingVideo = false
+    private var savedResultCode: Int = 0
+    private var savedResultData: Intent? = null
     private var warningType: String? = null
     private var warningFilePath: String? = null
     private var warningPlataforma: String? = null
@@ -183,6 +187,14 @@ class OverlayBubbleService : Service() {
 
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
         val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
+        
+        isVideoMode = intent.getBooleanExtra("EXTRA_VIDEO_MODE", false)
+        if (resultCode != 0) {
+            savedResultCode = resultCode
+        }
+        if (resultData != null) {
+            savedResultData = resultData
+        }
 
         if (resultCode != 0 && resultData != null) {
             setupMediaProjection(resultCode, resultData)
@@ -352,33 +364,72 @@ class OverlayBubbleService : Service() {
         if (isExpanded) {
             container.alpha = 1.0f
             
-            // Botão 🔴 PARAR GRAVAÇÃO DE TELA
-            val videoBtn = ImageView(this).apply {
-                setImageResource(android.R.drawable.ic_media_pause)
-                setColorFilter(Color.parseColor("#EF4444")) // Bright Red STOP
-                layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
-                    bottomMargin = (8 * density).toInt()
+                        if (isVideoMode) {
+                // Botão GRAVAR/PARAR VÍDEO
+                val videoBtn = ImageView(this).apply {
+                    if (isRecordingVideo) {
+                        setImageResource(android.R.drawable.ic_media_pause)
+                        setColorFilter(Color.parseColor("#EF4444")) // Red STOP
+                    } else {
+                        setImageResource(android.R.drawable.ic_media_play)
+                        setColorFilter(Color.parseColor("#10B981")) // Green START
+                    }
+                    layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                        bottomMargin = (8 * density).toInt()
+                    }
+                    setPadding(padding, padding, padding, padding)
+                    setOnClickListener {
+                        resetCollapseTimer()
+                        if (isRecordingVideo) {
+                            // STOP
+                            val serviceIntent = Intent(this@OverlayBubbleService, NativeVideoRecorderService::class.java).apply {
+                                action = NativeVideoRecorderService.ACTION_STOP
+                            }
+                            startService(serviceIntent)
+                            android.widget.Toast.makeText(this@OverlayBubbleService, "⏹️ Gravação finalizada! Retornando ao app...", android.widget.Toast.LENGTH_LONG).show()
+                            
+                            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            }
+                            if (intent != null) {
+                                startActivity(intent)
+                            }
+                            stopSelf()
+                        } else {
+                            // START
+                            val serviceIntent = Intent(this@OverlayBubbleService, NativeVideoRecorderService::class.java).apply {
+                                action = NativeVideoRecorderService.ACTION_START
+                                putExtra(NativeVideoRecorderService.EXTRA_RESULT_CODE, savedResultCode)
+                                putExtra(NativeVideoRecorderService.EXTRA_RESULT_DATA, savedResultData)
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                startForegroundService(serviceIntent)
+                            } else {
+                                startService(serviceIntent)
+                            }
+                            isRecordingVideo = true
+                            updateBarLayout(container)
+                            android.widget.Toast.makeText(this@OverlayBubbleService, "▶️ Gravação de tela iniciada!", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
-                setPadding(padding, padding, padding, padding)
-                setOnClickListener {
-                    resetCollapseTimer()
-                    val serviceIntent = Intent(this@OverlayBubbleService, NativeVideoRecorderService::class.java).apply {
-                        action = NativeVideoRecorderService.ACTION_STOP
+                container.addView(videoBtn)
+            } else {
+                // Screenshot buttons (only when NOT in video mode)
+                val screenshotBtn = ImageView(this).apply {
+                    setImageResource(android.R.drawable.ic_menu_camera)
+                    setColorFilter(Color.parseColor("#38BDF8"))
+                    layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                        bottomMargin = (8 * density).toInt()
                     }
-                    startService(serviceIntent)
-                    android.widget.Toast.makeText(this@OverlayBubbleService, "⏹️ Gravação finalizada! Retornando ao app...", android.widget.Toast.LENGTH_LONG).show()
-                    
-                    val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    setPadding(padding, padding, padding, padding)
+                    setOnClickListener {
+                        resetCollapseTimer()
+                        takeScreenshot()
                     }
-                    if (intent != null) {
-                        startActivity(intent)
-                    }
-                    stopSelf()
                 }
+                container.addView(screenshotBtn)
             }
-
-            container.addView(videoBtn)
         } else {
             container.alpha = 0.6f
         }

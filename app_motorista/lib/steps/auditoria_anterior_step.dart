@@ -49,35 +49,10 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
       return;
     }
 
-    // 2. Verifica se a jornada anterior está encerrada mas com auditoria pendente pelo gestor
-    try {
-      final res = await http.get(
-        Uri.parse('${ApiService.baseUrl}/jornadas/pendente-auditoria'),
-        headers: ApiService.headers,
-      ).timeout(const Duration(seconds: 4));
-
-      if (res.statusCode == 200) {
-        final body = json.decode(res.body);
-        if (body is Map && body.isNotEmpty) {
-          setState(() {
-            _hasPendencia = false;
-            _isPendenteAuditoriaGestor = true;
-            _jornadaPendenteGestor = Map<String, dynamic>.from(body);
-            _loading = false;
-          });
-          return;
-        }
-      }
-    } catch (e) {
-      print('[AuditoriaAnteriorStep] Erro ao checar auditoria pendente do gestor: $e');
-    }
-
-    setState(() {
-      _hasPendencia = false;
-      _pendenciaAtual = null;
-      _isPendenteAuditoriaGestor = false;
-      _loading = false;
-    });
+    // Auditoria do gestor removida! O motorista não é mais bloqueado.
+    
+    // Como não há pendências do motorista, pula direto para a próxima etapa (Veículo).
+    widget.onCompleted();
   }
 
   Future<void> _selecionarEUploadMidia() async {
@@ -255,7 +230,22 @@ class _AuditoriaAnteriorStepState extends State<AuditoriaAnteriorStep> {
                   ],
                 ),
               ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF38BDF8),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _selecionarEUploadMidia,
+                icon: const Icon(Icons.videocam_rounded, color: Colors.black),
+                label: Text(
+                  _midiaUrl != null ? 'VÍDEO/FOTO ENVIADO ✔' : 'SUBIR VÍDEO / MÍDIA PENDENTE',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 16),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6366F1),

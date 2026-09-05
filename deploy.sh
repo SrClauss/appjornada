@@ -90,6 +90,7 @@ ssh "$SERVER" bash <<EOF
   # Sincroniza o APK gerado com o MinIO e registra no MongoDB (mantendo apenas 1 versão ativa)
   if [ -f "$REMOTE_DIR/app-release.apk" ]; then
     echo "==> Sincronizando APK no MinIO e MongoDB..."
+    docker cp "$REMOTE_DIR/app-release.apk" app_jornada_backend:/app/app-release.apk
     docker compose exec -T backend python -m app.scripts.sync_apk /app/app-release.apk "${VERSION:-1.2.4}" || true
   fi
 

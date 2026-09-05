@@ -81,6 +81,7 @@ async def get_config_apk():
 
 
 @router.get("/apk/download")
+@router.head("/apk/download")
 async def download_apk():
     """
     Realiza o download direto do APK ativo armazenado no MinIO.

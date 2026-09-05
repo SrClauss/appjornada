@@ -382,7 +382,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     for b64_img in frames_b64_list:
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_img}})
 
-    modelos = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
+    modelos = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")

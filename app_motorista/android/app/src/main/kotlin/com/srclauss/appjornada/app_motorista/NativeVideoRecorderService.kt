@@ -116,6 +116,11 @@ class NativeVideoRecorderService : Service() {
                 windowManager.defaultDisplay.getMetrics(metrics)
             }
 
+            var width = metrics.widthPixels
+            var height = metrics.heightPixels
+            if (width % 2 != 0) width -= 1
+            if (height % 2 != 0) height -= 1
+
             val outputFile = File(cacheDir, "extrato_gravado_${System.currentTimeMillis()}.mp4")
             currentOutputFile = outputFile
 
@@ -128,7 +133,7 @@ class NativeVideoRecorderService : Service() {
                 setVideoSource(MediaRecorder.VideoSource.SURFACE)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-                setVideoSize(metrics.widthPixels, metrics.heightPixels)
+                setVideoSize(width, height)
                 setVideoFrameRate(30)
                 setVideoEncodingBitRate(3 * 1024 * 1024)
                 setOutputFile(outputFile.absolutePath)

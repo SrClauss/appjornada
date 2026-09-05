@@ -194,14 +194,7 @@ class MainActivity : FlutterActivity() {
                 }
                 "startNativeVideoRecorder" -> {
                     methodChannelResult = result
-                    val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    val intent = if (Build.VERSION.SDK_INT >= 34) {
-                        val config = MediaProjectionConfig.createConfigForUserChoice()
-                        mediaProjectionManager.createScreenCaptureIntent(config)
-                    } else {
-                        mediaProjectionManager.createScreenCaptureIntent()
-                    }
-                    startActivityForResult(intent, REQUEST_VIDEO_RECORD_CAPTURE)
+                    checkAndRequestVideoOverlayPermission()
                 }
                 "stopNativeVideoRecorder" -> {
                     val serviceIntent = Intent(this, NativeVideoRecorderService::class.java).apply {
@@ -227,6 +220,30 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun checkAndRequestVideoOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            // Request permission, but when it returns we want it to go to video capture.
+            startActivityForResult(intent, 1004) // REQUEST_VIDEO_OVERLAY_PERMISSION
+        } else {
+            requestVideoScreenCapture()
+        }
+    }
+
+    private fun requestVideoScreenCapture() {
+        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        val intent = if (Build.VERSION.SDK_INT >= 34) {
+            val config = MediaProjectionConfig.createConfigForUserChoice()
+            mediaProjectionManager.createScreenCaptureIntent(config)
+        } else {
+            mediaProjectionManager.createScreenCaptureIntent()
+        }
+        startActivityForResult(intent, REQUEST_VIDEO_RECORD_CAPTURE)
+    }
+
     private fun checkAndRequestOverlayPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             val intent = Intent(
@@ -246,6 +263,15 @@ class MainActivity : FlutterActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == 1004) { // REQUEST_VIDEO_OVERLAY_PERMISSION
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+                requestVideoScreenCapture()
+            } else {
+                methodChannelResult?.error("PERMISSION_DENIED", "Overlay permission not granted", null)
+                methodChannelResult = null
+            }
+        }
 
         if (requestCode == REQUEST_OVERLAY_PERMISSION) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
@@ -269,17 +295,17 @@ class MainActivity : FlutterActivity() {
 
         if (requestCode == REQUEST_VIDEO_RECORD_CAPTURE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
-                val serviceIntent = Intent(this, NativeVideoRecorderService::class.java).apply {
-                    action = NativeVideoRecorderService.ACTION_START
-                    putExtra(NativeVideoRecorderService.EXTRA_RESULT_CODE, resultCode)
-                    putExtra(NativeVideoRecorderService.EXTRA_RESULT_DATA, data)
+                val serviceIntent = Intent(this, OverlayBubbleService::class.java).apply {
+                    action = OverlayBubbleService.ACTION_START
+                    putExtra(OverlayBubbleService.EXTRA_RESULT_CODE, resultCode)
+                    putExtra(OverlayBubbleService.EXTRA_RESULT_DATA, data)
+                    putExtra("EXTRA_VIDEO_MODE", true)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(serviceIntent)
                 } else {
                     startService(serviceIntent)
                 }
-                startOverlayService(resultCode, data)
                 moveTaskToBack(true)
                 methodChannelResult?.success(true)
             } else {

@@ -10,7 +10,7 @@ class StepperLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Definir índice atual
-    final steps = ['auditoria', 'veiculo', 'vistoria', 'km_inicial', 'km_morta'];
+    final steps = ['veiculo', 'vistoria', 'km_inicial', 'km_morta'];
     int currentIdx = steps.indexOf(currentStep);
 
     return Scaffold(
@@ -44,7 +44,7 @@ class StepperLayout extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStepDot(1, 'Auditoria', currentIdx >= 0),
+                  _buildStepDot(1, 'Pendências', currentIdx >= 0),
                   _buildLine(currentIdx >= 1),
                   _buildStepDot(2, 'Veículo', currentIdx >= 1),
                   _buildLine(currentIdx >= 2),
