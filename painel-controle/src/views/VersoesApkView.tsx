@@ -32,7 +32,7 @@ export interface VersaoApk {
   build_number: number;
   data_release: string;
   tamanho_mb: string;
-  is_latest: bool;
+  is_latest: boolean;
   url_download: string;
   url_download_direto: string;
   resumo: string;

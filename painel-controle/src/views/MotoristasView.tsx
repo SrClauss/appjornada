@@ -13,10 +13,11 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Eye, Pencil, UserMinus, Trash } from '@phosphor-icons/react';
+import { useQuery } from '@tanstack/react-query';
+import { Eye, Pencil, UserMinus, Trash, LockKeyOpen, ShieldWarning, CheckCircle } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useMotoristas, useCreateMotorista, useUpdateUser, useDeleteUser } from '@/hooks/useMotoristas';
-import type { User, Role, Situacao } from '@/lib/types';
+import type { User, Role, Situacao, Jornada } from '@/lib/types';
 import api from '@/lib/api';
 import { ConviteModal } from '@/components/ConviteModal';
 import { QrCode } from 'lucide-react';
@@ -35,6 +36,31 @@ export function MotoristasView() {
     expira_em: string;
   } | null>(null);
   const [gerandoConvite, setGerandoConvite] = useState(false);
+  const [liberandoId, setLiberandoId] = useState<string | null>(null);
+  const [filtroPendentes, setFiltroPendentes] = useState(false);
+
+  const { data: jornadasPendentes = [], refetch: refetchPendentes } = useQuery({
+    queryKey: ['jornadas-pendentes-lista'],
+    queryFn: async () => {
+      const res = await api.get<Jornada[]>('/jornadas', { params: { limit: 200 } });
+      const items = res.data || [];
+      return items.filter((j) => j.auditoria_status === 'PENDENTE');
+    },
+    staleTime: 10000,
+  });
+
+  const handleLiberarJornada = async (jornadaId: string, motoristaNome: string) => {
+    setLiberandoId(jornadaId);
+    try {
+      await api.post(`/jornadas/${jornadaId}/auditoria/aprovar`);
+      toast.success(`Jornada de ${motoristaNome} liberada com sucesso!`);
+      refetchPendentes();
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Erro ao liberar jornada.');
+    } finally {
+      setLiberandoId(null);
+    }
+  };
 
   const handleGerarConviteMotorista = async () => {
     setGerandoConvite(true);
@@ -114,8 +140,40 @@ export function MotoristasView() {
     }
   };
 
+  const filteredMotoristas = motoristas.filter((d) => {
+    if (!filtroPendentes) return true;
+    return jornadasPendentes.some((j) => String(j.motorista_id) === String(d.id) || j.motorista_nome === d.nome);
+  });
+
   return (
     <div className="space-y-6">
+      {jornadasPendentes.length > 0 && (
+        <Card className="bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-slate-900 border-amber-500/40 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/20 border border-amber-500/30 rounded-xl text-amber-400">
+              <ShieldWarning size={24} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-amber-200">
+                {jornadasPendentes.length} {jornadasPendentes.length === 1 ? 'Motorista com Jornada Pendente' : 'Motoristas com Jornadas Pendentes'}
+              </h4>
+              <p className="text-xs text-amber-300/80">
+                Há jornadas aguardando liberação para que os motoristas possam iniciar novos trabalhos.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setFiltroPendentes(!filtroPendentes)}
+              className="border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-xs font-semibold"
+            >
+              {filtroPendentes ? 'Ver Todos os Motoristas' : 'Filtrar Somente Pendentes'}
+            </Button>
+          </div>
+        </Card>
+      )}
       <div className="flex gap-4 items-center justify-between">
         <Input
           placeholder="Buscar por nome..."
@@ -153,11 +211,12 @@ export function MotoristasView() {
                 <TableHead>Role</TableHead>
                 <TableHead>PIN</TableHead>
                 <TableHead>Situação</TableHead>
+                <TableHead>Status Auditoria</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {motoristas.length === 0 ? (
+              {filteredMotoristas.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Nenhum motorista encontrado.
@@ -199,6 +258,40 @@ export function MotoristasView() {
                       <Badge variant={driver.situacao === 'Ativo' ? 'default' : 'destructive'}>
                         {driver.situacao}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const pendente = jornadasPendentes.find(
+                          (j) => String(j.motorista_id) === String(driver.id) || j.motorista_nome === driver.nome
+                        );
+                        if (pendente) {
+                          return (
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30 flex items-center gap-1 font-bold">
+                                <ShieldWarning size={14} className="text-amber-500" />
+                                Pendente
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={liberandoId === pendente.id}
+                                onClick={() => handleLiberarJornada(pendente.id, driver.nome)}
+                                className="border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 font-semibold text-xs gap-1.5 h-8 px-2.5"
+                                title="Liberar motorista aprovando a auditoria da jornada"
+                              >
+                                <LockKeyOpen size={14} />
+                                {liberandoId === pendente.id ? 'Liberando...' : 'Liberar'}
+                              </Button>
+                            </div>
+                          );
+                        }
+                        return (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 flex items-center gap-1 w-fit text-xs">
+                            <CheckCircle size={12} />
+                            Liberado
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">

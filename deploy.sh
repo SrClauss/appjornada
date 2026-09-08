@@ -29,12 +29,12 @@ if [ -z "$COMMIT_MSG" ] && [ $# -gt 0 ] && [ -n "$1" ]; then
   COMMIT_MSG="$1"
 fi
 
-VERSION=""
+VERSION=$(grep '^version:' "$LOCAL_DIR/app_motorista/pubspec.yaml" | awk '{print $2}' | cut -d'+' -f1 || echo "1.2.5")
+
 # Se a flag -a foi passada, compila o APK antes do deploy
 if [ "$BUILD_APK" = true ]; then
   echo "==> Iniciando compilação do APK de Produção (app_motorista)..."
   cd "$LOCAL_DIR/app_motorista"
-  VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' || echo "1.2.4+17")
   flutter clean
   flutter build apk --release
   mkdir -p "$LOCAL_DIR/nginx/html"

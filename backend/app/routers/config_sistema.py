@@ -223,8 +223,8 @@ async def get_versao_app():
     doc = await db["configuracoes"].find_one({"_id": "config_apk"})
     if doc:
         return {
-            "versao_mais_recente": doc.get("versao", "1.2.4"),
-            "versao_completa": doc.get("versao_completa", "1.2.4+17"),
+            "versao_mais_recente": doc.get("versao", "1.2.5"),
+            "versao_completa": doc.get("versao_completa", "1.2.5+18"),
             "versao_minima": "1.0.0",
             "url_download": doc.get("url_download", "/config/apk/download"),
             "url_download_direto": doc.get("url_download", "/config/apk/download"),
