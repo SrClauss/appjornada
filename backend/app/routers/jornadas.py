@@ -370,7 +370,17 @@ async def jornada_pendente_auditoria(
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
-    """Jornadas são auto-aprovadas. Retorna None para não bloquear o motorista."""
+    """Retorna a última jornada do motorista encerrada sem prestação de contas (PENDENTE)."""
+    m_ids = [ObjectId(str(current_user.id)), str(current_user.id)]
+    doc = await db["jornadas"].find_one({
+        "motorista_id": {"$in": m_ids},
+        "status": "ENCERRADA",
+        "auditoria_status": "PENDENTE"
+    }, sort=[("data", -1)])
+    if doc:
+        normalized = _normalizar_jornada(doc)
+        await _populate_motorista_nome(normalized, db)
+        return Jornada(**normalized)
     return None
 
 
@@ -923,9 +933,17 @@ async def fechar_jornada(
         "comprovante_outros_url": comprovante_outros_url or fat_doc.get("comprovante_outros_url"),
     }
 
+    tem_prestacao = (
+        total_faturamento > 0
+        or len(faturamento_obj.get("comprovantes_processados", [])) > 0
+        or bool(faturamento_obj.get("comprovante_uber_url"))
+        or bool(faturamento_obj.get("comprovante_99_url"))
+        or bool(faturamento_obj.get("comprovante_outros_url"))
+    )
+
     update = {
         "status": "ENCERRADA",
-        "auditoria_status": "APROVADA",
+        "auditoria_status": "APROVADA" if tem_prestacao else "PENDENTE",
         "horario": horario_obj,
         "km": km_obj,
         "faturamento": faturamento_obj,
