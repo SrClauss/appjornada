@@ -40,18 +40,18 @@ class BaseOperacaoSchema(BaseModel):
 
 HISTORICO_VERSOES_APK = [
     {
-        "versao": "1.2.4+17",
-        "nome_versao": "1.2.4",
-        "build_number": 17,
-        "data_release": "2026-09-03",
-        "tamanho_mb": "54.6 MB",
+        "versao": "1.2.5+18",
+        "nome_versao": "1.2.5",
+        "build_number": 18,
+        "data_release": "2026-09-05",
+        "tamanho_mb": "54.8 MB",
         "is_latest": True,
         "url_download": "/config/apk/download",
         "url_download_direto": "/config/apk/download",
-        "resumo": "Versão de produção gerenciada dinamicamente no MinIO e MongoDB.",
+        "resumo": "Versão de produção com botão de troca de motorista no pré-fechamento e verificador dinâmico de nova versão.",
         "alteracoes": [
-            {"tipo": "FEATURE", "descricao": "Gerenciamento dinâmico do APK no MinIO com sincronização direta no MongoDB."},
-            {"tipo": "FIX", "descricao": "Correção no roteamento de jornadas pendentes de auditoria."}
+            {"tipo": "FEATURE", "descricao": "Botão explicito SAIR / LOGIN (troca de motorista) na tela de pré-fechamento."},
+            {"tipo": "FEATURE", "descricao": "Verificação dinâmica de atualização no servidor com botão de download no login."}
         ]
     }
 ]
@@ -67,12 +67,12 @@ async def get_config_apk():
     if not doc:
         return {
             "_id": "config_apk",
-            "versao": "1.2.4",
-            "build_number": 17,
-            "versao_completa": "1.2.4+17",
-            "nome_arquivo": "app-jornada-v1.2.4.apk",
-            "tamanho_mb": "54.6 MB",
-            "minio_object_name": "apk/app-jornada-v1.2.4.apk",
+            "versao": "1.2.5",
+            "build_number": 18,
+            "versao_completa": "1.2.5+18",
+            "nome_arquivo": "app-jornada-v1.2.5.apk",
+            "tamanho_mb": "54.8 MB",
+            "minio_object_name": "apk/app-jornada-v1.2.5.apk",
             "url_download": "/config/apk/download",
             "updated_at": datetime.utcnow().isoformat()
         }

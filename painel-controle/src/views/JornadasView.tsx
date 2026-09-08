@@ -48,6 +48,41 @@ interface MapViewProps {
   onSegmentClick?: (index: number) => void;
 }
 
+function decodePolyline(encoded: string): [number, number][] {
+  if (!encoded) return [];
+  const poly: [number, number][] = [];
+  let index = 0;
+  const len = encoded.length;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < len) {
+    let b: number;
+    let shift = 0;
+    let result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+    lng += dlng;
+
+    poly.push([lat / 1e5, lng / 1e5]);
+  }
+  return poly;
+}
+
 function JourneyMap({ coordinates, routeSegments, corridasParticulares, selectedCorrida, onSegmentClick }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -61,7 +96,22 @@ function JourneyMap({ coordinates, routeSegments, corridasParticulares, selected
 
   if (routeSegments && routeSegments.length > 0) {
     routeSegments.forEach(seg => {
-      const segCoords = seg.coords || (seg as any).coordinates || [];
+      let rawCoords = seg.coords || (seg as any).coordinates || [];
+      if ((!rawCoords || rawCoords.length === 0) && (seg as any).polyline) {
+        rawCoords = decodePolyline((seg as any).polyline);
+      }
+      
+      const segCoords: [number, number][] = (rawCoords || []).map((pt: any) => {
+        if (Array.isArray(pt)) {
+          return [Number(pt[0]), Number(pt[1])] as [number, number];
+        } else if (pt && typeof pt === 'object') {
+          const lat = pt.lat ?? pt.latitude ?? 0;
+          const lon = pt.lon ?? pt.lng ?? pt.longitude ?? 0;
+          return [Number(lat), Number(lon)] as [number, number];
+        }
+        return [0, 0] as [number, number];
+      }).filter((pt: [number, number]) => !isNaN(pt[0]) && !isNaN(pt[1]) && (pt[0] !== 0 || pt[1] !== 0));
+
       if (segCoords.length > 0) {
         if (!base) base = segCoords[0];
         
@@ -1083,12 +1133,21 @@ export function JornadasView() {
         });
         if (routeData) {
           setRouteCoordinates(routeData.coordinates || routeData.coordenadas || []);
-          if (routeData.segmentos_rota) {
-            setRouteSegments(routeData.segmentos_rota.map((s: any, idx: number) => ({
-              ...s,
-              originalIndex: idx,
-              coords: s.coords || s.coordinates || []
-            })));
+          const rawSegs = (routeData && routeData.segmentos_rota && routeData.segmentos_rota.length > 0)
+            ? routeData.segmentos_rota
+            : (j.segmentos_rota || []);
+          if (rawSegs && rawSegs.length > 0) {
+            setRouteSegments(rawSegs.map((s: any, idx: number) => {
+              let segCoords = s.coords || s.coordinates || [];
+              if ((!segCoords || segCoords.length === 0) && s.polyline) {
+                segCoords = decodePolyline(s.polyline);
+              }
+              return {
+                ...s,
+                originalIndex: idx,
+                coords: segCoords
+              };
+            }));
           } else {
             setRouteSegments([]);
           }
@@ -1110,12 +1169,21 @@ export function JornadasView() {
       const { data: routeData } = await api.get(`/gps/motorista/${j.motorista_id}/rota-ajustada`, {
         params: { jornada_id: j.id || (j as any)._id }
       });
-      if (routeData && routeData.segmentos_rota) {
-        setRouteSegments(routeData.segmentos_rota.map((s: any, idx: number) => ({
-          ...s,
-          originalIndex: idx,
-          coords: s.coords || s.coordinates || []
-        })));
+      const rawSegs = (routeData && routeData.segmentos_rota && routeData.segmentos_rota.length > 0)
+        ? routeData.segmentos_rota
+        : (j.segmentos_rota || []);
+      if (rawSegs && rawSegs.length > 0) {
+        setRouteSegments(rawSegs.map((s: any, idx: number) => {
+          let segCoords = s.coords || s.coordinates || [];
+          if ((!segCoords || segCoords.length === 0) && s.polyline) {
+            segCoords = decodePolyline(s.polyline);
+          }
+          return {
+            ...s,
+            originalIndex: idx,
+            coords: segCoords
+          };
+        }));
       } else {
         setRouteSegments([]);
       }

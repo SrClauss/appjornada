@@ -52,6 +52,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ activeView, onNavigate, isMobileOpen = false, onCloseMobile }: AppSidebarProps) {
   const { logout, user } = useAuth();
+  const { versao, urlDownload, nomeArquivo } = useApkVersion();
   const showTarifas = user?.role === 'ADMIN' || user?.role === 'GESTOR';
 
   const filteredItems = navItems.filter(

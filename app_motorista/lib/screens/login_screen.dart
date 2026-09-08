@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:app_motorista/core/api_service.dart';
 import 'package:app_motorista/core/fluent_theme.dart';
 
@@ -19,10 +20,60 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loadingMotoristas = true;
   String _pin = '';
 
+  int currentBuildNumber = 18;
+  String currentVersionName = '1.2.5';
+  bool _hasUpdate = false;
+  String? _newVersionName;
+  String? _downloadUrl;
+
   @override
   void initState() {
     super.initState();
     _loadMotoristas();
+    _checkAppVersion();
+  }
+
+  Future<void> _checkAppVersion({bool verbose = false}) async {
+    try {
+      final res = await http
+          .get(Uri.parse('${ApiService.baseUrl}/config/apk'))
+          .timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        final int serverBuild = data['build_number'] ?? 0;
+        final String serverVersao = data['versao'] ?? '';
+        final String url = data['url_download'] ?? '/config/apk/download';
+        if (serverBuild > currentBuildNumber) {
+          if (mounted) {
+            setState(() {
+              _hasUpdate = true;
+              _newVersionName = serverVersao;
+              _downloadUrl = url.startsWith('http') ? url : '${ApiService.baseUrl}$url';
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _hasUpdate = false;
+            });
+            if (verbose) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Seu app já está na versão mais recente (v$currentVersionName+$currentBuildNumber).'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (verbose && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao verificar atualizações: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _loadMotoristas() async {
@@ -168,6 +219,92 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Widget _buildUpdateBanner() {
+    if (!_hasUpdate) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 12),
+        child: InkWell(
+          onTap: () => _checkAppVersion(verbose: true),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white24, width: 0.8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.system_update_rounded, color: Colors.grey, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  'v$currentVersionName+$currentBuildNumber • Verificar atualizações',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF991B1B).withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.redAccent, width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 3)),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.system_update_rounded, color: Colors.amberAccent, size: 24),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'NOVA VERSÃO DISPONÍVEL!',
+                  style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                Text(
+                  'Versão ${_newVersionName ?? ''} disponível no servidor.',
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amberAccent,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () async {
+              final downloadUri = Uri.parse(_downloadUrl ?? '${ApiService.baseUrl}/config/apk/download');
+              if (await canLaunchUrl(downloadUri)) {
+                await launchUrl(downloadUri, mode: LaunchMode.externalApplication);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Baixando de: $downloadUri')),
+                );
+              }
+            },
+            child: const Text('ATUALIZAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -185,6 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                _buildUpdateBanner(),
                 const Spacer(),
                 // LOGO / TÍTULO
                 Row(

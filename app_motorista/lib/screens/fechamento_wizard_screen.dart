@@ -410,6 +410,34 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
     }
   }
 
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Trocar Motorista / Sair', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Deseja sair para a tela de login?\n\nOutro motorista poderá acessar o aplicativo neste dispositivo. Esta jornada continuará salva em pré-fechamento.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCELAR', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('SAIR PARA LOGIN', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      widget.onCancel();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -418,9 +446,27 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
         title: Text('Finalizar Jornada (Passo $_currentStep de 4)'),
         backgroundColor: const Color(0xFF1E293B),
         leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: widget.onCancel,
+          icon: const Icon(Icons.logout, color: Colors.redAccent),
+          tooltip: 'Trocar Motorista / Sair',
+          onPressed: () => _confirmLogout(context),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton.icon(
+              onPressed: () => _confirmLogout(context),
+              icon: const Icon(Icons.logout, color: Colors.redAccent, size: 18),
+              label: const Text(
+                'SAIR / LOGIN',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: _loading
@@ -970,6 +1016,83 @@ class _FechamentoWizardScreenState extends State<FechamentoWizardScreen> with Wi
             ],
           ),
         ),
+
+        Builder(builder: (context) {
+          final double fatDeclarado = double.tryParse(faturamentoCtrl.text.replaceAll(',', '.')) ?? 0.0;
+          final int corrDeclaradas = int.tryParse(corridasCtrl.text) ?? 0;
+          final bool temDivergencia = (corrDeclaradas > 0 && corrVal != corrDeclaradas) || (fatDeclarado > 0 && (fatVal - fatDeclarado).abs() > 1.0);
+
+          if (!temDivergencia) return const SizedBox.shrink();
+
+          return Container(
+            margin: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade900.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.amberAccent),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 22),
+                    SizedBox(width: 8),
+                    Text(
+                      'Divergência Encontrada!',
+                      style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Declarado por você: $corrDeclaradas corridas (R\$ ${fatDeclarado.toStringAsFixed(2).replaceAll('.', ',')})\n'
+                  'Lido pela IA no Vídeo: $corrVal corridas (R\$ ${fatVal.toStringAsFixed(2).replaceAll('.', ',')})',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '💡 Dica: Se o vídeo foi gravado muito rápido, alguma corrida pode ter sido cortada. Você pode gravar novamente de forma bem pausada e devagar, ou prosseguir assim mesmo com a divergência.',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.3),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.amberAccent,
+                      side: const BorderSide(color: Colors.amberAccent),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () async {
+                      const channel = MethodChannel('com.srclauss.appjornada/overlay');
+                      await channel.invokeMethod('clearLastRecordedVideo');
+                      setState(() {
+                        _recordedVideoPath = null;
+                        _terminalLogs.clear();
+                      });
+                      try {
+                        final bool? ok = await channel.invokeMethod<bool>('startNativeVideoRecorder');
+                        if (ok == true) {
+                          setState(() => _isRecording = true);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Grave o vídeo rolando a tela bem DEVAGAR e PAUSADAMENTE!')),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: $e')));
+                      }
+                    },
+                    icon: const Icon(Icons.videocam_rounded, size: 16),
+                    label: const Text('REFAZER VÍDEO MAIS DEVAGAR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
         const SizedBox(height: 32),
 
         Row(

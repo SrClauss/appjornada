@@ -360,13 +360,10 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     ancora_instrucao = ""
     if faturamento_ancora is not None and corridas_ancora is not None and corridas_ancora > 0:
         ancora_instrucao = (
-            f" ATENÇÃO EXTREMA: O motorista declarou previamente que realizou EXATAMENTE {corridas_ancora} corridas. "
-            f"O número de corridas é a sua ÂNCORA PRINCIPAL E ABSOLUTA de validação. "
-            f"Sua missão prioritária é encontrar, desduplicar e extrair exatamente essas {corridas_ancora} corridas. "
-            f"Para cada corrida, é CRÍTICO extrair os locais de ORIGEM e DESTINO (deslocamentos) corretamente. "
-            f"O faturamento declarado foi R$ {faturamento_ancora:.2f}, use isso apenas como uma dica secundária. "
-            f"IMPORTANTE: Esforce-se ao máximo para a extração fechar nas exatas {corridas_ancora} corridas declaradas, focando nos deslocamentos. "
-            "Se for absolutamente impossível devido a erro do motorista, extraia as corridas reais visíveis, mas o foco é bater a quantidade de corridas.\n"
+            f" 🎯 META DE VALIDAÇÃO: O motorista declarou ter realizado EXATAMENTE {corridas_ancora} corridas (faturamento total ~R$ {faturamento_ancora:.2f}). "
+            f"Sua missão é inspecionar minuciosamente cada quadro do vídeo e cada transição de rolagem para encontrar e extrair todas essas {corridas_ancora} corridas visíveis. "
+            f"Verifique com atenção máxima todos os detalhes dos quadros para não deixar NENHUMA corrida escapulir nos momentos de rolagem da tela. "
+            f"Importante: Extraia todas as {corridas_ancora} corridas reais apresentadas no extrato. NUNCA invente corridas com dados inexistentes.\n"
         )
 
     print("\n==================================================================")
@@ -418,7 +415,7 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
     print(f"📝 [OCR Video Prompt Enviado] \n{prompt}")
     print(f"==================================================================")
 
-    modelos = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-pro-latest"]
+    modelos = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.1-flash-lite"]
     for model in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = json.dumps({"contents": [{"parts": parts}]}).encode("utf-8")
@@ -448,6 +445,9 @@ def _chamar_gemini_extrato_video(frames_b64_list: list, frame_urls: list = None,
                         parsed["corridas"] = corridas
                         parsed["sucesso"] = True
                         parsed["raw_response"] = raw_text
+                        parsed["prompt_enviado"] = prompt
+                        parsed["modelo_utilizado"] = model
+                        parsed["frames_count"] = len(frames_b64_list)
                         print(f"✅ [Sucesso OCR Video] {len(corridas)} corridas extraídas!")
                         print("==================================================================\n")
                         return parsed

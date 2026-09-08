@@ -5,7 +5,6 @@ from typing import List, Tuple, Optional
 from datetime import datetime, timezone
 
 from app.db.database import get_db
-from app.routers.jornadas import encode_polyline
 import re
 import unicodedata
 

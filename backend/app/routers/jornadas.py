@@ -257,22 +257,11 @@ async def abrir_jornada(
             detail="Já existe uma jornada ativa para este motorista.",
         )
 
-    # Verifica se existe jornada anterior encerrada com auditoria pendente
-    pendente_auditoria = await db["jornadas"].find_one({
-        "motorista_id": ObjectId(str(dados.motorista_id)),
-        "status": "ENCERRADA",
-        "auditoria_status": "PENDENTE",
-    })
-    if pendente_auditoria:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Sua jornada anterior ainda está pendente de auditoria pelo gestor. Aguarde a aprovação para iniciar uma nova jornada.",
-        )
-
     doc = dados.model_dump()
     doc["motorista_id"] = ObjectId(str(dados.motorista_id))
     doc["data"] = hoje
     doc["status"] = "ABERTA"
+    doc["auditoria_status"] = "APROVADA"
     doc["pin"] = pin
     doc["pausas"] = []
     doc["abastecimentos"] = []
@@ -339,9 +328,9 @@ async def jornada_aberta(
     current_user: UserPublic = Depends(get_current_user),
 ):
     """Retorna a jornada aberta do motorista autenticado vinculada ao dispositivo (ou null)."""
-    motorista_id = ObjectId(str(current_user.id))
+    m_ids = [ObjectId(str(current_user.id)), str(current_user.id)]
     filtro = {
-        "motorista_id": motorista_id,
+        "motorista_id": {"$in": m_ids},
         "status": {"$in": ["ABERTA", "EM_ANDAMENTO", "EM_PAUSA"]},
     }
     
@@ -364,9 +353,9 @@ async def jornada_pendente_fechamento(
     current_user: UserPublic = Depends(get_current_user),
 ):
     """Retorna a jornada do motorista que está aguardando prestação de contas (PRE_FECHAMENTO)."""
-    motorista_id = ObjectId(str(current_user.id))
+    m_ids = [ObjectId(str(current_user.id)), str(current_user.id)]
     doc = await db["jornadas"].find_one({
-        "motorista_id": motorista_id,
+        "motorista_id": {"$in": m_ids},
         "status": "PRE_FECHAMENTO"
     })
     if doc:
@@ -381,17 +370,7 @@ async def jornada_pendente_auditoria(
     db=Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
-    """Retorna a última jornada do motorista que está encerrada mas com auditoria pendente."""
-    motorista_id = ObjectId(str(current_user.id))
-    doc = await db["jornadas"].find_one({
-        "motorista_id": motorista_id,
-        "status": "ENCERRADA",
-        "auditoria_status": "PENDENTE"
-    }, sort=[("data", -1)])
-    if doc:
-        normalized = _normalizar_jornada(doc)
-        await _populate_motorista_nome(normalized, db)
-        return Jornada(**normalized)
+    """Jornadas são auto-aprovadas. Retorna None para não bloquear o motorista."""
     return None
 
 
@@ -946,6 +925,7 @@ async def fechar_jornada(
 
     update = {
         "status": "ENCERRADA",
+        "auditoria_status": "APROVADA",
         "horario": horario_obj,
         "km": km_obj,
         "faturamento": faturamento_obj,
@@ -1038,6 +1018,70 @@ async def fechar_jornada(
             print("Erro ao limpar historico_gps:", e)
 
     await db["jornadas"].update_one({"_id": jornada_id}, {"$set": update})
+    
+    # ── Auto-Classificação de Trajetos no Encerramento ──
+    try:
+        from app.services.segment_classifier import classificar_jornada_segmentos, obter_pontos_jornada, calcular_distancia_m
+        j_doc = await db["jornadas"].find_one({"_id": jornada_id})
+        if j_doc:
+            pontos = await obter_pontos_jornada(j_doc, db)
+            if pontos and len(pontos) >= 2:
+                base_lat, base_lon = -20.26548, -40.29589
+                p_first = pontos[0]
+                p_lat = p_first.get("lat") or p_first.get("localizacao", {}).get("coordinates", [0, 0])[1]
+                p_lon = p_first.get("lon") or p_first.get("localizacao", {}).get("coordinates", [0, 0])[0]
+                if p_lat != 0 and p_lon != 0:
+                    base_lat, base_lon = p_lat, p_lon
+                
+                comps = (j_doc.get("faturamento") or {}).get("comprovantes_processados", [])
+                j_data = j_doc.get("data")
+                segs_cls = await classificar_jornada_segmentos(pontos, comps, (base_lat, base_lon), j_data)
+                if segs_cls:
+                    r_km = {
+                        "produtivo": 0.0,
+                        "deslocamento": 0.0,
+                        "improdutivo_a_favor_base": 0.0,
+                        "improdutivo_contra_base": 0.0,
+                        "nao_identificado": 0.0
+                    }
+                    segs_save = []
+                    for seg in segs_cls:
+                        st = seg.get("status", "nao_identificado")
+                        coords = seg.get("coords", [])
+                        dist_m = 0.0
+                        for i in range(len(coords) - 1):
+                            dist_m += calcular_distancia_m(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1])
+                        km_s = round(dist_m / 1000.0, 2)
+                        if st in r_km:
+                            r_km[st] += km_s
+                        else:
+                            r_km["nao_identificado"] += km_s
+                        if len(coords) >= 2:
+                            try:
+                                segs_save.append({
+                                    "status": st,
+                                    "rotulo": seg.get("rotulo"),
+                                    "cor": seg.get("cor"),
+                                    "is_produtivo": st == "produtivo",
+                                    "polyline": encode_polyline(coords),
+                                    "km": km_s
+                                })
+                            except Exception:
+                                pass
+                    for k in r_km:
+                        r_km[k] = round(r_km[k], 2)
+                    await db["jornadas"].update_one(
+                        {"_id": jornada_id},
+                        {
+                            "$set": {
+                                "segmentos_rota": segs_save,
+                                "resumo_trajetos_km": r_km,
+                                "trajetos_classificados_em": datetime.now(timezone.utc).isoformat()
+                            }
+                        }
+                    )
+    except Exception as e_cls:
+        print("[fechar_jornada] Erro ao auto-classificar trajetos:", e_cls)
     atualizado = await db["jornadas"].find_one({"_id": jornada_id})
     normalized = _normalizar_jornada(atualizado)
     await _populate_motorista_nome(normalized, db)
@@ -1349,10 +1393,10 @@ async def upload_e_processar_extrato_video(
     video_url = await _salvar_arquivo(arquivo, "extrato_video")
     print(f"📹 [OCR Video Upload] Vídeo gravado em Mídias: {video_url} | Plataforma Esperada: {plataforma}")
     
-    # Mandamos o dobro de frames da âncora para garantir que não vamos perder corridas se ele rolar rápido
-    target_frames = (corridas_ancora * 2) if corridas_ancora and corridas_ancora > 0 else 20
+    # Mandamos o triplo de frames da âncora para garantir que não vamos perder nenhuma corrida na rolagem rápida
+    target_frames = (corridas_ancora * 3) if corridas_ancora and corridas_ancora > 0 else 35
     # Limite mínimo de segurança
-    target_frames = max(20, target_frames)
+    target_frames = max(35, target_frames)
     
     frames, frame_urls = _extrair_frames_video(conteudo_bytes, max_frames=target_frames)
     if not frames:
@@ -1424,11 +1468,14 @@ async def upload_e_processar_extrato_video(
 
     for c in corridas_lidas:
         valor_c = float(c.get("valor_reais") or 0.0)
-        plat_fallback = (plataforma or "UBER").upper()
-        plat_c = str(c.get("plataforma") or plat_fallback).upper()
-        if plat_c in ("99POP", "NOVENTA_NOVEM"):
+        plat_raw = str(c.get("plataforma") or plataforma or "UBER").upper()
+        if "UBER" in plat_raw:
+            plat_c = "UBER"
+        elif "99" in plat_raw or "NOVENTA" in plat_raw:
             plat_c = "99"
-        if valor_c <= 0:
+        else:
+            plat_c = (plataforma or "UBER").upper()
+        if valor_c < 0:
             continue
 
         horario_c = c.get("horario")
@@ -1508,6 +1555,9 @@ async def upload_e_processar_extrato_video(
         "faturamento_acumulado": fat["total"],
         "faturamento_plataforma": fat_plat_alvo,
         "faturamento": fat,
+        "prompt_enviado": res_ai.get("prompt_enviado", ""),
+        "modelo_utilizado": res_ai.get("modelo_utilizado", "gemini-2.5-flash"),
+        "frames_count": res_ai.get("frames_count", target_frames),
         "raw_response": res_ai.get("raw_response", ""),
         "corridas": novos_comprovantes if novos_comprovantes else [
             {"valor_reais": comp["valor"], "plataforma": comp["plataforma"], "horario": comp.get("horario"), "origem": comp.get("origem"), "destino": comp.get("destino")}

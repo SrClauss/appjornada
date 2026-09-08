@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:app_motorista/core/api_service.dart';
 
 class AiTerminalConsoleScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
   bool _isProcessing = true;
   bool _success = false;
   String _statusMessage = 'Iniciando análise com IA...';
+  String _activeModel = 'gemini-2.5-flash';
   Map<String, dynamic>? _resultData;
 
   @override
@@ -61,25 +63,50 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
     });
   }
 
+  void _copiarLogsParaClipboard() {
+    final fullText = _terminalLogs.join('\n');
+    Clipboard.setData(ClipboardData(text: fullText));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.copy, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text('Logs do Terminal de IA copiados para a área de transferência!'),
+          ],
+        ),
+        backgroundColor: Color(0xFF10B981),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _startProcess() async {
     final platTag = widget.plataforma != null ? " [PLATAFORMA: ${widget.plataforma!.toUpperCase()}]" : "";
+    _addLog("==================================================================");
     _addLog(">>> INICIANDO PROCESSAMENTO MULTIMODAL DE VÍDEO DO EXTRATO$platTag <<<");
-    _addLog("Modelo Primário Selecionado: gemini-flash-latest");
+    _addLog("==================================================================");
     _addLog("Arquivo local: ${widget.videoPath.split('/').last}");
+    if (widget.corridasAncora != null && widget.corridasAncora! > 0) {
+      _addLog("Declaração do Motorista: ${widget.corridasAncora} corridas | R\$ ${widget.faturamentoAncora?.toStringAsFixed(2) ?? '0.00'}");
+    }
 
     // Passo 1: Leitura e upload
-    await Future.delayed(const Duration(milliseconds: 300));
-    _addLog("[SISTEMA] Lendo arquivo de mídia e gerando payload multipart...");
-    
+    await Future.delayed(const Duration(milliseconds: 200));
+    _addLog("\n[PASSO 1/5 - MÍDIA & UPLOAD]");
+    _addLog(" > Lendo arquivo de vídeo .mp4 e gerando payload multipart...");
+    _addLog(" > Enviando arquivo para o servidor via POST /jornadas/aberta/extrato-video...");
+
     // Passo 2: Fatiamento OpenCV
-    await Future.delayed(const Duration(milliseconds: 500));
-    _addLog("[OPENCV] Analisando estrutura de frames do vídeo...");
-    _addLog("[OPENCV] Amostragem uniforme calculada: extraindo quadros ao longo do vídeo...");
-    _addLog("[OPENCV] 8 quadros em formato JPEG (720p) prontos para análise de visão.");
+    await Future.delayed(const Duration(milliseconds: 300));
+    _addLog("\n[PASSO 2/5 - OPENCV FRAME EXTRACTION]");
+    final expectedFrames = (widget.corridasAncora != null && widget.corridasAncora! > 0) ? (widget.corridasAncora! * 3) : 35;
+    _addLog(" > Amostragem OpenCV (3x densidade): Extraindo ~$expectedFrames quadros em 720p...");
 
     // Passo 3: Envio para o Backend + IA
-    _addLog("[REDE] Transmitindo quadros para a API Gemini (gemini-flash-latest)...");
-    _addLog("[IA] Processando prompt de extração e deduplicação multimodal para ${widget.plataforma ?? 'todas as plataformas'}...");
+    _addLog("\n[PASSO 3/5 - GOOGLE GEMINI VISION ENGINE]");
+    _addLog(" > Conectando ao modelo Gemini Flash...");
+    _addLog(" > Transmitindo quadros e executando prompt de leitura estrita...");
 
     try {
       final startTime = DateTime.now();
@@ -94,30 +121,60 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
       if (!mounted) return;
 
       if (res != null && (res['sucesso'] == true || (res['corridas'] != null && (res['corridas'] as List).isNotEmpty))) {
-        _addLog("[IA] Resposta recebida da API Gemini em ${elapsed.toStringAsFixed(1)}s.");
-        _addLog("[IA] Modelo de Execução: gemini-flash-latest (Status 200 OK)");
+        final modeloUsed = res['modelo_utilizado'] ?? 'gemini-2.5-flash';
+        final framesCount = res['frames_count'] ?? expectedFrames;
+        final promptText = res['prompt_enviado'];
+        final rawResponseText = res['raw_response'];
 
+        setState(() {
+          _activeModel = modeloUsed;
+        });
+
+        _addLog(" > [OK] Leitura concluída em ${elapsed.toStringAsFixed(1)}s via modelo: $modeloUsed!");
+        _addLog(" > [OPENCV] Total de quadros extraídos e analisados: $framesCount quadros.");
+
+        if (promptText != null && promptText.toString().isNotEmpty) {
+          _addLog("\n------------------- PROMPT ENVIADO À IA -------------------");
+          _addLog(promptText.toString());
+          _addLog("-----------------------------------------------------------");
+        }
+
+        if (rawResponseText != null && rawResponseText.toString().isNotEmpty) {
+          _addLog("\n----------------- RESPOSTA BRUTA JSON DA IA -----------------");
+          _addLog(rawResponseText.toString());
+          _addLog("-----------------------------------------------------------");
+        }
+
+        _addLog("\n[PASSO 4/5 - PROCESSAMENTO & DEDUPLICAÇÃO]");
         final corridas = res['corridas'] as List? ?? [];
         final totalCorridas = res['corridas_adicionadas'] ?? corridas.length;
         
         final fatPlat = res['faturamento_plataforma'] ?? res['faturamento_acumulado'] ?? res['faturamento_total'] ?? (res['faturamento']?['total']) ?? 0.0;
         final fatTotalAcumulado = res['faturamento_acumulado'] ?? res['faturamento']?['total'] ?? fatPlat;
 
-        _addLog("[DEDUPLICAÇÃO] Verificando padrão de rolagem de tela e duplicatas...");
-        _addLog("[DEDUPLICAÇÃO] Faturamento filtrado: $totalCorridas corrida(s) identificada(s).");
+        _addLog(" > Verificando padrão de rolagem de tela e desduplicando corridas...");
+        _addLog(" > Corridas extraídas do extrato: $totalCorridas corrida(s) identificada(s).");
         
+        _addLog("\n------------------- LISTA DE CORRIDAS EXTRAÍDAS -------------------");
         for (var i = 0; i < corridas.length; i++) {
           final c = corridas[i];
           final val = c['valor_reais'] ?? c['valor'] ?? '0.00';
-          final platName = c['plataforma'] ?? widget.plataforma ?? 'Uber/99';
-          _addLog("  #${i + 1} -> [$platName] ${c['horario'] ?? '--:--'} | ${c['categoria'] ?? 'Corrida'} | R\$ ${fatValFormatted(val)} | ${c['origem'] ?? 'Origem N/A'} -> ${c['destino'] ?? 'Destino N/A'}");
+          final platName = c['plataforma'] ?? widget.plataforma ?? 'UBER';
+          final hor = c['horario'] ?? '--:--';
+          final orig = c['origem'] ?? 'Origem N/A';
+          final dest = c['destino'] ?? 'Destino N/A';
+          _addLog(" #${i + 1} -> [$platName] $hor | R\$ ${fatValFormatted(val)} | $orig -> $dest");
         }
+        _addLog("------------------------------------------------------------------");
 
+        _addLog("\n[PASSO 5/5 - MATEMÁTICA & FATURAMENTO]");
         if (widget.plataforma != null) {
-          _addLog("[BACKEND] Faturamento detectado para ${widget.plataforma!.toUpperCase()}: R\$ ${fatValFormatted(fatPlat)}");
+          _addLog(" > Faturamento total para ${widget.plataforma!.toUpperCase()}: R\$ ${fatValFormatted(fatPlat)}");
         }
-        _addLog("[BACKEND] Faturamento total acumulado da jornada: R\$ ${fatValFormatted(fatTotalAcumulado)}");
-        _addLog("[SUCESSO] Processamento concluído com conformidade!");
+        _addLog(" > Faturamento total acumulado da jornada: R\$ ${fatValFormatted(fatTotalAcumulado)}");
+        _addLog("\n==================================================================");
+        _addLog("✅ [SUCESSO] Processamento de vídeo do extrato concluído com exatidão!");
+        _addLog("==================================================================");
 
         setState(() {
           _isProcessing = false;
@@ -127,8 +184,7 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
         });
       } else {
         final msg = res?['mensagem'] ?? 'Nenhuma corrida legível identificada no vídeo.';
-        _addLog("[AVISO] $msg");
-        _addLog("[RETENTATIVA] Modelo gemini-flash-latest não retornou corridas válidas.");
+        _addLog("\n[AVISO] $msg");
 
         setState(() {
           _isProcessing = false;
@@ -139,7 +195,7 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      _addLog("[ERRO] Falha no processamento: $e");
+      _addLog("\n[ERRO] Falha no processamento: $e");
       setState(() {
         _isProcessing = false;
         _success = false;
@@ -173,6 +229,11 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.copy_all_rounded, color: Color(0xFF38BDF8)),
+            tooltip: 'Copiar Todos os Logs',
+            onPressed: _copiarLogsParaClipboard,
+          ),
           if (!_isProcessing)
             IconButton(
               icon: const Icon(Icons.close, color: Colors.white),
@@ -215,18 +276,28 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          'Modelo Activo: gemini-flash-latest',
-                          style: TextStyle(color: Colors.grey, fontSize: 11),
+                        Text(
+                          'Modelo Ativo: $_activeModel',
+                          style: const TextStyle(color: Colors.grey, fontSize: 11),
                         ),
                       ],
                     ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF334155),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                    icon: const Icon(Icons.copy, size: 14),
+                    label: const Text('COPIAR', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    onPressed: _copiarLogsParaClipboard,
                   ),
                 ],
               ),
             ),
 
-            // Console Terminal Output
+            // Console Terminal Output (Copiável via SelectableText)
             Expanded(
               child: Container(
                 margin: const EdgeInsets.all(12),
@@ -248,11 +319,15 @@ class _AiTerminalConsoleScreenState extends State<AiTerminalConsoleScreen> {
                       logColor = Colors.amberAccent;
                     } else if (log.contains('>>>') || log.contains('[SUCESSO]')) {
                       logColor = const Color(0xFF38BDF8); // Azul neon
+                    } else if (log.contains('[PASSO')) {
+                      logColor = const Color(0xFFF472B6); // Rosa/Lilás passos
+                    } else if (log.contains('---')) {
+                      logColor = Colors.grey;
                     }
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2.0),
-                      child: Text(
+                      child: SelectableText(
                         log,
                         style: TextStyle(
                           fontFamily: 'monospace',

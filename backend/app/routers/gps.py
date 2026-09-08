@@ -561,6 +561,12 @@ async def rota_ajustada_motorista(
     if pontos:
         classified_segments = await classificar_jornada_segmentos(pontos, comprovantes, base_coords, jornada_data)
         if classified_segments:
+            for seg in classified_segments:
+                if "coords" in seg and seg["coords"] and not seg.get("polyline"):
+                    try:
+                        seg["polyline"] = encode_polyline(seg["coords"])
+                    except Exception:
+                        pass
             return {
                 "status": "ok",
                 "snapped": True,
@@ -571,23 +577,52 @@ async def rota_ajustada_motorista(
                 "duration_s": total_horas_seg
             }
 
-    # 2) Fallback: segmentos_rota compactados legados
+    # 2) Fallback: segmentos_rota compactados salvos na jornada
     if jornada and jornada.get("segmentos_rota"):
         segmentos = jornada["segmentos_rota"]
         decoded_segments = []
         for seg in segmentos:
             try:
-                decoded = decode_polyline(seg.get("polyline", ""))
-                if len(decoded) >= 2:
-                    is_prod = seg.get("is_produtivo", False)
+                coords_list = []
+                poly = seg.get("polyline", "")
+
+                # Tentar decodificar polyline primeiro
+                if poly:
+                    coords_list = decode_polyline(poly)
+
+                # Se não há polyline, usar coords diretas (ex: reconstruído de comprovantes)
+                if not coords_list or len(coords_list) < 2:
+                    raw_coords = seg.get("coords", [])
+                    if raw_coords and len(raw_coords) >= 2:
+                        coords_list = []
+                        for pt in raw_coords:
+                            if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                                coords_list.append((float(pt[0]), float(pt[1])))
+                            elif isinstance(pt, dict):
+                                lat = pt.get("lat", pt.get("latitude", 0))
+                                lon = pt.get("lon", pt.get("lng", pt.get("longitude", 0)))
+                                coords_list.append((float(lat), float(lon)))
+                        # Gerar polyline para o frontend
+                        if coords_list and len(coords_list) >= 2:
+                            try:
+                                poly = encode_polyline(coords_list)
+                            except Exception:
+                                pass
+
+                if len(coords_list) >= 2:
+                    st = seg.get("status") or ("produtivo" if seg.get("is_produtivo") else "improdutivo_contra_base")
+                    rot = seg.get("rotulo") or ("Corrida Produtiva" if seg.get("is_produtivo") else "Deslocamento Sem Corrida")
+                    color = seg.get("cor") or ("#10b981" if seg.get("is_produtivo") else "#ef4444")
                     decoded_segments.append({
-                        "status": "produtivo" if is_prod else "improdutivo_contra_base",
-                        "rotulo": "Corrida Produtiva" if is_prod else "Deslocamento Sem Corrida",
-                        "cor": "#10b981" if is_prod else "#ef4444",
-                        "coords": decoded
+                        "status": st,
+                        "rotulo": rot,
+                        "cor": color,
+                        "coords": coords_list,
+                        "polyline": poly,
+                        "km": seg.get("km", 0.0)
                     })
-            except Exception:
-                pass
+            except Exception as e:
+                print("Erro ao decodificar segmento:", e)
 
         if len(decoded_segments) > 0:
             return {

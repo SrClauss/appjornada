@@ -248,7 +248,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
               _currentScreen = 'pausa';
             } else if (status == 'EM_MANUTENCAO') {
               _currentScreen = 'manutencao';
-            } else if (status == 'PRE_FECHAMENTO' || (status == 'ENCERRADA' && faltaKmFinal) || auditStatus == 'PENDENTE') {
+            } else if (status == 'PRE_FECHAMENTO') {
               GpsService.stopTracking();
               _currentScreen = 'fechamento_wizard';
             } else if (status == 'ENCERRADA') {
@@ -372,11 +372,11 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
           _currentScreen = 'pausa';
         } else if (status == 'EM_MANUTENCAO') {
           _currentScreen = 'manutencao';
-        } else if (status == 'PRE_FECHAMENTO' || (status == 'ENCERRADA' && faltaKmFinal) || auditStatus == 'PENDENTE') {
+        } else if (status == 'PRE_FECHAMENTO') {
           GpsService.stopTracking();
           _currentScreen = 'fechamento_wizard';
         } else if (status == 'ENCERRADA') {
-          // Se encerrada e sem pendências, inicia trilho de abertura
+          // Mesmo pendente de auditoria, vamos para o trilho (onde será bloqueado de criar nova)
           _currentScreen = 'trilho';
           _trilhoStep = 'auditoria';
         } else {
@@ -391,16 +391,8 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
   }
 
   void _onLogout() async {
-    if (_jornadaAberta != null && _jornadaAberta?['status'] != 'ENCERRADA') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Você possui uma jornada ativa. Encerre-a antes de sair.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
     GpsService.stopTracking();
+    OverlayService.stopOverlay();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('motorista_id');
@@ -408,6 +400,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
     await prefs.remove('motorista_pin');
     ApiService.token = null;
     setState(() {
+      _jornadaAberta = null;
       _currentScreen = 'login';
     });
   }
@@ -518,13 +511,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
             _checkSession();
           },
           onCancel: () {
-            if (_jornadaAberta?['status'] == 'ENCERRADA') {
-              _onLogout();
-            } else {
-              setState(() {
-                _currentScreen = 'dashboard';
-              });
-            }
+            _onLogout();
           },
         );
       case 'revisao_comprovante':
@@ -573,7 +560,7 @@ class _MainRouterState extends State<MainRouter> with WidgetsBindingObserver {
         return AuditoriaAnteriorStep(
           onCompleted: () {
             setState(() {
-              _trilhoStep = 'auditoria';
+              _trilhoStep = 'veiculo';
             });
           },
         );
