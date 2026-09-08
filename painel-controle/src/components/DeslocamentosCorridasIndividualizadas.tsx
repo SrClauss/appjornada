@@ -98,15 +98,15 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
   }
 
   return (
-    <Card className="p-4 border border-slate-100 shadow-md rounded-2xl bg-card space-y-4 my-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+    <Card className="p-4 border border-slate-800 shadow-md rounded-2xl bg-card space-y-4 my-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+          <div className="p-2 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-xl">
             <Navigation size={20} className="transform rotate-45" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-800">Deslocamentos de Corridas Individualizadas</h3>
-            <p className="text-xs text-slate-500">Selecione uma corrida para isolar o trajeto e visualizar a rota no mapa</p>
+            <h3 className="text-sm font-bold text-white">Deslocamentos de Corridas Individualizadas</h3>
+            <p className="text-xs text-slate-300">Selecione uma corrida para isolar o trajeto e visualizar a rota no mapa</p>
           </div>
         </div>
 
@@ -116,12 +116,12 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
               size="sm"
               variant="outline"
               onClick={() => onSelectCorrida(null)}
-              className="text-xs text-slate-600 border-slate-200 hover:bg-slate-100"
+              className="text-xs text-slate-200 border-slate-700 hover:bg-slate-800"
             >
               Ver Todas no Mapa
             </Button>
           )}
-          <Badge variant="outline" className="text-xs font-semibold border-indigo-200 text-indigo-700 bg-indigo-50/50">
+          <Badge variant="outline" className="text-xs font-semibold border-indigo-500/30 text-indigo-300 bg-indigo-500/10">
             {corridas.length} corrida{corridas.length > 1 ? 's' : ''} individualizada{corridas.length > 1 ? 's' : ''}
           </Badge>
         </div>
@@ -151,8 +151,8 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
               onClick={() => onSelectCorrida(isSelected ? null : c)}
               className={`p-3.5 rounded-xl border transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
                 isSelected
-                  ? 'border-indigo-500 bg-indigo-50/40 shadow-md ring-2 ring-indigo-500/20'
-                  : 'border-slate-100 hover:border-indigo-200 bg-white hover:bg-slate-50/60 shadow-sm'
+                  ? 'border-indigo-500 bg-indigo-950/40 shadow-md ring-2 ring-indigo-500/30'
+                  : 'border-slate-800 hover:border-indigo-500/40 bg-slate-900/90 hover:bg-slate-800/80 shadow-sm'
               }`}
             >
               <div className="space-y-2">
@@ -162,17 +162,17 @@ export const DeslocamentosCorridasIndividualizadas: React.FC<DeslocamentosCorrid
                       {c.plataformaNome}
                     </span>
                     {c.identificadoTelemetria === true && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/30">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                         🟢 GPS Confirmado
                       </span>
                     )}
                     {c.identificadoTelemetria === false && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/30">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
                         ⚠️ Sem GPS
                       </span>
                     )}
                   </div>
-                  <span className="text-sm font-black font-mono text-slate-900">
+                  <span className="text-sm font-black font-mono text-white">
                     {formatCurrency(c.valor)}
                   </span>
                 </div>

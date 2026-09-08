@@ -1400,20 +1400,20 @@ export function JornadasView() {
         <>
           {selectedJornada ? (
             <div className="space-y-6 animate-fade-in">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                 <div className="flex items-center gap-4">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setSelectedJornada(null)}
-                    className="flex items-center gap-2 px-3 py-1.5 h-auto text-slate-700 border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 h-auto text-slate-200 border-slate-700 shadow-sm hover:bg-slate-800 transition-colors"
                   >
                     <ArrowLeft size={16} />
                     Voltar
                   </Button>
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-800">Visualizar Jornada</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <h2 className="text-2xl font-extrabold text-white">Visualizar Jornada</h2>
+                    <p className="text-xs text-slate-300 font-medium mt-0.5">
                       Deslocamento real e eventos ocorridos em {new Date(selectedJornada.data).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
@@ -1531,47 +1531,47 @@ export function JornadasView() {
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-100 rounded-xl">
-                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-800 rounded-xl">
+                  <div className="p-3 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl">
                     <User size={24} weight="duotone" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Motorista</p>
-                    <h4 className="text-sm font-semibold text-slate-800 mt-0.5">
+                    <p className="text-xs text-slate-300 font-bold uppercase tracking-wider">Motorista</p>
+                    <h4 className="text-sm font-bold text-white mt-0.5">
                       {selectedJornada.motorista_nome ?? selectedJornada.motorista_id}
                     </h4>
                   </div>
                 </Card>
 
-                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-100 rounded-xl">
-                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-800 rounded-xl">
+                  <div className="p-3 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-xl">
                     <Car size={24} weight="duotone" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Veículo / Placa</p>
-                    <h4 className="text-sm font-semibold text-slate-800 mt-0.5">{selectedJornada.veiculo_id}</h4>
+                    <p className="text-xs text-slate-300 font-bold uppercase tracking-wider">Veículo / Placa</p>
+                    <h4 className="text-sm font-bold text-white mt-0.5">{selectedJornada.veiculo_id}</h4>
                   </div>
                 </Card>
 
-                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-100 rounded-xl">
-                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-800 rounded-xl">
+                  <div className="p-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl">
                     <Compass size={24} weight="duotone" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Odômetro Inicial / Final</p>
-                    <h4 className="text-sm font-semibold text-slate-800 mt-0.5">
+                    <p className="text-xs text-slate-300 font-bold uppercase tracking-wider">Odômetro Inicial / Final</p>
+                    <h4 className="text-sm font-bold text-white mt-0.5">
                       {selectedJornada.km?.inicial?.toLocaleString('pt-BR') ?? '—'} / {selectedJornada.km?.final?.toLocaleString('pt-BR') ?? '—'}
                     </h4>
                   </div>
                 </Card>
 
-                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-100 rounded-xl">
-                  <div className="p-3 bg-rose-50 text-rose-600 rounded-xl">
+                <Card className="p-4 flex items-center gap-4 bg-card shadow-sm border border-slate-800 rounded-xl">
+                  <div className="p-3 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl">
                     <Clock size={24} weight="duotone" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Km Rodados</p>
-                    <h4 className="text-sm font-bold text-blue-600 mt-0.5">
+                    <p className="text-xs text-slate-300 font-bold uppercase tracking-wider">Km Rodados</p>
+                    <h4 className="text-sm font-bold text-cyan-400 mt-0.5">
                       {selectedJornada.km?.rodados?.toLocaleString('pt-BR') ?? 0} km
                     </h4>
                   </div>

@@ -93,7 +93,7 @@ export function AppSidebar({ activeView, onNavigate, isMobileOpen = false, onClo
           const itemsInCat = filteredItems.filter((i) => (i.category || 'GERAL') === cat);
           return (
             <div key={cat} className="space-y-1">
-              <div className="px-3 text-[10px] font-bold text-slate-500 tracking-wider uppercase">
+              <div className="px-3 text-[10px] font-extrabold text-teal-400/90 tracking-wider uppercase">
                 {cat}
               </div>
               {itemsInCat.map((item) => {
@@ -105,12 +105,12 @@ export function AppSidebar({ activeView, onNavigate, isMobileOpen = false, onClo
                     key={item.id}
                     onClick={() => handleItemClick(item.id)}
                     className={cn(
-                      'w-full flex items-center gap-3.5 px-3.5 py-2.5 text-left rounded-xl transition-all duration-200 text-sm font-medium',
-                      'hover:bg-slate-800/60 hover:text-white',
+                      'w-full flex items-center gap-3.5 px-3.5 py-2.5 text-left rounded-xl transition-all duration-200 text-sm font-medium text-slate-200',
+                      'hover:bg-slate-800/80 hover:text-white',
                       isActive && 'bg-teal-500/15 text-teal-300 border border-teal-500/30 font-semibold shadow-md shadow-teal-950/40'
                     )}
                   >
-                    <Icon size={20} className={cn('flex-shrink-0', isActive ? 'text-teal-400' : 'text-slate-400')} />
+                    <Icon size={20} className={cn('flex-shrink-0', isActive ? 'text-teal-400' : 'text-slate-300')} />
                     <span>{item.label}</span>
                   </button>
                 );

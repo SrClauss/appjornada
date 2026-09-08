@@ -493,40 +493,40 @@ export function VeiculosView() {
 
               {/* Tabela de Jornadas do Veículo */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <span>🚗 Jornadas Realizadas ({jornadasVeiculo.length})</span>
                 </h3>
-                <div className="border rounded-xl overflow-hidden">
+                <div className="border border-slate-800 rounded-xl overflow-hidden">
                   <Table>
-                    <TableHeader className="bg-slate-50">
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Motorista</TableHead>
-                        <TableHead>KM Inicial / Final</TableHead>
-                        <TableHead>KM Rodados</TableHead>
-                        <TableHead>Faturamento</TableHead>
-                        <TableHead>Status</TableHead>
+                    <TableHeader className="bg-slate-900">
+                      <TableRow className="border-b border-slate-800">
+                        <TableHead className="text-slate-300">Data</TableHead>
+                        <TableHead className="text-slate-300">Motorista</TableHead>
+                        <TableHead className="text-slate-300">KM Inicial / Final</TableHead>
+                        <TableHead className="text-slate-300">KM Rodados</TableHead>
+                        <TableHead className="text-slate-300">Faturamento</TableHead>
+                        <TableHead className="text-slate-300">Status</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="divide-y divide-slate-800">
                       {jornadasVeiculo.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-6 text-slate-500 text-xs">
+                          <TableCell colSpan={6} className="text-center py-6 text-slate-300 text-xs">
                             Nenhuma jornada registrada para este veículo.
                           </TableCell>
                         </TableRow>
                       ) : (
                         jornadasVeiculo.map((j) => (
-                          <TableRow key={j.id}>
-                            <TableCell className="font-mono text-xs font-semibold">{j.data}</TableCell>
-                            <TableCell className="font-medium text-xs">{j.motorista_nome || j.motorista_id}</TableCell>
-                            <TableCell className="font-mono text-xs">
+                          <TableRow key={j.id} className="border-b border-slate-800/60 hover:bg-slate-800/50">
+                            <TableCell className="font-mono text-xs font-semibold text-slate-200">{j.data}</TableCell>
+                            <TableCell className="font-medium text-xs text-white">{j.motorista_nome || j.motorista_id}</TableCell>
+                            <TableCell className="font-mono text-xs text-slate-300">
                               {j.km?.inicial ?? '—'} / {j.km?.final ?? '—'}
                             </TableCell>
-                            <TableCell className="font-mono text-xs font-bold text-sky-600">
+                            <TableCell className="font-mono text-xs font-bold text-sky-400">
                               {j.km?.rodados ?? 0} km
                             </TableCell>
-                            <TableCell className="font-mono text-xs font-bold text-emerald-600">
+                            <TableCell className="font-mono text-xs font-bold text-emerald-400">
                               R$ {(j.faturamento?.total_dia ?? 0).toFixed(2)}
                             </TableCell>
                             <TableCell>
@@ -544,12 +544,12 @@ export function VeiculosView() {
 
               {/* Tabela de Manutenções do Veículo */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <span>🔧 Histórico de Manutenções ({manutencoesVeiculo.length})</span>
                 </h3>
-                <div className="border rounded-xl overflow-hidden">
+                <div className="border border-slate-800 rounded-xl overflow-hidden">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-slate-900">
                       <TableRow>
                         <TableHead>Entrada</TableHead>
                         <TableHead>Serviço / Oficina</TableHead>
